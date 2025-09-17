@@ -17,7 +17,7 @@ COPY visualizer_fastapi.py .
 COPY templates/ templates/
 
 # Create output directory
-RUN mkdir -p output
+COPY output/ output/
 
 # Expose port
 EXPOSE 8000
