@@ -1,0 +1,2037 @@
+{
+  "metadata": {
+    "start_url": "https://www.cinemark.com/",
+    "domain": "www.cinemark.com",
+    "total_urls_discovered": 233,
+    "max_depth_reached": 2,
+    "crawl_duration_seconds": 108.795582,
+    "timestamp": "2025-09-14T00:11:27.313238",
+    "crawler_stats": {
+      "total_pages_visited": 20,
+      "total_pages_discovered": 233,
+      "max_depth_reached": 2,
+      "domain": "www.cinemark.com"
+    }
+  },
+  "navigation_paths": {
+    "https://www.cinemark.com/": {
+      "url": "https://www.cinemark.com/",
+      "semantic_path": [
+        "Home"
+      ],
+      "depth": 0,
+      "parent_url": null
+    },
+    "https://www.cinemark.com/gift-cards": {
+      "url": "https://www.cinemark.com/gift-cards",
+      "semantic_path": [
+        "Gift Cards"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/food-and-drink": {
+      "url": "https://www.cinemark.com/food-and-drink",
+      "semantic_path": [
+        "Food & Drink"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/merchandise": {
+      "url": "https://www.cinemark.com/merchandise",
+      "semantic_path": [
+        "Merchandise"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/private-events": {
+      "url": "https://www.cinemark.com/private-events",
+      "semantic_path": [
+        "Private Events"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movie-news": {
+      "url": "https://www.cinemark.com/movie-news",
+      "semantic_path": [
+        "Movie News"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/guest-services": {
+      "url": "https://www.cinemark.com/guest-services",
+      "semantic_path": [
+        "Guest Services"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/ShoppingCart": {
+      "url": "https://www.cinemark.com/ShoppingCart",
+      "semantic_path": [
+        "Shoppingcart"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies": {
+      "url": "https://www.cinemark.com/movies",
+      "semantic_path": [
+        "Movies"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/theatres": {
+      "url": "https://www.cinemark.com/theatres",
+      "semantic_path": [
+        "Theatres"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movie-rewards": {
+      "url": "https://www.cinemark.com/movie-rewards",
+      "semantic_path": [
+        "Movie Rewards"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn": {
+      "url": "https://www.cinemark.com/Membership/SignIn",
+      "semantic_path": [
+        "Sign In"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/Register": {
+      "url": "https://www.cinemark.com/Membership/Register",
+      "semantic_path": [
+        "Create an Account"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle-japanese-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle-japanese-with-english-subtitles",
+      "semantic_path": [
+        "GET TICKETS"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/downton-abbey-the-grand-finale": {
+      "url": "https://www.cinemark.com/movies/downton-abbey-the-grand-finale",
+      "semantic_path": [
+        "GET TICKETS"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/a-big-bold-beautiful-journey": {
+      "url": "https://www.cinemark.com/movies/a-big-bold-beautiful-journey",
+      "semantic_path": [
+        "GET YOUR TICKETS NOW"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/him": {
+      "url": "https://www.cinemark.com/movies/him",
+      "semantic_path": [
+        "GET TICKETS"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/the-long-walk": {
+      "url": "https://www.cinemark.com/movies/the-long-walk",
+      "semantic_path": [
+        "GET TICKETS"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104693": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104693",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104694": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104694",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle-english-dubbed": {
+      "url": "https://www.cinemark.com/movies/demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle-english-dubbed",
+      "semantic_path": [
+        "Demon Slayer Kimetsu No Yaiba The Movie Infinity Castle English Dubbed"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/tron-ares": {
+      "url": "https://www.cinemark.com/movies/tron-ares",
+      "semantic_path": [
+        "Advance Tickets Tron: Ares"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103266": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103266",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/tron-ares-early-access-screening": {
+      "url": "https://www.cinemark.com/movies/tron-ares-early-access-screening",
+      "semantic_path": [
+        "Advance Tickets Tron: Ares Early Access Screening"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105812": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105812",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101800": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101800",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104650": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104650",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/downton-abbey-the-grand-finale-early-access-screening": {
+      "url": "https://www.cinemark.com/movies/downton-abbey-the-grand-finale-early-access-screening",
+      "semantic_path": [
+        "Downton Abbey The Grand Finale Early Access Screening"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105172": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105172",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/toy-story-30th-anniversary": {
+      "url": "https://www.cinemark.com/movies/toy-story-30th-anniversary",
+      "semantic_path": [
+        "Toy Story 30Th Anniversary"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103969": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103969",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101799": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101799",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/the-conjuring-last-rites": {
+      "url": "https://www.cinemark.com/movies/the-conjuring-last-rites",
+      "semantic_path": [
+        "The Conjuring Last Rites"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103968": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103968",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/spinal-tap-ii-the-end-continues": {
+      "url": "https://www.cinemark.com/movies/spinal-tap-ii-the-end-continues",
+      "semantic_path": [
+        "Spinal Tap Ii The End Continues"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103262": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103262",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=100709": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=100709",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/the-senior": {
+      "url": "https://www.cinemark.com/movies/the-senior",
+      "semantic_path": [
+        "Advance Tickets The Senior"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104875": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104875",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/one-battle-after-another": {
+      "url": "https://www.cinemark.com/movies/one-battle-after-another",
+      "semantic_path": [
+        "Advance Tickets One Battle After Another"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103711": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103711",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/the-strangers-chapter-2": {
+      "url": "https://www.cinemark.com/movies/the-strangers-chapter-2",
+      "semantic_path": [
+        "Advance Tickets The Strangers | Chapter 2"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103972": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103972",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/gabbys-dollhouse-the-movie": {
+      "url": "https://www.cinemark.com/movies/gabbys-dollhouse-the-movie",
+      "semantic_path": [
+        "Advance Tickets Gabby's Dollhouse: The Movie"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103971": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103971",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/dude-perfect-the-hero-tour": {
+      "url": "https://www.cinemark.com/movies/dude-perfect-the-hero-tour",
+      "semantic_path": [
+        "Advance Tickets Dude Perfect: The Hero Tour"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105419": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105419",
+      "semantic_path": [
+        "Add to Watch List"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/food-drink/delivery": {
+      "url": "https://www.cinemark.com/food-drink/delivery",
+      "semantic_path": [
+        "ORDER DELIVERY"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movie-news/articles/what-is-d-box-4d-movies-advantages-unique-differences": {
+      "url": "https://www.cinemark.com/movie-news/articles/what-is-d-box-4d-movies-advantages-unique-differences",
+      "semantic_path": [
+        "What Is D-BOX? Here's What the Movie Format Offers"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movie-news/articles/what-is-screen-x-advantages-differences-from-other-formats": {
+      "url": "https://www.cinemark.com/movie-news/articles/what-is-screen-x-advantages-differences-from-other-formats",
+      "semantic_path": [
+        "What Is Screen X Advantages Differences From Other Formats"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movie-news/articles/reald-3d-movies-in-theatres": {
+      "url": "https://www.cinemark.com/movie-news/articles/reald-3d-movies-in-theatres",
+      "semantic_path": [
+        "Reald 3D Movies In Theatres"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movie-news/articles/movies-coming-to-movie-theaters-in-september": {
+      "url": "https://www.cinemark.com/movie-news/articles/movies-coming-to-movie-theaters-in-september",
+      "semantic_path": [
+        "New Movies Coming to Theatres in September 2025"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/featured": {
+      "url": "https://www.cinemark.com/movies/featured",
+      "semantic_path": [
+        "Featured"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/now-playing": {
+      "url": "https://www.cinemark.com/movies/now-playing",
+      "semantic_path": [
+        "Now Playing"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/coming-soon": {
+      "url": "https://www.cinemark.com/movies/coming-soon",
+      "semantic_path": [
+        "Coming Soon"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/cinearts": {
+      "url": "https://www.cinemark.com/movies/cinearts",
+      "semantic_path": [
+        "CinéArts"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/movies/cinemark-xd": {
+      "url": "https://www.cinemark.com/movies/cinemark-xd",
+      "semantic_path": [
+        "Cinemark XD"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/discounts": {
+      "url": "https://www.cinemark.com/discounts",
+      "semantic_path": [
+        "Discounts"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/discounts/weekly-email": {
+      "url": "https://www.cinemark.com/discounts/weekly-email",
+      "semantic_path": [
+        "Weekly Email"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/prepaidtickets": {
+      "url": "https://www.cinemark.com/prepaidtickets",
+      "semantic_path": [
+        "Prepaid Tickets"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/technology": {
+      "url": "https://www.cinemark.com/technology",
+      "semantic_path": [
+        "Theatre Technology"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/xd": {
+      "url": "https://www.cinemark.com/xd",
+      "semantic_path": [
+        "Cinemark XD"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/luxury-loungers": {
+      "url": "https://www.cinemark.com/luxury-loungers",
+      "semantic_path": [
+        "Luxury Loungers"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/reald-3d": {
+      "url": "https://www.cinemark.com/reald-3d",
+      "semantic_path": [
+        "RealD 3D"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/d-box": {
+      "url": "https://www.cinemark.com/d-box",
+      "semantic_path": [
+        "D-BOX"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/imax": {
+      "url": "https://www.cinemark.com/imax",
+      "semantic_path": [
+        "IMAX"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/screenx": {
+      "url": "https://www.cinemark.com/screenx",
+      "semantic_path": [
+        "ScreenX"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/accessibility-at-cinemark": {
+      "url": "https://www.cinemark.com/accessibility-at-cinemark",
+      "semantic_path": [
+        "Accessibility"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/about-cinemark": {
+      "url": "https://www.cinemark.com/about-cinemark",
+      "semantic_path": [
+        "About Cinemark"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/gamescape": {
+      "url": "https://www.cinemark.com/gamescape",
+      "semantic_path": [
+        "Gamescape"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/faq": {
+      "url": "https://www.cinemark.com/faq",
+      "semantic_path": [
+        "FAQ"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/about/international": {
+      "url": "https://www.cinemark.com/about/international",
+      "semantic_path": [
+        "International"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/about/advertise-with-us": {
+      "url": "https://www.cinemark.com/about/advertise-with-us",
+      "semantic_path": [
+        "Advertise with Us"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/refund-request": {
+      "url": "https://www.cinemark.com/refund-request",
+      "semantic_path": [
+        "Refunds"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/terms-conditions-cmr": {
+      "url": "https://www.cinemark.com/terms-conditions-cmr",
+      "semantic_path": [
+        "Cinemark Movie Rewards Terms & Conditions"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/privacy-policy": {
+      "url": "https://www.cinemark.com/privacy-policy",
+      "semantic_path": [
+        "Cinemark Privacy Notice"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/terms-conditions": {
+      "url": "https://www.cinemark.com/terms-conditions",
+      "semantic_path": [
+        "Cinemark Terms of Service"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/personal-information": {
+      "url": "https://www.cinemark.com/personal-information",
+      "semantic_path": [
+        "Do Not Sell My Personal Information"
+      ],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com/"
+    },
+    "https://www.cinemark.com/gift-card-balance-checker?check-balance": {
+      "url": "https://www.cinemark.com/gift-card-balance-checker?check-balance",
+      "semantic_path": [
+        "Gift Cards",
+        "CHECK GIFT CARD BALANCE"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/gift-cards"
+    },
+    "https://www.cinemark.com/giftmovieclub": {
+      "url": "https://www.cinemark.com/giftmovieclub",
+      "semantic_path": [
+        "Gift Cards",
+        "Giftmovieclub"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/gift-cards"
+    },
+    "https://www.cinemark.com/faqs/gift-cards-faq": {
+      "url": "https://www.cinemark.com/faqs/gift-cards-faq",
+      "semantic_path": [
+        "Gift Cards",
+        "Gift Cards FAQ"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/gift-cards"
+    },
+    "https://www.cinemark.com/food-drink/nutritional-and-allergen-information": {
+      "url": "https://www.cinemark.com/food-drink/nutritional-and-allergen-information",
+      "semantic_path": [
+        "Food & Drink",
+        "Nutritional and Allergen Information"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/food-and-drink"
+    },
+    "https://www.cinemark.com/food-drink/mobile-ordering": {
+      "url": "https://www.cinemark.com/food-drink/mobile-ordering",
+      "semantic_path": [
+        "Food & Drink",
+        "Mobile Ordering"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/food-and-drink"
+    },
+    "https://www.cinemark.com/food-drink/dine-in-theatres": {
+      "url": "https://www.cinemark.com/food-drink/dine-in-theatres",
+      "semantic_path": [
+        "Food & Drink",
+        "Dine In Theatres"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/food-and-drink"
+    },
+    "https://www.cinemark.com/food-drink/alcohol": {
+      "url": "https://www.cinemark.com/food-drink/alcohol",
+      "semantic_path": [
+        "Food & Drink",
+        "Alcohol"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/food-and-drink"
+    },
+    "https://www.cinemark.com/food-drink/concessions": {
+      "url": "https://www.cinemark.com/food-drink/concessions",
+      "semantic_path": [
+        "Food & Drink",
+        "Concessions"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/food-and-drink"
+    },
+    "https://www.cinemark.com/private-events/premium-private-screenings": {
+      "url": "https://www.cinemark.com/private-events/premium-private-screenings",
+      "semantic_path": [
+        "Private Events",
+        "Premium Private Screenings"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/meetings-special-events": {
+      "url": "https://www.cinemark.com/private-events/meetings-special-events",
+      "semantic_path": [
+        "Private Events",
+        "Meetings & Special Events"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/field-trips": {
+      "url": "https://www.cinemark.com/private-events/field-trips",
+      "semantic_path": [
+        "Private Events",
+        "Field Trips"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/theatre-church": {
+      "url": "https://www.cinemark.com/private-events/theatre-church",
+      "semantic_path": [
+        "Private Events",
+        "Theatre Church"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/birthday-parties": {
+      "url": "https://www.cinemark.com/private-events/birthday-parties",
+      "semantic_path": [
+        "Private Events",
+        "Birthday Parties"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/gaming": {
+      "url": "https://www.cinemark.com/private-events/gaming",
+      "semantic_path": [
+        "Private Events",
+        "Gaming"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/gamescape-events": {
+      "url": "https://www.cinemark.com/private-events/gamescape-events",
+      "semantic_path": [
+        "Private Events",
+        "Gamescape Events"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/premium-private-screenings?routing=skip": {
+      "url": "https://www.cinemark.com/private-events/premium-private-screenings?routing=skip",
+      "semantic_path": [
+        "Private Events",
+        "Request a Quote"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/independent-films": {
+      "url": "https://www.cinemark.com/private-events/independent-films",
+      "semantic_path": [
+        "Private Events",
+        "Request a Quote"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/movies/private-watch-party": {
+      "url": "https://www.cinemark.com/movies/private-watch-party",
+      "semantic_path": [
+        "Private Events",
+        "Book Now"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/private-events/remote-learning": {
+      "url": "https://www.cinemark.com/private-events/remote-learning",
+      "semantic_path": [
+        "Private Events",
+        "Get Started"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/private-events"
+    },
+    "https://www.cinemark.com/movie-news/articles/spider-man-movies-are-back-in-theaters": {
+      "url": "https://www.cinemark.com/movie-news/articles/spider-man-movies-are-back-in-theaters",
+      "semantic_path": [
+        "Movie News",
+        "Spider Man Movies Are Back In Theaters"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-news"
+    },
+    "https://www.cinemark.com/movie-news/articles/new-movie-merchandise-this-month": {
+      "url": "https://www.cinemark.com/movie-news/articles/new-movie-merchandise-this-month",
+      "semantic_path": [
+        "Movie News",
+        "New Must-Have Movie Merchandise This Month"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-news"
+    },
+    "https://www.cinemark.com/movie-news/articles/new-xd-movies-to-see": {
+      "url": "https://www.cinemark.com/movie-news/articles/new-xd-movies-to-see",
+      "semantic_path": [
+        "Movie News",
+        "New Xd Movies To See"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-news"
+    },
+    "https://www.cinemark.com/movie-news/articles/best-new-date-night-movies-in-theaters": {
+      "url": "https://www.cinemark.com/movie-news/articles/best-new-date-night-movies-in-theaters",
+      "semantic_path": [
+        "Movie News",
+        "New Date Night Movies in Theaters"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-news"
+    },
+    "https://www.cinemark.com/movie-news/articles": {
+      "url": "https://www.cinemark.com/movie-news/articles",
+      "semantic_path": [
+        "Movie News",
+        "View More"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-news"
+    },
+    "https://www.cinemark.com/account/guest-upcoming-tickets": {
+      "url": "https://www.cinemark.com/account/guest-upcoming-tickets",
+      "semantic_path": [
+        "Guest Services",
+        "Guest Upcoming Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/account/purchases": {
+      "url": "https://www.cinemark.com/account/purchases",
+      "semantic_path": [
+        "Guest Services",
+        "Purchases"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/Membership/ResetPasswordRequest": {
+      "url": "https://www.cinemark.com/Membership/ResetPasswordRequest",
+      "semantic_path": [
+        "Guest Services",
+        "Resetpasswordrequest"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/account/profile": {
+      "url": "https://www.cinemark.com/account/profile",
+      "semantic_path": [
+        "Guest Services",
+        "Profile"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/account/giftcards": {
+      "url": "https://www.cinemark.com/account/giftcards",
+      "semantic_path": [
+        "Guest Services",
+        "Giftcards"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/membership/signin?returnurl=/movie-rewards": {
+      "url": "https://www.cinemark.com/membership/signin?returnurl=/movie-rewards",
+      "semantic_path": [
+        "Guest Services",
+        "Movie Rewards"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/movie-rewards/history/credits": {
+      "url": "https://www.cinemark.com/movie-rewards/history/credits",
+      "semantic_path": [
+        "Guest Services",
+        "Credits"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/faq-movie-club": {
+      "url": "https://www.cinemark.com/faq-movie-club",
+      "semantic_path": [
+        "Guest Services",
+        "Faq Movie Club"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/faqs/private-screenings-meetings-faq": {
+      "url": "https://www.cinemark.com/faqs/private-screenings-meetings-faq",
+      "semantic_path": [
+        "Guest Services",
+        "Private Screenings Meetings Faq"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/movie-club-faq-new/movie-club-gifting-faq": {
+      "url": "https://www.cinemark.com/movie-club-faq-new/movie-club-gifting-faq",
+      "semantic_path": [
+        "Guest Services",
+        "Movie Club Gifting Faq"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/faq-gift-cards": {
+      "url": "https://www.cinemark.com/faq-gift-cards",
+      "semantic_path": [
+        "Guest Services",
+        "Faq Gift Cards"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/faq-tickets-purchases-refunds": {
+      "url": "https://www.cinemark.com/faq-tickets-purchases-refunds",
+      "semantic_path": [
+        "Guest Services",
+        "Faq Tickets Purchases Refunds"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/faqs": {
+      "url": "https://www.cinemark.com/faqs",
+      "semantic_path": [
+        "Guest Services",
+        "All FAQs See all Frequently Asked Questions"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/contact-us": {
+      "url": "https://www.cinemark.com/contact-us",
+      "semantic_path": [
+        "Guest Services",
+        "Contact Us"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/guest-services"
+    },
+    "https://www.cinemark.com/movies/foreign": {
+      "url": "https://www.cinemark.com/movies/foreign",
+      "semantic_path": [
+        "Movies",
+        "Foreign"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/events": {
+      "url": "https://www.cinemark.com/movies/events",
+      "semantic_path": [
+        "Movies",
+        "Events"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-roses": {
+      "url": "https://www.cinemark.com/movies/the-roses",
+      "semantic_path": [
+        "Movies",
+        "The Roses Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103883": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103883",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/jaws-50th-anniversary": {
+      "url": "https://www.cinemark.com/movies/jaws-50th-anniversary",
+      "semantic_path": [
+        "Movies",
+        "Jaws: 50th Anniversary Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104634": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104634",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/weapons": {
+      "url": "https://www.cinemark.com/movies/weapons",
+      "semantic_path": [
+        "Movies",
+        "Weapons Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103772": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103772",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/freakier-friday": {
+      "url": "https://www.cinemark.com/movies/freakier-friday",
+      "semantic_path": [
+        "Movies",
+        "Freakier Friday Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101795": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101795",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/nobody-2": {
+      "url": "https://www.cinemark.com/movies/nobody-2",
+      "semantic_path": [
+        "Movies",
+        "Nobody 2 Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101797": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101797",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-fantastic-four": {
+      "url": "https://www.cinemark.com/movies/the-fantastic-four",
+      "semantic_path": [
+        "Movies",
+        "The Fantastic Four: First Steps Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101792": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101792",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-bad-guys-2": {
+      "url": "https://www.cinemark.com/movies/the-bad-guys-2",
+      "semantic_path": [
+        "Movies",
+        "The Bad Guys 2 Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101793": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101793",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-naked-gun": {
+      "url": "https://www.cinemark.com/movies/the-naked-gun",
+      "semantic_path": [
+        "Movies",
+        "The Naked Gun Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103632": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103632",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/superman": {
+      "url": "https://www.cinemark.com/movies/superman",
+      "semantic_path": [
+        "Movies",
+        "Superman Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101790": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101790",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/jurassic-world-rebirth": {
+      "url": "https://www.cinemark.com/movies/jurassic-world-rebirth",
+      "semantic_path": [
+        "Movies",
+        "Jurassic World Rebirth Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101789": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101789",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/f1": {
+      "url": "https://www.cinemark.com/movies/f1",
+      "semantic_path": [
+        "Movies",
+        "F1 The Movie Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101788": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101788",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/how-to-train-your-dragon": {
+      "url": "https://www.cinemark.com/movies/how-to-train-your-dragon",
+      "semantic_path": [
+        "Movies",
+        "How to Train Your Dragon Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=101785": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=101785",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/splitsville": {
+      "url": "https://www.cinemark.com/movies/splitsville",
+      "semantic_path": [
+        "Movies",
+        "Splitsville Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104990": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104990",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-baltimorons": {
+      "url": "https://www.cinemark.com/movies/the-baltimorons",
+      "semantic_path": [
+        "Movies",
+        "The Baltimorons Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105239": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105239",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/twinless": {
+      "url": "https://www.cinemark.com/movies/twinless",
+      "semantic_path": [
+        "Movies",
+        "Twinless Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105180": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105180",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/honey-dont": {
+      "url": "https://www.cinemark.com/movies/honey-dont",
+      "semantic_path": [
+        "Movies",
+        "Honey Don't! Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104341": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104341",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/relay": {
+      "url": "https://www.cinemark.com/movies/relay",
+      "semantic_path": [
+        "Movies",
+        "Relay Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103776": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103776",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/together": {
+      "url": "https://www.cinemark.com/movies/together",
+      "semantic_path": [
+        "Movies",
+        "Together Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103259": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103259",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-threesome": {
+      "url": "https://www.cinemark.com/movies/the-threesome",
+      "semantic_path": [
+        "Movies",
+        "The Threesome Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105255": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105255",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-legend-of-hei-2-mandarin-with-chinese-and-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/the-legend-of-hei-2-mandarin-with-chinese-and-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "The Legend Of Hei 2 Mandarin With Chinese And English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105276": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105276",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/light-of-the-world": {
+      "url": "https://www.cinemark.com/movies/light-of-the-world",
+      "semantic_path": [
+        "Movies",
+        "Light of the World Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104631": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104631",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/mirai-hindi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/mirai-hindi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Mirai (Hindi with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105962": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105962",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/mirai-telugu-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/mirai-telugu-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Mirai (Telugu with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105320": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105320",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/kishkindhapuri-telugu-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/kishkindhapuri-telugu-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Kishkindhapuri Telugu With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105790": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105790",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/abir-gulaal-hindi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/abir-gulaal-hindi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Abir Gulaal (Hindi with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104056": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104056",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/love-in-vietnam-hindi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/love-in-vietnam-hindi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Love In Vietnam Hindi With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105319": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105319",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/little-hearts-telugu-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/little-hearts-telugu-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Little Hearts Telugu With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105287": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105287",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/lokah-chapter-1-telugu-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/lokah-chapter-1-telugu-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Lokah Chapter 1 Telugu With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105965": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105965",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/bad-girl-tamil-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/bad-girl-tamil-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Bad Girl (Tamil with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105982": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105982",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/heer-express-hindi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/heer-express-hindi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Heer Express Hindi With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105981": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105981",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/sarangi-telugu-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/sarangi-telugu-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Sarangi (Telugu with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105685": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105685",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/punjabi-aa-gaye-oye-punjabi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/punjabi-aa-gaye-oye-punjabi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Punjabi Aa Gaye Oye Punjabi With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105368": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105368",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-sound-of-music-60th-anniversary": {
+      "url": "https://www.cinemark.com/movies/the-sound-of-music-60th-anniversary",
+      "semantic_path": [
+        "Movies",
+        "The Sound of Music 60th Anniversary Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103513": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103513",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle-spanish-with-eng-sub": {
+      "url": "https://www.cinemark.com/movies/demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle-spanish-with-eng-sub",
+      "semantic_path": [
+        "Movies",
+        "Demon Slayer Kimetsu No Yaiba The Movie Infinity Castle Spanish With Eng Sub"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105825": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105825",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/en-espanol-demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle": {
+      "url": "https://www.cinemark.com/movies/en-espanol-demon-slayer-kimetsu-no-yaiba-the-movie-infinity-castle",
+      "semantic_path": [
+        "Movies",
+        "En Espanol Demon Slayer Kimetsu No Yaiba The Movie Infinity Castle"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105824": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105824",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/en-espanol-toy-story-30th-anniversary": {
+      "url": "https://www.cinemark.com/movies/en-espanol-toy-story-30th-anniversary",
+      "semantic_path": [
+        "Movies",
+        "[En Espanol] Toy Story: 30th Anniversary Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105818": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105818",
+      "semantic_path": [
+        "Movies",
+        "Remind Me"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/women-in-christ": {
+      "url": "https://www.cinemark.com/movies/women-in-christ",
+      "semantic_path": [
+        "Movies",
+        "Women in Christ Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105395": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105395",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/baaghi-4-hindi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/baaghi-4-hindi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Baaghi 4 (Hindi with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105692": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105692",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/hamilton": {
+      "url": "https://www.cinemark.com/movies/hamilton",
+      "semantic_path": [
+        "Movies",
+        "Hamilton Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105191": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105191",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/madharasi-tamil-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/madharasi-tamil-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Madharasi (Tamil with English Subtitles) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105787": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105787",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-american-southwest": {
+      "url": "https://www.cinemark.com/movies/the-american-southwest",
+      "semantic_path": [
+        "Movies",
+        "The American Southwest Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=104879": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=104879",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/en-espanol-the-conjuring-last-rites": {
+      "url": "https://www.cinemark.com/movies/en-espanol-the-conjuring-last-rites",
+      "semantic_path": [
+        "Movies",
+        "[En Espanol] The Conjuring: Last Rites Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105207": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105207",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/caught-stealing": {
+      "url": "https://www.cinemark.com/movies/caught-stealing",
+      "semantic_path": [
+        "Movies",
+        "Caught Stealing Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103261": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103261",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/param-sundari-hindi-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/param-sundari-hindi-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Param Sundari Hindi With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105595": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105595",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/lokah-chapter-1-malayalam-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/lokah-chapter-1-malayalam-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Lokah Chapter 1 Malayalam With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105691": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105691",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/mang-me-di-bo-leaving-mom-vietnamese-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/mang-me-di-bo-leaving-mom-vietnamese-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Mang Me Di Bo Leaving Mom Vietnamese With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105311": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105311",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/ne-zha-ii-english-dubbed": {
+      "url": "https://www.cinemark.com/movies/ne-zha-ii-english-dubbed",
+      "semantic_path": [
+        "Movies",
+        "Ne Zha II (English Dubbed) Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105035": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105035",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/the-shadows-edge-mandarin-with-chinese-and-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/the-shadows-edge-mandarin-with-chinese-and-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "The Shadows Edge Mandarin With Chinese And English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105603": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105603",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/dead-to-rights-mandarin-with-chinese-and-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/dead-to-rights-mandarin-with-chinese-and-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Dead To Rights Mandarin With Chinese And English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105069": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105069",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/sketch": {
+      "url": "https://www.cinemark.com/movies/sketch",
+      "semantic_path": [
+        "Movies",
+        "Sketch Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=103777": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=103777",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/love-brooklyn": {
+      "url": "https://www.cinemark.com/movies/love-brooklyn",
+      "semantic_path": [
+        "Movies",
+        "Love, Brooklyn Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105845": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105845",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/mahavatar-narasimha-telugu-with-english-subtitles": {
+      "url": "https://www.cinemark.com/movies/mahavatar-narasimha-telugu-with-english-subtitles",
+      "semantic_path": [
+        "Movies",
+        "Mahavatar Narasimha Telugu With English Subtitles"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=105163": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=105163",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/cinemark-birthday-party": {
+      "url": "https://www.cinemark.com/movies/cinemark-birthday-party",
+      "semantic_path": [
+        "Movies",
+        "Cinemark Birthday Party Tickets"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/Membership/SignIn?movieId=88163": {
+      "url": "https://www.cinemark.com/Membership/SignIn?movieId=88163",
+      "semantic_path": [
+        "Movies",
+        "Add to Watch List"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/membership/register?returnurl=/movie-rewards-info": {
+      "url": "https://www.cinemark.com/membership/register?returnurl=/movie-rewards-info",
+      "semantic_path": [
+        "Movie Rewards",
+        "Join Now"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-rewards"
+    },
+    "https://www.cinemark.com/movieclub": {
+      "url": "https://www.cinemark.com/movieclub",
+      "semantic_path": [
+        "Movie Rewards",
+        "Upgrade"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-rewards"
+    },
+    "https://www.cinemark.com/movie-club-faq-new/movie-club-platinum-faq": {
+      "url": "https://www.cinemark.com/movie-club-faq-new/movie-club-platinum-faq",
+      "semantic_path": [
+        "Movie Rewards",
+        "Movie Club Platinum Faq"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-rewards"
+    },
+    "https://www.cinemark.com/movieclubplatinum": {
+      "url": "https://www.cinemark.com/movieclubplatinum",
+      "semantic_path": [
+        "Movie Rewards",
+        "Movieclubplatinum"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-rewards"
+    },
+    "https://www.cinemark.com/faq-movierewards": {
+      "url": "https://www.cinemark.com/faq-movierewards",
+      "semantic_path": [
+        "Movie Rewards",
+        "Movie Rewards FAQ"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movie-rewards"
+    },
+    "https://www.cinemark.com/realms/cinemark/login-actions/registration?client_id=cinemark-internet&tab_id=HZ55B3bxS7k&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL2xvZ2luLXJlZGlyZWN0IiwicnQiOiJjb2RlIiwicm0iOiJmb3JtX3Bvc3QiLCJzdCI6Ik9wZW5JZENvbm5lY3QuQXV0aGVudGljYXRpb25Qcm9wZXJ0aWVzPWdMRlkzTEplSkpsbEp1LXFSQkZSbnBxd2Zzc1ZMcTUzTzFqRmc5bGt1WlBfZFJtTEhOc05YbGE3aVJjX2puQzZnOVpGUTRpWVpfM1ROaUw3Z2htOTZSbkJXUEdwbzZEYkd5ZVZLbTEtVG53WUxzVENlZkY0M1o0Vk5OYUdHdjhnVk55NnVsaC1JUmc3V01nTmJQdTdiY05vV1B2SU5ReUtTNDE4Tk9vd29HU2Y5ZUFzaTNiLUx4QUdMcFE1ZkhqUm92VzFJRU1IZjkyMU40ZFc4Uy1sanlISVlFaGxIa2pCcXhoS01iNXNGUE93OS1zTFpOUE5VWG1uLVdJV1Z5Z2NxejhXUzZoTm9yX2JUdHJMY25DVzJVZURGaW1ITy1mcDVWVi05QWJnYnprWnViOG9lLUNaUWVKYkV1cGdDc2xqR0pxM29XdkVEalpIQWdYUnNWSG05dyJ9": {
+      "url": "https://www.cinemark.com/realms/cinemark/login-actions/registration?client_id=cinemark-internet&tab_id=HZ55B3bxS7k&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL2xvZ2luLXJlZGlyZWN0IiwicnQiOiJjb2RlIiwicm0iOiJmb3JtX3Bvc3QiLCJzdCI6Ik9wZW5JZENvbm5lY3QuQXV0aGVudGljYXRpb25Qcm9wZXJ0aWVzPWdMRlkzTEplSkpsbEp1LXFSQkZSbnBxd2Zzc1ZMcTUzTzFqRmc5bGt1WlBfZFJtTEhOc05YbGE3aVJjX2puQzZnOVpGUTRpWVpfM1ROaUw3Z2htOTZSbkJXUEdwbzZEYkd5ZVZLbTEtVG53WUxzVENlZkY0M1o0Vk5OYUdHdjhnVk55NnVsaC1JUmc3V01nTmJQdTdiY05vV1B2SU5ReUtTNDE4Tk9vd29HU2Y5ZUFzaTNiLUx4QUdMcFE1ZkhqUm92VzFJRU1IZjkyMU40ZFc4Uy1sanlISVlFaGxIa2pCcXhoS01iNXNGUE93OS1zTFpOUE5VWG1uLVdJV1Z5Z2NxejhXUzZoTm9yX2JUdHJMY25DVzJVZURGaW1ITy1mcDVWVi05QWJnYnprWnViOG9lLUNaUWVKYkV1cGdDc2xqR0pxM29XdkVEalpIQWdYUnNWSG05dyJ9",
+      "semantic_path": [
+        "Sign In",
+        "Create Account"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/Membership/SignIn"
+    },
+    "https://www.cinemark.com/realms/cinemark/login-actions/authenticate?client_id=cinemark-internet&tab_id=D84-5AOLxBE&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL3JlZ2lzdGVyLXJlZGlyZWN0IiwicnQiOiJub25lIiwic3QiOiIlMmYifQ": {
+      "url": "https://www.cinemark.com/realms/cinemark/login-actions/authenticate?client_id=cinemark-internet&tab_id=D84-5AOLxBE&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL3JlZ2lzdGVyLXJlZGlyZWN0IiwicnQiOiJub25lIiwic3QiOiIlMmYifQ",
+      "semantic_path": [
+        "Create an Account",
+        "Back to Sign In"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/Membership/Register"
+    },
+    "https://www.cinemark.com/realms/cinemark/login-actions/registration?client_id=cinemark-internet&tab_id=ffInhB-Gg2k&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL2xvZ2luLXJlZGlyZWN0IiwicnQiOiJjb2RlIiwicm0iOiJmb3JtX3Bvc3QiLCJzdCI6Ik9wZW5JZENvbm5lY3QuQXV0aGVudGljYXRpb25Qcm9wZXJ0aWVzPUtseENtVW8tck9VUGtqVWZxT2lqa1JjbE1NVTh3WGZFUHZucXJDblEtcF9zdEFPVnJ3LThid2s3TlRvNUZGcWhyYmRqYlNnOU55SnhMZC12c0lNOVNldUxNb1FWdlhEbDctSzhoX2lLVlZsY0s0Z0FBRnRyazduZVEwb0FPMkljdXd0UDRyWnYyQkk0M2kzZHlhTXhjVnZQWVM1cmtucU9VbWY5cktkMkFnRFRHUElOODhlMmF5Qm9XOEU0Q09iX1RGVGk4Rmh6UXRVa19kQUlNbXFQbzJGSDRGNy00RkdTZ2R1ZkFuLU5fbEp6Ti1zS3k1c2NzeHdJYXVRcnItcE9JaFVvWFNpZlItdjBQMVhhV3ZXWmYwV1l4OHdiWGhsNFhpeE55QnBseENoSTYzX3RnUnBtc0pXamszQmhMaDU0RGh6ZDM2b2Fqcnc0bHF3Vm9jYlBuLXczaEx2cVhLaEVMTDdkQlBnb2tKVSJ9": {
+      "url": "https://www.cinemark.com/realms/cinemark/login-actions/registration?client_id=cinemark-internet&tab_id=ffInhB-Gg2k&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL2xvZ2luLXJlZGlyZWN0IiwicnQiOiJjb2RlIiwicm0iOiJmb3JtX3Bvc3QiLCJzdCI6Ik9wZW5JZENvbm5lY3QuQXV0aGVudGljYXRpb25Qcm9wZXJ0aWVzPUtseENtVW8tck9VUGtqVWZxT2lqa1JjbE1NVTh3WGZFUHZucXJDblEtcF9zdEFPVnJ3LThid2s3TlRvNUZGcWhyYmRqYlNnOU55SnhMZC12c0lNOVNldUxNb1FWdlhEbDctSzhoX2lLVlZsY0s0Z0FBRnRyazduZVEwb0FPMkljdXd0UDRyWnYyQkk0M2kzZHlhTXhjVnZQWVM1cmtucU9VbWY5cktkMkFnRFRHUElOODhlMmF5Qm9XOEU0Q09iX1RGVGk4Rmh6UXRVa19kQUlNbXFQbzJGSDRGNy00RkdTZ2R1ZkFuLU5fbEp6Ti1zS3k1c2NzeHdJYXVRcnItcE9JaFVvWFNpZlItdjBQMVhhV3ZXWmYwV1l4OHdiWGhsNFhpeE55QnBseENoSTYzX3RnUnBtc0pXamszQmhMaDU0RGh6ZDM2b2Fqcnc0bHF3Vm9jYlBuLXczaEx2cVhLaEVMTDdkQlBnb2tKVSJ9",
+      "semantic_path": [
+        "Add to Watch List",
+        "Create Account"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/Membership/SignIn?movieId=104693"
+    },
+    "https://www.cinemark.com/realms/cinemark/login-actions/registration?client_id=cinemark-internet&tab_id=LHWW8P0dlqo&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL2xvZ2luLXJlZGlyZWN0IiwicnQiOiJjb2RlIiwicm0iOiJmb3JtX3Bvc3QiLCJzdCI6Ik9wZW5JZENvbm5lY3QuQXV0aGVudGljYXRpb25Qcm9wZXJ0aWVzPUhFaUZaUnROck13NXhYX1lhQ1JIeWRjdjZBc0xxbE9RNVU5RFFMZEFUdGdsRjhXM29kVWVJbFYzMS1rZ2pDU1RCamg2aXgwRXhSWlZQQnAxSTBpN0N5cE5OOUs5blhIa0VZZExVU3J0Nnd2czBMUk95dVI0WlpyZVFxUjNKS0hXdHRaWFZLZXNnUE8yMm83bTJQSTZsRGxXcEdZemJUSFBnbGM3bndzUENpclBHb0JuN1pENTNsOWh3NnJOWHNoa09ySDUydmZLV3puc0VMSmZhZU9JUTJRdzNDLUltWXhqbFNLY1drVkJxbWZuNExUakI5YnJkTFRYdXI3aURuQUZoR19Vd09mV2ZTaHhsZ01zOHhrVmJjQnM3T3dFa0NIbFVabUpTUXdfYmZabENEb256T2RNZW90LWdqR0Y1TTZvVUJvVGpoelZhaGJqWlBkN0JnWVBCU2NobTVfZVlZMlExeXAwcEIteG8zNCJ9": {
+      "url": "https://www.cinemark.com/realms/cinemark/login-actions/registration?client_id=cinemark-internet&tab_id=LHWW8P0dlqo&client_data=eyJydSI6Imh0dHBzOi8vd3d3LmNpbmVtYXJrLmNvbS9hcGkvb3BlbmlkL2xvZ2luLXJlZGlyZWN0IiwicnQiOiJjb2RlIiwicm0iOiJmb3JtX3Bvc3QiLCJzdCI6Ik9wZW5JZENvbm5lY3QuQXV0aGVudGljYXRpb25Qcm9wZXJ0aWVzPUhFaUZaUnROck13NXhYX1lhQ1JIeWRjdjZBc0xxbE9RNVU5RFFMZEFUdGdsRjhXM29kVWVJbFYzMS1rZ2pDU1RCamg2aXgwRXhSWlZQQnAxSTBpN0N5cE5OOUs5blhIa0VZZExVU3J0Nnd2czBMUk95dVI0WlpyZVFxUjNKS0hXdHRaWFZLZXNnUE8yMm83bTJQSTZsRGxXcEdZemJUSFBnbGM3bndzUENpclBHb0JuN1pENTNsOWh3NnJOWHNoa09ySDUydmZLV3puc0VMSmZhZU9JUTJRdzNDLUltWXhqbFNLY1drVkJxbWZuNExUakI5YnJkTFRYdXI3aURuQUZoR19Vd09mV2ZTaHhsZ01zOHhrVmJjQnM3T3dFa0NIbFVabUpTUXdfYmZabENEb256T2RNZW90LWdqR0Y1TTZvVUJvVGpoelZhaGJqWlBkN0JnWVBCU2NobTVfZVlZMlExeXAwcEIteG8zNCJ9",
+      "semantic_path": [
+        "Add to Watch List",
+        "Create Account"
+      ],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/Membership/SignIn?movieId=104694"
+    }
+  }
+}

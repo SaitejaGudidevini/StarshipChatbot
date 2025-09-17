@@ -1,0 +1,64 @@
+{
+  "export_timestamp": "20250916_231900",
+  "visible": {
+    "count": 1,
+    "data": {
+      "https://www.mhsindiana.com/members/medicare-advantage.html": {
+        "url": "https://www.mhsindiana.com/members/medicare-advantage.html",
+        "semantic_path": [
+          "Wellcare by Allwell"
+        ],
+        "target": "Wellcare by Allwell",
+        "domain_type": "healthcare",
+        "training_phrases": [
+          "Book appointment for Wellcare by Allwell",
+          "Schedule Wellcare by Allwell",
+          "Which doctor for Wellcare by Allwell",
+          "Find specialist for Wellcare by Allwell",
+          "Is Wellcare by Allwell covered",
+          "I'm really frustrated, I need to make an appointment with a doctor through Wellcare by Allwell, can you help me with that?",
+          "I've been experiencing some weird symptoms and I'm not sure what's going on, can I get a doctor's referral through Wellcare by Allwell?"
+        ],
+        "intent_classification": {
+          "appointment": [
+            "Book appointment for Wellcare by Allwell",
+            "Schedule Wellcare by Allwell",
+            "Which doctor for Wellcare by Allwell",
+            "Find specialist for Wellcare by Allwell",
+            "Is Wellcare by Allwell covered",
+            "I'm really frustrated, I need to make an appointment with a doctor through Wellcare by Allwell, can you help me with that?",
+            "hey whats the deal with wellcare by allwell docs, cant seem to find a list of em",
+            "I dont no how to navigat this site but i need to find a doctor thats part of wellcare by allwell, can u help me out?",
+            "Can you tell me more about the benefits of using Wellcare by Allwell, like how do I go about scheduling an appointment with a specialist doctor?",
+            "I'm confused about my insurance coverage, can I use Wellcare by Allwell to see any doctor I want or are there certain ones I have to go to",
+            "I urgently need Wellcare by Allwell",
+            "Can't find Wellcare by Allwell anywhere, help!",
+            "Getting frustrated, where is Wellcare by Allwell?",
+            "Please help me find Wellcare by Allwell",
+            "I'm lost, need Wellcare by Allwell",
+            "Emergency Wellcare by Allwell needed",
+            "Is Wellcare by Allwell covered by insurance?",
+            "Appointment for Wellcare by Allwell today?",
+            "Specialist for Wellcare by Allwell?"
+          ],
+          "symptoms": [
+            "I've been experiencing some weird symptoms and I'm not sure what's going on, can I get a doctor's referral through Wellcare by Allwell?",
+            "I'm feeling really urgent about my health and I need to see a doctor ASAP, is Wellcare by Allwell a good option for me?"
+          ],
+          "doctor": [],
+          "insurance": [],
+          "emergency": []
+        },
+        "total_phrases": 21,
+        "meets_golden_image": false,
+        "quality_gaps": [
+          "Low naturalness score: 0.64"
+        ]
+      }
+    }
+  },
+  "not_visible": {
+    "count": 0,
+    "data": {}
+  }
+}

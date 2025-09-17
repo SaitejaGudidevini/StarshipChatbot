@@ -1,0 +1,3112 @@
+{
+  "metadata": {
+    "start_url": "https://books.toscrape.com",
+    "domain": "books.toscrape.com",
+    "total_urls_discovered": 352,
+    "max_depth_reached": 2,
+    "crawl_duration_seconds": 54.335956,
+    "timestamp": "2025-09-14T00:08:17.589745",
+    "crawler_stats": {
+      "total_pages_visited": 20,
+      "total_pages_discovered": 352,
+      "max_depth_reached": 2,
+      "domain": "books.toscrape.com"
+    }
+  },
+  "navigation_paths": {
+    "https://books.toscrape.com": {
+      "url": "https://books.toscrape.com",
+      "semantic_path": [
+        "Home"
+      ],
+      "depth": 0,
+      "parent_url": null
+    },
+    "https://books.toscrape.com/index.html": {
+      "url": "https://books.toscrape.com/index.html",
+      "semantic_path": [
+        "Books to Scrape"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books_1/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books_1/index.html",
+      "semantic_path": [
+        "Books"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/travel_2/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html",
+      "semantic_path": [
+        "Travel"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html",
+      "semantic_path": [
+        "Mystery"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html",
+      "semantic_path": [
+        "Historical Fiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html",
+      "semantic_path": [
+        "Sequential Art"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/classics_6/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html",
+      "semantic_path": [
+        "Classics"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html",
+      "semantic_path": [
+        "Philosophy"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/romance_8/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html",
+      "semantic_path": [
+        "Romance"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html",
+      "semantic_path": [
+        "Womens Fiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html",
+      "semantic_path": [
+        "Fiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html",
+      "semantic_path": [
+        "Childrens"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/religion_12/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html",
+      "semantic_path": [
+        "Religion"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+      "semantic_path": [
+        "Nonfiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/music_14/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html",
+      "semantic_path": [
+        "Music"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/default_15/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html",
+      "semantic_path": [
+        "Default"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html",
+      "semantic_path": [
+        "Science Fiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html",
+      "semantic_path": [
+        "Sports and Games"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html",
+      "semantic_path": [
+        "Add a comment"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/fantasy_19/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/fantasy_19/index.html",
+      "semantic_path": [
+        "Fantasy"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/new-adult_20/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/new-adult_20/index.html",
+      "semantic_path": [
+        "New Adult"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/young-adult_21/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/young-adult_21/index.html",
+      "semantic_path": [
+        "Young Adult"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/science_22/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/science_22/index.html",
+      "semantic_path": [
+        "Science"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+      "semantic_path": [
+        "Poetry"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/paranormal_24/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/paranormal_24/index.html",
+      "semantic_path": [
+        "Paranormal"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/art_25/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/art_25/index.html",
+      "semantic_path": [
+        "Art"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/psychology_26/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/psychology_26/index.html",
+      "semantic_path": [
+        "Psychology"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/autobiography_27/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/autobiography_27/index.html",
+      "semantic_path": [
+        "Autobiography"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/parenting_28/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/parenting_28/index.html",
+      "semantic_path": [
+        "Parenting"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/adult-fiction_29/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/adult-fiction_29/index.html",
+      "semantic_path": [
+        "Adult Fiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/humor_30/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/humor_30/index.html",
+      "semantic_path": [
+        "Humor"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/horror_31/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/horror_31/index.html",
+      "semantic_path": [
+        "Horror"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/history_32/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/history_32/index.html",
+      "semantic_path": [
+        "History"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/food-and-drink_33/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/food-and-drink_33/index.html",
+      "semantic_path": [
+        "Food and Drink"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/christian-fiction_34/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/christian-fiction_34/index.html",
+      "semantic_path": [
+        "Christian Fiction"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/business_35/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/business_35/index.html",
+      "semantic_path": [
+        "Business"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/biography_36/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/biography_36/index.html",
+      "semantic_path": [
+        "Biography"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/thriller_37/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/thriller_37/index.html",
+      "semantic_path": [
+        "Thriller"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/contemporary_38/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/contemporary_38/index.html",
+      "semantic_path": [
+        "Contemporary"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/spirituality_39/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/spirituality_39/index.html",
+      "semantic_path": [
+        "Spirituality"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/academic_40/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/academic_40/index.html",
+      "semantic_path": [
+        "Academic"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/self-help_41/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/self-help_41/index.html",
+      "semantic_path": [
+        "Self Help"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/historical_42/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/historical_42/index.html",
+      "semantic_path": [
+        "Historical"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/christian_43/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/christian_43/index.html",
+      "semantic_path": [
+        "Christian"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/suspense_44/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/suspense_44/index.html",
+      "semantic_path": [
+        "Suspense"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/short-stories_45/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/short-stories_45/index.html",
+      "semantic_path": [
+        "Short Stories"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/novels_46/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/novels_46/index.html",
+      "semantic_path": [
+        "Novels"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/health_47/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/health_47/index.html",
+      "semantic_path": [
+        "Health"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/politics_48/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/politics_48/index.html",
+      "semantic_path": [
+        "Politics"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/cultural_49/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/cultural_49/index.html",
+      "semantic_path": [
+        "Cultural"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/erotica_50/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/erotica_50/index.html",
+      "semantic_path": [
+        "Erotica"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books/crime_51/index.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/crime_51/index.html",
+      "semantic_path": [
+        "Crime"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/tipping-the-velvet_999/index.html": {
+      "url": "https://books.toscrape.com/catalogue/tipping-the-velvet_999/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/soumission_998/index.html": {
+      "url": "https://books.toscrape.com/catalogue/soumission_998/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/sharp-objects_997/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sharp-objects_997/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/sapiens-a-brief-history-of-humankind_996/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sapiens-a-brief-history-of-humankind_996/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/the-requiem-red_995/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-requiem-red_995/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/the-black-maria_991/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-black-maria_991/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html": {
+      "url": "https://books.toscrape.com/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/shakespeares-sonnets_989/index.html": {
+      "url": "https://books.toscrape.com/catalogue/shakespeares-sonnets_989/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/set-me-free_988/index.html": {
+      "url": "https://books.toscrape.com/catalogue/set-me-free_988/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html": {
+      "url": "https://books.toscrape.com/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/rip-it-up-and-start-again_986/index.html": {
+      "url": "https://books.toscrape.com/catalogue/rip-it-up-and-start-again_986/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html": {
+      "url": "https://books.toscrape.com/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/olio_984/index.html": {
+      "url": "https://books.toscrape.com/catalogue/olio_984/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html": {
+      "url": "https://books.toscrape.com/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/libertarianism-for-beginners_982/index.html": {
+      "url": "https://books.toscrape.com/catalogue/libertarianism-for-beginners_982/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/its-only-the-himalayas_981/index.html": {
+      "url": "https://books.toscrape.com/catalogue/its-only-the-himalayas_981/index.html",
+      "semantic_path": [
+        "Index.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/page-2.html",
+      "semantic_path": [
+        "Page 2.Html"
+      ],
+      "depth": 1,
+      "parent_url": "https://books.toscrape.com"
+    },
+    "https://books.toscrape.com/catalogue/category/books_1/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books_1/page-2.html",
+      "semantic_path": [
+        "Books",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books_1/index.html"
+    },
+    "https://books.toscrape.com/catalogue/full-moon-over-noahs-ark-an-odyssey-to-mount-ararat-and-beyond_811/index.html": {
+      "url": "https://books.toscrape.com/catalogue/full-moon-over-noahs-ark-an-odyssey-to-mount-ararat-and-beyond_811/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/see-america-a-celebration-of-our-national-parks-treasured-sites_732/index.html": {
+      "url": "https://books.toscrape.com/catalogue/see-america-a-celebration-of-our-national-parks-treasured-sites_732/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/vagabonding-an-uncommon-guide-to-the-art-of-long-term-world-travel_552/index.html": {
+      "url": "https://books.toscrape.com/catalogue/vagabonding-an-uncommon-guide-to-the-art-of-long-term-world-travel_552/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/under-the-tuscan-sun_504/index.html": {
+      "url": "https://books.toscrape.com/catalogue/under-the-tuscan-sun_504/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-summer-in-europe_458/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-summer-in-europe_458/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-great-railway-bazaar_446/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-great-railway-bazaar_446/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-year-in-provence-provence-1_421/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-year-in-provence-provence-1_421/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-road-to-little-dribbling-adventures-of-an-american-in-britain-notes-from-a-small-island-2_277/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-road-to-little-dribbling-adventures-of-an-american-in-britain-notes-from-a-small-island-2_277/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/neither-here-nor-there-travels-in-europe_198/index.html": {
+      "url": "https://books.toscrape.com/catalogue/neither-here-nor-there-travels-in-europe_198/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/1000-places-to-see-before-you-die_1/index.html": {
+      "url": "https://books.toscrape.com/catalogue/1000-places-to-see-before-you-die_1/index.html",
+      "semantic_path": [
+        "Travel",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/travel_2/index.html"
+    },
+    "https://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html": {
+      "url": "https://books.toscrape.com/catalogue/in-a-dark-dark-wood_963/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-past-never-ends_942/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-past-never-ends_942/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-murder-in-time_877/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-murder-in-time_877/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-murder-of-roger-ackroyd-hercule-poirot-4_852/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-murder-of-roger-ackroyd-hercule-poirot-4_852/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-last-mile-amos-decker-2_754/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-last-mile-amos-decker-2_754/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/that-darkness-gardiner-and-renner-1_743/index.html": {
+      "url": "https://books.toscrape.com/catalogue/that-darkness-gardiner-and-renner-1_743/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/tastes-like-fear-di-marnie-rome-3_742/index.html": {
+      "url": "https://books.toscrape.com/catalogue/tastes-like-fear-di-marnie-rome-3_742/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-time-of-torment-charlie-parker-14_657/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-time-of-torment-charlie-parker-14_657/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-study-in-scarlet-sherlock-holmes-1_656/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-study-in-scarlet-sherlock-holmes-1_656/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/poisonous-max-revere-novels-3_627/index.html": {
+      "url": "https://books.toscrape.com/catalogue/poisonous-max-revere-novels-3_627/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/murder-at-the-42nd-street-library-raymond-ambler-1_624/index.html": {
+      "url": "https://books.toscrape.com/catalogue/murder-at-the-42nd-street-library-raymond-ambler-1_624/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/most-wanted_623/index.html": {
+      "url": "https://books.toscrape.com/catalogue/most-wanted_623/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/hide-away-eve-duncan-20_620/index.html": {
+      "url": "https://books.toscrape.com/catalogue/hide-away-eve-duncan-20_620/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/boar-island-anna-pigeon-19_613/index.html": {
+      "url": "https://books.toscrape.com/catalogue/boar-island-anna-pigeon-19_613/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-widow_609/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-widow_609/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/playing-with-fire_602/index.html": {
+      "url": "https://books.toscrape.com/catalogue/playing-with-fire_602/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/what-happened-on-beale-street-secrets-of-the-south-mysteries-2_506/index.html": {
+      "url": "https://books.toscrape.com/catalogue/what-happened-on-beale-street-secrets-of-the-south-mysteries-2_506/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-bachelor-girls-guide-to-murder-herringford-and-watts-mysteries-1_491/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-bachelor-girls-guide-to-murder-herringford-and-watts-mysteries-1_491/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/delivering-the-truth-quaker-midwife-mystery-1_464/index.html": {
+      "url": "https://books.toscrape.com/catalogue/delivering-the-truth-quaker-midwife-mystery-1_464/index.html",
+      "semantic_path": [
+        "Mystery",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/mystery_3/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/mystery_3/page-2.html",
+      "semantic_path": [
+        "Mystery",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/mystery_3/index.html"
+    },
+    "https://books.toscrape.com/catalogue/forever-and-forever-the-courtship-of-henry-longfellow-and-fanny-appleton_894/index.html": {
+      "url": "https://books.toscrape.com/catalogue/forever-and-forever-the-courtship-of-henry-longfellow-and-fanny-appleton_894/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-flight-of-arrows-the-pathfinders-2_876/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-flight-of-arrows-the-pathfinders-2_876/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-house-by-the-lake_846/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-house-by-the-lake_846/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/mrs-houdini_821/index.html": {
+      "url": "https://books.toscrape.com/catalogue/mrs-houdini_821/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-marriage-of-opposites_759/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-marriage-of-opposites_759/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/glory-over-everything-beyond-the-kitchen-house_696/index.html": {
+      "url": "https://books.toscrape.com/catalogue/glory-over-everything-beyond-the-kitchen-house_696/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/love-lies-and-spies_622/index.html": {
+      "url": "https://books.toscrape.com/catalogue/love-lies-and-spies_622/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-paris-apartment_612/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-paris-apartment_612/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/lilac-girls_597/index.html": {
+      "url": "https://books.toscrape.com/catalogue/lilac-girls_597/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-constant-princess-the-tudor-court-1_493/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-constant-princess-the-tudor-court-1_493/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-invention-of-wings_448/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-invention-of-wings_448/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/world-without-end-the-pillars-of-the-earth-2_420/index.html": {
+      "url": "https://books.toscrape.com/catalogue/world-without-end-the-pillars-of-the-earth-2_420/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-passion-of-dolssa_351/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-passion-of-dolssa_351/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/girl-with-a-pearl-earring_322/index.html": {
+      "url": "https://books.toscrape.com/catalogue/girl-with-a-pearl-earring_322/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/voyager-outlander-3_299/index.html": {
+      "url": "https://books.toscrape.com/catalogue/voyager-outlander-3_299/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-red-tent_273/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-red-tent_273/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-last-painting-of-sara-de-vos_259/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-last-painting-of-sara-de-vos_259/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-guernsey-literary-and-potato-peel-pie-society_253/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-guernsey-literary-and-potato-peel-pie-society_253/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/girl-in-the-blue-coat_160/index.html": {
+      "url": "https://books.toscrape.com/catalogue/girl-in-the-blue-coat_160/index.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/page-2.html",
+      "semantic_path": [
+        "Historical Fiction",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/historical-fiction_4/index.html"
+    },
+    "https://books.toscrape.com/catalogue/tsubasa-world-chronicle-2-tsubasa-world-chronicle-2_949/index.html": {
+      "url": "https://books.toscrape.com/catalogue/tsubasa-world-chronicle-2-tsubasa-world-chronicle-2_949/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/this-one-summer_947/index.html": {
+      "url": "https://books.toscrape.com/catalogue/this-one-summer_947/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-nameless-city-the-nameless-city-1_940/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-nameless-city-the-nameless-city-1_940/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/saga-volume-5-saga-collected-editions-5_923/index.html": {
+      "url": "https://books.toscrape.com/catalogue/saga-volume-5-saga-collected-editions-5_923/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/rat-queens-vol-3-demons-rat-queens-collected-editions-11-15_921/index.html": {
+      "url": "https://books.toscrape.com/catalogue/rat-queens-vol-3-demons-rat-queens-collected-editions-11-15_921/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/princess-jellyfish-2-in-1-omnibus-vol-01-princess-jellyfish-2-in-1-omnibus-1_920/index.html": {
+      "url": "https://books.toscrape.com/catalogue/princess-jellyfish-2-in-1-omnibus-vol-01-princess-jellyfish-2-in-1-omnibus-1_920/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/pop-gun-war-volume-1-gift_918/index.html": {
+      "url": "https://books.toscrape.com/catalogue/pop-gun-war-volume-1-gift_918/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/patience_916/index.html": {
+      "url": "https://books.toscrape.com/catalogue/patience_916/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/outcast-vol-1-a-darkness-surrounds-him-outcast-1_915/index.html": {
+      "url": "https://books.toscrape.com/catalogue/outcast-vol-1-a-darkness-surrounds-him-outcast-1_915/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/orange-the-complete-collection-1-orange-the-complete-collection-1_914/index.html": {
+      "url": "https://books.toscrape.com/catalogue/orange-the-complete-collection-1-orange-the-complete-collection-1_914/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/lumberjanes-vol-2-friendship-to-the-max-lumberjanes-5-8_907/index.html": {
+      "url": "https://books.toscrape.com/catalogue/lumberjanes-vol-2-friendship-to-the-max-lumberjanes-5-8_907/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/lumberjanes-vol-1-beware-the-kitten-holy-lumberjanes-1-4_906/index.html": {
+      "url": "https://books.toscrape.com/catalogue/lumberjanes-vol-1-beware-the-kitten-holy-lumberjanes-1-4_906/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/lumberjanes-vol-3-a-terrible-plan-lumberjanes-9-12_905/index.html": {
+      "url": "https://books.toscrape.com/catalogue/lumberjanes-vol-3-a-terrible-plan-lumberjanes-9-12_905/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/i-hate-fairyland-vol-1-madly-ever-after-i-hate-fairyland-compilations-1-5_899/index.html": {
+      "url": "https://books.toscrape.com/catalogue/i-hate-fairyland-vol-1-madly-ever-after-i-hate-fairyland-compilations-1-5_899/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/i-am-a-hero-omnibus-volume-1_898/index.html": {
+      "url": "https://books.toscrape.com/catalogue/i-am-a-hero-omnibus-volume-1_898/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/giant-days-vol-2-giant-days-5-8_895/index.html": {
+      "url": "https://books.toscrape.com/catalogue/giant-days-vol-2-giant-days-5-8_895/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/danganronpa-volume-1_889/index.html": {
+      "url": "https://books.toscrape.com/catalogue/danganronpa-volume-1_889/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/codename-baboushka-volume-1-the-conclave-of-death_887/index.html": {
+      "url": "https://books.toscrape.com/catalogue/codename-baboushka-volume-1-the-conclave-of-death_887/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/camp-midnight_886/index.html": {
+      "url": "https://books.toscrape.com/catalogue/camp-midnight_886/index.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/sequential-art_5/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/page-2.html",
+      "semantic_path": [
+        "Sequential Art",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sequential-art_5/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-secret-garden_413/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-secret-garden_413/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-metamorphosis_409/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-metamorphosis_409/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-pilgrims-progress_353/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-pilgrims-progress_353/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-hound-of-the-baskervilles-sherlock-holmes-5_348/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-hound-of-the-baskervilles-sherlock-holmes-5_348/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/little-women-little-women-1_331/index.html": {
+      "url": "https://books.toscrape.com/catalogue/little-women-little-women-1_331/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/gone-with-the-wind_324/index.html": {
+      "url": "https://books.toscrape.com/catalogue/gone-with-the-wind_324/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/candide_316/index.html": {
+      "url": "https://books.toscrape.com/catalogue/candide_316/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/animal-farm_313/index.html": {
+      "url": "https://books.toscrape.com/catalogue/animal-farm_313/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/wuthering-heights_307/index.html": {
+      "url": "https://books.toscrape.com/catalogue/wuthering-heights_307/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-picture-of-dorian-gray_270/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-picture-of-dorian-gray_270/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-complete-stories-and-poems-the-works-of-edgar-allan-poe-cameo-edition_238/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-complete-stories-and-poems-the-works-of-edgar-allan-poe-cameo-edition_238/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/beowulf_126/index.html": {
+      "url": "https://books.toscrape.com/catalogue/beowulf_126/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/and-then-there-were-none_119/index.html": {
+      "url": "https://books.toscrape.com/catalogue/and-then-there-were-none_119/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-story-of-hong-gildong_84/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-story-of-hong-gildong_84/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-little-prince_72/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-little-prince_72/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/sense-and-sensibility_49/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sense-and-sensibility_49/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/of-mice-and-men_37/index.html": {
+      "url": "https://books.toscrape.com/catalogue/of-mice-and-men_37/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/emma_17/index.html": {
+      "url": "https://books.toscrape.com/catalogue/emma_17/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/alice-in-wonderland-alices-adventures-in-wonderland-1_5/index.html": {
+      "url": "https://books.toscrape.com/catalogue/alice-in-wonderland-alices-adventures-in-wonderland-1_5/index.html",
+      "semantic_path": [
+        "Classics",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/classics_6/index.html"
+    },
+    "https://books.toscrape.com/catalogue/sophies-world_966/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sophies-world_966/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-death-of-humanity-and-the-case-for-life_932/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-death-of-humanity-and-the-case-for-life_932/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-stranger_861/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-stranger_861/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/proofs-of-god-classical-arguments-from-tertullian-to-barth_538/index.html": {
+      "url": "https://books.toscrape.com/catalogue/proofs-of-god-classical-arguments-from-tertullian-to-barth_538/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/kierkegaard-a-christian-missionary-to-christians_527/index.html": {
+      "url": "https://books.toscrape.com/catalogue/kierkegaard-a-christian-missionary-to-christians_527/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/at-the-existentialist-cafe-freedom-being-and-apricot-cocktails-with-jean-paul-sartre-simone-de-beauvoir-albert-camus-martin-heidegger-edmund-husserl-karl-jaspers-maurice-merleau-ponty-and-others_459/index.html": {
+      "url": "https://books.toscrape.com/catalogue/at-the-existentialist-cafe-freedom-being-and-apricot-cocktails-with-jean-paul-sartre-simone-de-beauvoir-albert-camus-martin-heidegger-edmund-husserl-karl-jaspers-maurice-merleau-ponty-and-others_459/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/critique-of-pure-reason_366/index.html": {
+      "url": "https://books.toscrape.com/catalogue/critique-of-pure-reason_366/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/run-spot-run-the-ethics-of-keeping-pets_106/index.html": {
+      "url": "https://books.toscrape.com/catalogue/run-spot-run-the-ethics-of-keeping-pets_106/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-nicomachean-ethics_75/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-nicomachean-ethics_75/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/meditations_33/index.html": {
+      "url": "https://books.toscrape.com/catalogue/meditations_33/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/beyond-good-and-evil_6/index.html": {
+      "url": "https://books.toscrape.com/catalogue/beyond-good-and-evil_6/index.html",
+      "semantic_path": [
+        "Philosophy",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/philosophy_7/index.html"
+    },
+    "https://books.toscrape.com/catalogue/chase-me-paris-nights-2_977/index.html": {
+      "url": "https://books.toscrape.com/catalogue/chase-me-paris-nights-2_977/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/black-dust_976/index.html": {
+      "url": "https://books.toscrape.com/catalogue/black-dust_976/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/her-backup-boyfriend-the-sorensen-family-1_896/index.html": {
+      "url": "https://books.toscrape.com/catalogue/her-backup-boyfriend-the-sorensen-family-1_896/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/first-and-first-five-boroughs-3_893/index.html": {
+      "url": "https://books.toscrape.com/catalogue/first-and-first-five-boroughs-3_893/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/fifty-shades-darker-fifty-shades-2_892/index.html": {
+      "url": "https://books.toscrape.com/catalogue/fifty-shades-darker-fifty-shades-2_892/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-wedding-dress_864/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-wedding-dress_864/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/suddenly-in-love-lake-haven-1_835/index.html": {
+      "url": "https://books.toscrape.com/catalogue/suddenly-in-love-lake-haven-1_835/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/something-more-than-this_834/index.html": {
+      "url": "https://books.toscrape.com/catalogue/something-more-than-this_834/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/doing-it-over-most-likely-to-1_802/index.html": {
+      "url": "https://books.toscrape.com/catalogue/doing-it-over-most-likely-to-1_802/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-wedding-pact-the-omalleys-2_767/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-wedding-pact-the-omalleys-2_767/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/hold-your-breath-search-and-rescue-1_700/index.html": {
+      "url": "https://books.toscrape.com/catalogue/hold-your-breath-search-and-rescue-1_700/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/dirty-dive-bar-1_615/index.html": {
+      "url": "https://books.toscrape.com/catalogue/dirty-dive-bar-1_615/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/take-me-home-tonight-rock-star-romance-3_605/index.html": {
+      "url": "https://books.toscrape.com/catalogue/take-me-home-tonight-rock-star-romance-3_605/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/off-the-hook-fishing-for-trouble-1_601/index.html": {
+      "url": "https://books.toscrape.com/catalogue/off-the-hook-fishing-for-trouble-1_601/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-gentlemans-position-society-of-gentlemen-3_584/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-gentlemans-position-society-of-gentlemen-3_584/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/sit-stay-love_486/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sit-stay-love_486/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-girls-guide-to-moving-on-new-beginnings-2_359/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-girls-guide-to-moving-on-new-beginnings-2_359/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-perfect-play-play-by-play-1_352/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-perfect-play-play-by-play-1_352/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/dark-lover-black-dagger-brotherhood-1_319/index.html": {
+      "url": "https://books.toscrape.com/catalogue/dark-lover-black-dagger-brotherhood-1_319/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/changing-the-game-play-by-play-2_317/index.html": {
+      "url": "https://books.toscrape.com/catalogue/changing-the-game-play-by-play-2_317/index.html",
+      "semantic_path": [
+        "Romance",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/romance_8/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/romance_8/page-2.html",
+      "semantic_path": [
+        "Romance",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/romance_8/index.html"
+    },
+    "https://books.toscrape.com/catalogue/i-had-a-nice-time-and-other-lies-how-to-find-love-sht-like-that_814/index.html": {
+      "url": "https://books.toscrape.com/catalogue/i-had-a-nice-time-and-other-lies-how-to-find-love-sht-like-that_814/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/will-you-wont-you-want-me_644/index.html": {
+      "url": "https://books.toscrape.com/catalogue/will-you-wont-you-want-me_644/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/keep-me-posted_594/index.html": {
+      "url": "https://books.toscrape.com/catalogue/keep-me-posted_594/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/grey-fifty-shades-4_592/index.html": {
+      "url": "https://books.toscrape.com/catalogue/grey-fifty-shades-4_592/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/meternity_478/index.html": {
+      "url": "https://books.toscrape.com/catalogue/meternity_478/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/some-women_341/index.html": {
+      "url": "https://books.toscrape.com/catalogue/some-women_341/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/shopaholic-ties-the-knot-shopaholic-3_340/index.html": {
+      "url": "https://books.toscrape.com/catalogue/shopaholic-ties-the-knot-shopaholic-3_340/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/can-you-keep-a-secret_315/index.html": {
+      "url": "https://books.toscrape.com/catalogue/can-you-keep-a-secret_315/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/twenties-girl_292/index.html": {
+      "url": "https://books.toscrape.com/catalogue/twenties-girl_292/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-undomestic-goddess_286/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-undomestic-goddess_286/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-nanny-diaries-nanny-1_265/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-nanny-diaries-nanny-1_265/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-devil-wears-prada-the-devil-wears-prada-1_243/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-devil-wears-prada-the-devil-wears-prada-1_243/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/something-borrowed-darcy-rachel-1_224/index.html": {
+      "url": "https://books.toscrape.com/catalogue/something-borrowed-darcy-rachel-1_224/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/something-blue-darcy-rachel-2_223/index.html": {
+      "url": "https://books.toscrape.com/catalogue/something-blue-darcy-rachel-2_223/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/ive-got-your-number_173/index.html": {
+      "url": "https://books.toscrape.com/catalogue/ive-got-your-number_173/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-edge-of-reason-bridget-jones-2_63/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-edge-of-reason-bridget-jones-2_63/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/bridget-joness-diary-bridget-jones-1_10/index.html": {
+      "url": "https://books.toscrape.com/catalogue/bridget-joness-diary-bridget-jones-1_10/index.html",
+      "semantic_path": [
+        "Womens Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/womens-fiction_9/index.html"
+    },
+    "https://books.toscrape.com/catalogue/private-paris-private-10_958/index.html": {
+      "url": "https://books.toscrape.com/catalogue/private-paris-private-10_958/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/we-love-you-charlie-freeman_954/index.html": {
+      "url": "https://books.toscrape.com/catalogue/we-love-you-charlie-freeman_954/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/thirst_946/index.html": {
+      "url": "https://books.toscrape.com/catalogue/thirst_946/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-murder-that-never-was-forensic-instincts-5_939/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-murder-that-never-was-forensic-instincts-5_939/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/tuesday-nights-in-1980_870/index.html": {
+      "url": "https://books.toscrape.com/catalogue/tuesday-nights-in-1980_870/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-vacationers_863/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-vacationers_863/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-regional-office-is-under-attack_858/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-regional-office-is-under-attack_858/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/finders-keepers-bill-hodges-trilogy-2_807/index.html": {
+      "url": "https://books.toscrape.com/catalogue/finders-keepers-bill-hodges-trilogy-2_807/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-time-keeper_766/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-time-keeper_766/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-testament-of-mary_765/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-testament-of-mary_765/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-first-hostage-jb-collins-2_749/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-first-hostage-jb-collins-2_749/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/take-me-with-you_741/index.html": {
+      "url": "https://books.toscrape.com/catalogue/take-me-with-you_741/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/still-life-with-bread-crumbs_738/index.html": {
+      "url": "https://books.toscrape.com/catalogue/still-life-with-bread-crumbs_738/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/shtum_733/index.html": {
+      "url": "https://books.toscrape.com/catalogue/shtum_733/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/my-name-is-lucy-barton_720/index.html": {
+      "url": "https://books.toscrape.com/catalogue/my-name-is-lucy-barton_720/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/my-mrs-brown_719/index.html": {
+      "url": "https://books.toscrape.com/catalogue/my-mrs-brown_719/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/mr-mercedes-bill-hodges-trilogy-1_717/index.html": {
+      "url": "https://books.toscrape.com/catalogue/mr-mercedes-bill-hodges-trilogy-1_717/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/i-am-pilgrim-pilgrim-1_703/index.html": {
+      "url": "https://books.toscrape.com/catalogue/i-am-pilgrim-pilgrim-1_703/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/eligible-the-austen-project-4_692/index.html": {
+      "url": "https://books.toscrape.com/catalogue/eligible-the-austen-project-4_692/index.html",
+      "semantic_path": [
+        "Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html",
+      "semantic_path": [
+        "Fiction",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    "https://books.toscrape.com/catalogue/birdsong-a-story-in-pictures_975/index.html": {
+      "url": "https://books.toscrape.com/catalogue/birdsong-a-story-in-pictures_975/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-bear-and-the-piano_967/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-bear-and-the-piano_967/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-secret-of-dreadwillow-carse_944/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-secret-of-dreadwillow-carse_944/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-white-cat-and-the-monk-a-retelling-of-the-poem-pangur-ban_865/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-white-cat-and-the-monk-a-retelling-of-the-poem-pangur-ban_865/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/little-red_817/index.html": {
+      "url": "https://books.toscrape.com/catalogue/little-red_817/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/walt-disneys-alice-in-wonderland_777/index.html": {
+      "url": "https://books.toscrape.com/catalogue/walt-disneys-alice-in-wonderland_777/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/twenty-yawns_773/index.html": {
+      "url": "https://books.toscrape.com/catalogue/twenty-yawns_773/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/rain-fish_728/index.html": {
+      "url": "https://books.toscrape.com/catalogue/rain-fish_728/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/once-was-a-time_724/index.html": {
+      "url": "https://books.toscrape.com/catalogue/once-was-a-time_724/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/luis-paints-the-world_714/index.html": {
+      "url": "https://books.toscrape.com/catalogue/luis-paints-the-world_714/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/nap-a-roo_567/index.html": {
+      "url": "https://books.toscrape.com/catalogue/nap-a-roo_567/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-whale_501/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-whale_501/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/shrunken-treasures-literary-classics-short-sweet-and-silly_484/index.html": {
+      "url": "https://books.toscrape.com/catalogue/shrunken-treasures-literary-classics-short-sweet-and-silly_484/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/raymie-nightingale_482/index.html": {
+      "url": "https://books.toscrape.com/catalogue/raymie-nightingale_482/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/playing-from-the-heart_481/index.html": {
+      "url": "https://books.toscrape.com/catalogue/playing-from-the-heart_481/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/maybe-something-beautiful-how-art-transformed-a-neighborhood_386/index.html": {
+      "url": "https://books.toscrape.com/catalogue/maybe-something-beautiful-how-art-transformed-a-neighborhood_386/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-wild-robot_288/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-wild-robot_288/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-thing-about-jellyfish_283/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-thing-about-jellyfish_283/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-lonely-ones_261/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-lonely-ones_261/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-day-the-crayons-came-home-crayons_241/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-day-the-crayons-came-home-crayons_241/index.html",
+      "semantic_path": [
+        "Childrens",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/childrens_11/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/childrens_11/page-2.html",
+      "semantic_path": [
+        "Childrens",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/childrens_11/index.html"
+    },
+    "https://books.toscrape.com/catalogue/dont-be-a-jerk-and-other-practical-advice-from-dogen-japans-greatest-zen-master_890/index.html": {
+      "url": "https://books.toscrape.com/catalogue/dont-be-a-jerk-and-other-practical-advice-from-dogen-japans-greatest-zen-master_890/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/you-are-what-you-love-the-spiritual-power-of-habit_872/index.html": {
+      "url": "https://books.toscrape.com/catalogue/you-are-what-you-love-the-spiritual-power-of-habit_872/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/god-the-most-unpleasant-character-in-all-fiction_697/index.html": {
+      "url": "https://books.toscrape.com/catalogue/god-the-most-unpleasant-character-in-all-fiction_697/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-book-of-mormon_571/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-book-of-mormon_571/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-history-of-god-the-4000-year-quest-of-judaism-christianity-and-islam_310/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-history-of-god-the-4000-year-quest-of-judaism-christianity-and-islam_310/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-bhagavad-gita_60/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-bhagavad-gita_60/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/choosing-our-religion-the-spiritual-lives-of-americas-nones_14/index.html": {
+      "url": "https://books.toscrape.com/catalogue/choosing-our-religion-the-spiritual-lives-of-americas-nones_14/index.html",
+      "semantic_path": [
+        "Religion",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/religion_12/index.html"
+    },
+    "https://books.toscrape.com/catalogue/worlds-elsewhere-journeys-around-shakespeares-globe_972/index.html": {
+      "url": "https://books.toscrape.com/catalogue/worlds-elsewhere-journeys-around-shakespeares-globe_972/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-five-love-languages-how-to-express-heartfelt-commitment-to-your-mate_969/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-five-love-languages-how-to-express-heartfelt-commitment-to-your-mate_969/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/reasons-to-stay-alive_959/index.html": {
+      "url": "https://books.toscrape.com/catalogue/reasons-to-stay-alive_959/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/higherselfie-wake-up-your-life-free-your-soul-find-your-tribe_957/index.html": {
+      "url": "https://books.toscrape.com/catalogue/higherselfie-wake-up-your-life-free-your-soul-find-your-tribe_957/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/unseen-city-the-majesty-of-pigeons-the-discreet-charm-of-snails-other-wonders-of-the-urban-wilderness_952/index.html": {
+      "url": "https://books.toscrape.com/catalogue/unseen-city-the-majesty-of-pigeons-the-discreet-charm-of-snails-other-wonders-of-the-urban-wilderness_952/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/throwing-rocks-at-the-google-bus-how-growth-became-the-enemy-of-prosperity_948/index.html": {
+      "url": "https://books.toscrape.com/catalogue/throwing-rocks-at-the-google-bus-how-growth-became-the-enemy-of-prosperity_948/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-life-changing-magic-of-tidying-up-the-japanese-art-of-decluttering-and-organizing_936/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-life-changing-magic-of-tidying-up-the-japanese-art-of-decluttering-and-organizing_936/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-gutsy-girl-escapades-for-your-life-of-epic-adventure_934/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-gutsy-girl-escapades-for-your-life-of-epic-adventure_934/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-electric-pencil-drawings-from-inside-state-hospital-no-3_933/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-electric-pencil-drawings-from-inside-state-hospital-no-3_933/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/spark-joy-an-illustrated-master-class-on-the-art-of-organizing-and-tidying-up_927/index.html": {
+      "url": "https://books.toscrape.com/catalogue/spark-joy-an-illustrated-master-class-on-the-art-of-organizing-and-tidying-up_927/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/reskilling-america-learning-to-labor-in-the-twenty-first-century_922/index.html": {
+      "url": "https://books.toscrape.com/catalogue/reskilling-america-learning-to-labor-in-the-twenty-first-century_922/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/in-the-country-we-love-my-family-divided_901/index.html": {
+      "url": "https://books.toscrape.com/catalogue/in-the-country-we-love-my-family-divided_901/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/everydata-the-misinformation-hidden-in-the-little-data-you-consume-every-day_891/index.html": {
+      "url": "https://books.toscrape.com/catalogue/everydata-the-misinformation-hidden-in-the-little-data-you-consume-every-day_891/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/call-the-nurse-true-stories-of-a-country-nurse-on-a-scottish-isle_885/index.html": {
+      "url": "https://books.toscrape.com/catalogue/call-the-nurse-true-stories-of-a-country-nurse-on-a-scottish-isle_885/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/algorithms-to-live-by-the-computer-science-of-human-decisions_880/index.html": {
+      "url": "https://books.toscrape.com/catalogue/algorithms-to-live-by-the-computer-science-of-human-decisions_880/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-power-of-now-a-guide-to-spiritual-enlightenment_855/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-power-of-now-a-guide-to-spiritual-enlightenment_855/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-omnivores-dilemma-a-natural-history-of-four-meals_854/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-omnivores-dilemma-a-natural-history-of-four-meals_854/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-genius-of-birds_843/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-genius-of-birds_843/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-artists-way-a-spiritual-path-to-higher-creativity_839/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-artists-way-a-spiritual-path-to-higher-creativity_839/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/so-youve-been-publicly-shamed_832/index.html": {
+      "url": "https://books.toscrape.com/catalogue/so-youve-been-publicly-shamed_832/index.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/nonfiction_13/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/page-2.html",
+      "semantic_path": [
+        "Nonfiction",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    "https://books.toscrape.com/catalogue/how-music-works_979/index.html": {
+      "url": "https://books.toscrape.com/catalogue/how-music-works_979/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/love-is-a-mix-tape-music-1_711/index.html": {
+      "url": "https://books.toscrape.com/catalogue/love-is-a-mix-tape-music-1_711/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/please-kill-me-the-uncensored-oral-history-of-punk_537/index.html": {
+      "url": "https://books.toscrape.com/catalogue/please-kill-me-the-uncensored-oral-history-of-punk_537/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/kill-em-and-leave-searching-for-james-brown-and-the-american-soul_528/index.html": {
+      "url": "https://books.toscrape.com/catalogue/kill-em-and-leave-searching-for-james-brown-and-the-american-soul_528/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/chronicles-vol-1_462/index.html": {
+      "url": "https://books.toscrape.com/catalogue/chronicles-vol-1_462/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/this-is-your-brain-on-music-the-science-of-a-human-obsession_414/index.html": {
+      "url": "https://books.toscrape.com/catalogue/this-is-your-brain-on-music-the-science-of-a-human-obsession_414/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/orchestra-of-exiles-the-story-of-bronislaw-huberman-the-israel-philharmonic-and-the-one-thousand-jews-he-saved-from-nazi-horrors_337/index.html": {
+      "url": "https://books.toscrape.com/catalogue/orchestra-of-exiles-the-story-of-bronislaw-huberman-the-israel-philharmonic-and-the-one-thousand-jews-he-saved-from-nazi-horrors_337/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/no-one-here-gets-out-alive_336/index.html": {
+      "url": "https://books.toscrape.com/catalogue/no-one-here-gets-out-alive_336/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/life_104/index.html": {
+      "url": "https://books.toscrape.com/catalogue/life_104/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/old-records-never-die-one-mans-quest-for-his-vinyl-and-his-past_39/index.html": {
+      "url": "https://books.toscrape.com/catalogue/old-records-never-die-one-mans-quest-for-his-vinyl-and-his-past_39/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/forever-rockers-the-rocker-12_19/index.html": {
+      "url": "https://books.toscrape.com/catalogue/forever-rockers-the-rocker-12_19/index.html",
+      "semantic_path": [
+        "Music",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/music_14/index.html"
+    },
+    "https://books.toscrape.com/catalogue/americas-cradle-of-quarterbacks-western-pennsylvanias-football-factory-from-johnny-unitas-to-joe-montana_974/index.html": {
+      "url": "https://books.toscrape.com/catalogue/americas-cradle-of-quarterbacks-western-pennsylvanias-football-factory-from-johnny-unitas-to-joe-montana_974/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/aladdin-and-his-wonderful-lamp_973/index.html": {
+      "url": "https://books.toscrape.com/catalogue/aladdin-and-his-wonderful-lamp_973/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/penny-maybe_965/index.html": {
+      "url": "https://books.toscrape.com/catalogue/penny-maybe_965/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/maude-1883-1993she-grew-up-with-the-country_964/index.html": {
+      "url": "https://books.toscrape.com/catalogue/maude-1883-1993she-grew-up-with-the-country_964/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-inefficiency-assassin-time-management-tactics-for-working-smarter-not-longer_935/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-inefficiency-assassin-time-management-tactics-for-working-smarter-not-longer_935/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/soul-reader_926/index.html": {
+      "url": "https://books.toscrape.com/catalogue/soul-reader_926/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/bossypants_883/index.html": {
+      "url": "https://books.toscrape.com/catalogue/bossypants_883/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-world-of-flavor-your-gluten-free-passport_879/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-world-of-flavor-your-gluten-free-passport_879/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-piece-of-sky-a-grain-of-rice-a-memoir-in-four-meditations_878/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-piece-of-sky-a-grain-of-rice-a-memoir-in-four-meditations_878/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/tracing-numbers-on-a-train_869/index.html": {
+      "url": "https://books.toscrape.com/catalogue/tracing-numbers-on-a-train_869/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/thirteen-reasons-why_866/index.html": {
+      "url": "https://books.toscrape.com/catalogue/thirteen-reasons-why_866/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-secret-the-secret-1_859/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-secret-the-secret-1_859/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-psychopath-test-a-journey-through-the-madness-industry_857/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-psychopath-test-a-journey-through-the-madness-industry_857/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-kite-runner_847/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-kite-runner_847/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-girl-on-the-train_844/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-girl-on-the-train_844/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-emerald-mystery_842/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-emerald-mystery_842/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-bridge-to-consciousness-im-writing-the-bridge-between-science-and-our-old-and-new-beliefs_840/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-bridge-to-consciousness-im-writing-the-bridge-between-science-and-our-old-and-new-beliefs_840/index.html",
+      "semantic_path": [
+        "Default",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/default_15/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/default_15/page-2.html",
+      "semantic_path": [
+        "Default",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/default_15/index.html"
+    },
+    "https://books.toscrape.com/catalogue/join_902/index.html": {
+      "url": "https://books.toscrape.com/catalogue/join_902/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/william-shakespeares-star-wars-verily-a-new-hope-william-shakespeares-star-wars-4_871/index.html": {
+      "url": "https://books.toscrape.com/catalogue/william-shakespeares-star-wars-verily-a-new-hope-william-shakespeares-star-wars-4_871/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-project_856/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-project_856/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/soft-apocalypse_833/index.html": {
+      "url": "https://books.toscrape.com/catalogue/soft-apocalypse_833/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/sleeping-giants-themis-files-1_604/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sleeping-giants-themis-files-1_604/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/arena_587/index.html": {
+      "url": "https://books.toscrape.com/catalogue/arena_587/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/foundation-foundation-publication-order-1_375/index.html": {
+      "url": "https://books.toscrape.com/catalogue/foundation-foundation-publication-order-1_375/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-restaurant-at-the-end-of-the-universe-hitchhikers-guide-to-the-galaxy-2_275/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-restaurant-at-the-end-of-the-universe-hitchhikers-guide-to-the-galaxy-2_275/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/ready-player-one_209/index.html": {
+      "url": "https://books.toscrape.com/catalogue/ready-player-one_209/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/life-the-universe-and-everything-hitchhikers-guide-to-the-galaxy-3_189/index.html": {
+      "url": "https://books.toscrape.com/catalogue/life-the-universe-and-everything-hitchhikers-guide-to-the-galaxy-3_189/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/dune-dune-1_151/index.html": {
+      "url": "https://books.toscrape.com/catalogue/dune-dune-1_151/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/do-androids-dream-of-electric-sheep-blade-runner-1_149/index.html": {
+      "url": "https://books.toscrape.com/catalogue/do-androids-dream-of-electric-sheep-blade-runner-1_149/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/three-wishes-river-of-time-california-1_89/index.html": {
+      "url": "https://books.toscrape.com/catalogue/three-wishes-river-of-time-california-1_89/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-last-girl-the-dominion-trilogy-1_70/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-last-girl-the-dominion-trilogy-1_70/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/having-the-barbarians-baby-ice-planet-barbarians-75_23/index.html": {
+      "url": "https://books.toscrape.com/catalogue/having-the-barbarians-baby-ice-planet-barbarians-75_23/index.html",
+      "semantic_path": [
+        "Science Fiction",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/science-fiction_16/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-book-of-basketball-the-nba-according-to-the-sports-guy_232/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-book-of-basketball-the-nba-according-to-the-sports-guy_232/index.html",
+      "semantic_path": [
+        "Sports and Games",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html"
+    },
+    "https://books.toscrape.com/catalogue/friday-night-lights-a-town-a-team-and-a-dream_158/index.html": {
+      "url": "https://books.toscrape.com/catalogue/friday-night-lights-a-town-a-team-and-a-dream_158/index.html",
+      "semantic_path": [
+        "Sports and Games",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html"
+    },
+    "https://books.toscrape.com/catalogue/sugar-rush-offensive-line-2_108/index.html": {
+      "url": "https://books.toscrape.com/catalogue/sugar-rush-offensive-line-2_108/index.html",
+      "semantic_path": [
+        "Sports and Games",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html"
+    },
+    "https://books.toscrape.com/catalogue/settling-the-score-the-summer-games-1_50/index.html": {
+      "url": "https://books.toscrape.com/catalogue/settling-the-score-the-summer-games-1_50/index.html",
+      "semantic_path": [
+        "Sports and Games",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html"
+    },
+    "https://books.toscrape.com/catalogue/icing-aces-hockey-2_25/index.html": {
+      "url": "https://books.toscrape.com/catalogue/icing-aces-hockey-2_25/index.html",
+      "semantic_path": [
+        "Sports and Games",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/sports-and-games_17/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-torch-is-passed-a-harding-family-story_945/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-torch-is-passed-a-harding-family-story_945/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-mindfulness-and-acceptance-workbook-for-anxiety-a-guide-to-breaking-free-from-anxiety-phobias-and-worry-using-acceptance-and-commitment-therapy_937/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-mindfulness-and-acceptance-workbook-for-anxiety-a-guide-to-breaking-free-from-anxiety-phobias-and-worry-using-acceptance-and-commitment-therapy_937/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-art-forger_930/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-art-forger_930/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/on-a-midnight-clear_912/index.html": {
+      "url": "https://books.toscrape.com/catalogue/on-a-midnight-clear_912/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/judo-seven-steps-to-black-belt-an-introductory-guide-for-beginners_903/index.html": {
+      "url": "https://books.toscrape.com/catalogue/judo-seven-steps-to-black-belt-an-introductory-guide-for-beginners_903/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/shobu-samurai-project-aryoku-3_830/index.html": {
+      "url": "https://books.toscrape.com/catalogue/shobu-samurai-project-aryoku-3_830/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/modern-romance_820/index.html": {
+      "url": "https://books.toscrape.com/catalogue/modern-romance_820/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-white-queen-the-cousins-war-1_768/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-white-queen-the-cousins-war-1_768/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-song-of-achilles_762/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-song-of-achilles_762/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-immortal-life-of-henrietta-lacks_753/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-immortal-life-of-henrietta-lacks_753/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-dovekeepers_748/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-dovekeepers_748/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/more-than-music-chasing-the-dream-1_716/index.html": {
+      "url": "https://books.toscrape.com/catalogue/more-than-music-chasing-the-dream-1_716/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/code-name-verity-code-name-verity-1_680/index.html": {
+      "url": "https://books.toscrape.com/catalogue/code-name-verity-code-name-verity-1_680/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/cell_674/index.html": {
+      "url": "https://books.toscrape.com/catalogue/cell_674/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/angels-walking-angels-walking-1_662/index.html": {
+      "url": "https://books.toscrape.com/catalogue/angels-walking-angels-walking-1_662/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-series-of-catastrophes-and-miracles-a-true-story-of-love-science-and-cancer_655/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-series-of-catastrophes-and-miracles-a-true-story-of-love-science-and-cancer_655/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-peoples-history-of-the-united-states_654/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-peoples-history-of-the-united-states_654/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/a-brush-of-wings-angels-walking-3_651/index.html": {
+      "url": "https://books.toscrape.com/catalogue/a-brush-of-wings-angels-walking-3_651/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/rook_647/index.html": {
+      "url": "https://books.toscrape.com/catalogue/rook_647/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/the-midnight-watch-a-novel-of-the-titanic-and-the-californian_640/index.html": {
+      "url": "https://books.toscrape.com/catalogue/the-midnight-watch-a-novel-of-the-titanic-and-the-californian_640/index.html",
+      "semantic_path": [
+        "Add a comment",
+        "Index.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    },
+    "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/page-2.html": {
+      "url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/page-2.html",
+      "semantic_path": [
+        "Add a comment",
+        "Page 2.Html"
+      ],
+      "depth": 2,
+      "parent_url": "https://books.toscrape.com/catalogue/category/books/add-a-comment_18/index.html"
+    }
+  }
+}

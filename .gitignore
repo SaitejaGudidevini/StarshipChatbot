@@ -36,9 +36,8 @@ wheels/
 *~
 
 # Output
-output/
-*.json
-!example_output.json
+
+
 
 # Logs
 logs/
