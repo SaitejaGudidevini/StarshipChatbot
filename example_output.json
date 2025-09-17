@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "start_url": "https://www.cinemark.com",
+    "domain": "www.cinemark.com",
+    "total_urls_discovered": 47,
+    "max_depth_reached": 3,
+    "crawl_duration_seconds": 125.4,
+    "timestamp": "2025-09-14T10:30:00",
+    "crawler_stats": {
+      "total_pages_visited": 45,
+      "total_pages_discovered": 47,
+      "max_depth_reached": 3,
+      "domain": "www.cinemark.com"
+    }
+  },
+  "navigation_paths": {
+    "https://www.cinemark.com": {
+      "url": "https://www.cinemark.com",
+      "semantic_path": ["Home"],
+      "depth": 0,
+      "parent_url": null
+    },
+    "https://www.cinemark.com/movies": {
+      "url": "https://www.cinemark.com/movies",
+      "semantic_path": ["Home", "Movies"],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com"
+    },
+    "https://www.cinemark.com/movies/now-playing": {
+      "url": "https://www.cinemark.com/movies/now-playing",
+      "semantic_path": ["Home", "Movies", "Now Playing"],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/movies/coming-soon": {
+      "url": "https://www.cinemark.com/movies/coming-soon",
+      "semantic_path": ["Home", "Movies", "Coming Soon"],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/movies"
+    },
+    "https://www.cinemark.com/theatres": {
+      "url": "https://www.cinemark.com/theatres",
+      "semantic_path": ["Home", "Theatres"],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com"
+    },
+    "https://www.cinemark.com/theatres/find-a-theatre": {
+      "url": "https://www.cinemark.com/theatres/find-a-theatre",
+      "semantic_path": ["Home", "Theatres", "Find a Theatre"],
+      "depth": 2,
+      "parent_url": "https://www.cinemark.com/theatres"
+    },
+    "https://www.cinemark.com/xd": {
+      "url": "https://www.cinemark.com/xd",
+      "semantic_path": ["Home", "Cinemark XD"],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com"
+    },
+    "https://www.cinemark.com/movie-rewards": {
+      "url": "https://www.cinemark.com/movie-rewards",
+      "semantic_path": ["Home", "Movie Rewards"],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com"
+    },
+    "https://www.cinemark.com/gift-cards": {
+      "url": "https://www.cinemark.com/gift-cards",
+      "semantic_path": ["Home", "Gift Cards"],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com"
+    },
+    "https://www.cinemark.com/promotions": {
+      "url": "https://www.cinemark.com/promotions",
+      "semantic_path": ["Home", "Promotions"],
+      "depth": 1,
+      "parent_url": "https://www.cinemark.com"
+    }
+  }
+}

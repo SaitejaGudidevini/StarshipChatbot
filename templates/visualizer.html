@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Training Data Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .file-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        select {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+        
+        .stats {
+            padding: 20px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .data-table {
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .checkbox-cell {
+            width: 50px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .path-cell {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .phrases-cell {
+            max-width: 400px;
+        }
+        
+        .phrase-list {
+            display: none;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .phrase-list li {
+            margin-left: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .show-phrases-btn {
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .show-phrases-btn:hover {
+            background: #cbd5e0;
+        }
+        
+        .url-cell {
+            font-size: 0.85rem;
+            color: #6c757d;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .badge-warning {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #48bb78;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        
+        .select-all-container {
+            padding: 10px 20px;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Training Data Visualizer</h1>
+            <p>Review and categorize crawled navigation paths</p>
+        </div>
+        
+        <div class="controls">
+            <div class="file-selector">
+                <label for="fileSelect">Select JSON File:</label>
+                <select id="fileSelect">
+                    <option value="">Choose a file...</option>
+                </select>
+                <button class="btn-primary" onclick="loadSelectedFile()">Load File</button>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn-success" onclick="categorizeSelected('visible')">
+                    ✅ Mark as Visible (Important)
+                </button>
+                <button class="btn-danger" onclick="categorizeSelected('not_visible')">
+                    ❌ Mark as Not Visible
+                </button>
+                <button class="btn-warning" onclick="exportFinal()">
+                    📥 Export Final Categories
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalItems">0</div>
+                <div class="stat-label">Total Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="visibleCount">0</div>
+                <div class="stat-label">Visible (Important)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="notVisibleCount">0</div>
+                <div class="stat-label">Not Visible</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="selectedCount">0</div>
+                <div class="stat-label">Selected</div>
+            </div>
+        </div>
+        
+        <div class="select-all-container">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+            <label for="selectAll">Select All</label>
+        </div>
+        
+        <div class="data-table">
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Loading data...</p>
+            </div>
+            
+            <table id="dataTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">Select</th>
+                        <th>Semantic Path</th>
+                        <th>Training Phrases</th>
+                        <th>Domain</th>
+                        <th>Quality</th>
+                        <th>URL</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script>
+        let currentData = [];
+        
+        // Load available files on page load
+        window.onload = function() {
+            loadAvailableFiles();
+            updateStatus();
+        };
+        
+        // Update base URL for FastAPI (port 8000 instead of 5000)
+        const API_BASE = window.location.origin;
+        
+        async function loadAvailableFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const data = await response.json();
+                
+                const select = document.getElementById('fileSelect');
+                select.innerHTML = '<option value="">Choose a file...</option>';
+                
+                data.files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    select.appendChild(option);
+                });
+                
+                // Auto-select first file if available
+                if (data.files.length > 0) {
+                    select.value = data.files[0];
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+        
+        async function loadSelectedFile() {
+            const filename = document.getElementById('fileSelect').value;
+            if (!filename) {
+                showToast('Please select a file', 'error');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('dataTable').style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/load/${filename}`);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    currentData = result.data;
+                    displayData(currentData);
+                    document.getElementById('totalItems').textContent = result.total_items;
+                    showToast(`Loaded ${result.total_items} items`, 'success');
+                } else {
+                    showToast('Error loading file', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error loading file', 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dataTable').style.display = 'table';
+            }
+        }
+        
+        function displayData(data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="item-checkbox" data-url="${item.url}" onchange="updateSelectedCount()">
+                    </td>
+                    <td class="path-cell">${item.semantic_path || 'N/A'}</td>
+                    <td class="phrases-cell">
+                        <button class="show-phrases-btn" onclick="togglePhrases('phrases-${index}')">
+                            Show ${item.training_phrases.length} phrases
+                        </button>
+                        <div id="phrases-${index}" class="phrase-list">
+                            <ol>
+                                ${item.training_phrases.map(p => `<li>${p}</li>`).join('')}
+                            </ol>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-${getDomainBadgeClass(item.domain_type)}">
+                            ${item.domain_type}
+                        </span>
+                    </td>
+                    <td>
+                        ${item.meets_golden_image 
+                            ? '<span class="badge badge-success">✓ Good</span>' 
+                            : '<span class="badge badge-warning">⚠ Needs Review</span>'}
+                    </td>
+                    <td class="url-cell" title="${item.url}">${item.url}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function getDomainBadgeClass(domain) {
+            const colorMap = {
+                'e-commerce': 'success',
+                'healthcare': 'warning',
+                'technology': 'success',
+                'education': 'success',
+                'general': 'warning'
+            };
+            return colorMap[domain] || 'warning';
+        }
+        
+        function togglePhrases(id) {
+            const phraseList = document.getElementById(id);
+            phraseList.style.display = phraseList.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll);
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            const selected = document.querySelectorAll('.item-checkbox:checked').length;
+            document.getElementById('selectedCount').textContent = selected;
+        }
+        
+        function getSelectedUrls() {
+            const selected = [];
+            document.querySelectorAll('.item-checkbox:checked').forEach(cb => {
+                selected.push(cb.dataset.url);
+            });
+            return selected;
+        }
+        
+        async function categorizeSelected(category) {
+            const urls = getSelectedUrls();
+            if (urls.length === 0) {
+                showToast('Please select items to categorize', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/categorize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls, category })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(result.message, 'success');
+                    updateStatus();
+                    
+                    // Uncheck all after categorizing
+                    document.querySelectorAll('.item-checkbox:checked').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    document.getElementById('selectAll').checked = false;
+                    updateSelectedCount();
+                } else {
+                    showToast('Error categorizing items', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error categorizing items', 'error');
+            }
+        }
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                document.getElementById('visibleCount').textContent = status.visible_count;
+                document.getElementById('notVisibleCount').textContent = status.not_visible_count;
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        }
+        
+        async function exportFinal() {
+            try {
+                const response = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showToast(`Exported to ${result.file}`, 'success');
+                } else {
+                    showToast('Error exporting data', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error exporting data', 'error');
+            }
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = type === 'success' ? '#48bb78' : '#f56565';
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
