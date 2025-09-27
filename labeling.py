@@ -5,9 +5,10 @@ Handles intelligent labeling of navigation elements using heuristics and LLM
 
 import re
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from html.parser import HTMLParser
 from groq import Groq
+from urllib.parse import urlparse, urljoin
 import os
 
 logger = logging.getLogger(__name__)
@@ -163,7 +164,7 @@ Rules:
 Respond with ONLY the label, nothing else."""
 
             response = self.groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="llama-3.2-3b-preview",
                 messages=[
                     {"role": "system", "content": "You are a web navigation expert. Provide only the requested label."},
                     {"role": "user", "content": prompt}
@@ -219,6 +220,40 @@ Respond with ONLY the label, nothing else."""
         
         return "Page"
     
+    async def generate_url_heading_labels_from_crawl(
+        self,
+        crawl_data_file: str
+    ) -> Dict[str, str]:
+        """
+        Generate URL+heading labels from crawler output file
+        Returns mapping of original_url -> semantic_path
+        """
+        import json
+        
+        with open(crawl_data_file, 'r') as f:
+            crawl_data = json.load(f)
+        
+        # Extract domain from metadata
+        domain = crawl_data.get('crawl_metadata', {}).get('domain', 'unknown.com')
+        
+        semantic_paths = {}
+        
+        # Process each page
+        for url, page_data in crawl_data.get('pages', {}).items():
+            # Generate semantic path
+            semantic_path = self.generate_url_heading_semantic_path(
+                url,
+                page_data.get('page_elements', {}),
+                domain
+            )
+            
+            semantic_paths[url] = semantic_path
+            
+            print(f"🏷️  {url}")
+            print(f"   → {semantic_path}")
+        
+        return semantic_paths
+    
     def create_semantic_path(
         self,
         labels_chain: list[str]
@@ -243,3 +278,173 @@ Respond with ONLY the label, nothing else."""
             semantic_path.append(clean_label)
         
         return semantic_path
+    
+    def generate_url_heading_semantic_path(
+        self,
+        url: str,
+        page_elements: Dict,
+        domain: str
+    ) -> str:
+        """
+        Generate clean semantic path based on content priority:
+        - For headings (h1, h2): https://www.mhsindiana.com/Find a provider (single slash)
+        - For links: https://www.mhsindiana.com//For Members (double slash)
+        """
+        
+        # First priority: Extract primary heading (h1, h2, etc.)
+        primary_heading = self._extract_primary_heading(page_elements)
+        if primary_heading:
+            # Clean heading text but keep natural spacing
+            clean_heading = self._clean_text_natural(primary_heading)
+            semantic_path = f"https://{domain}/{clean_heading}"
+            return semantic_path
+        
+        # Second priority: Extract meaningful link text from page links
+        meaningful_link = self._extract_meaningful_link_text(page_elements)
+        if meaningful_link:
+            # Clean link text but keep natural spacing
+            clean_link = self._clean_text_natural(meaningful_link)
+            semantic_path = f"https://{domain}//{clean_link}"
+            return semantic_path
+        
+        # Fallback: Use cleaned URL path with single slash
+        parsed_url = urlparse(url)
+        url_path = parsed_url.path.strip('/')
+        if not url_path:
+            clean_path = "Home"
+        else:
+            clean_path = self._clean_url_path_natural(url_path)
+        
+        semantic_path = f"https://{domain}/{clean_path}"
+        return semantic_path
+    
+    def _extract_primary_heading(self, page_elements: Dict) -> Optional[str]:
+        """
+        Extract the most relevant heading (h1 first, then h2, etc.)
+        """
+        headings = page_elements.get('headings', [])
+        if not headings:
+            return None
+        
+        # Priority order: h1 > h2 > h3...
+        for heading in headings:
+            if heading.get('tag') == 'h1' and heading.get('text'):
+                return heading['text'][:50]  # Limit length
+        
+        for heading in headings:
+            if heading.get('tag') == 'h2' and heading.get('text'):
+                return heading['text'][:50]
+        
+        # Fallback to first available heading
+        for heading in headings:
+            if heading.get('text'):
+                return heading['text'][:50]
+        
+        return None
+    
+    def _clean_text_natural(self, text: str) -> str:
+        """
+        Clean text while preserving natural spacing and readability
+        """
+        if not text:
+            return ''
+        
+        # Remove only problematic characters, keep natural spaces
+        clean_text = re.sub(r'[^\w\s-]', '', text)
+        # Normalize multiple spaces to single space
+        clean_text = re.sub(r'\s+', ' ', clean_text.strip())
+        
+        return clean_text[:50]  # Reasonable length limit
+    
+    def _clean_url_path_natural(self, path: str) -> str:
+        """
+        Convert URL path to natural readable format
+        """
+        if not path:
+            return 'Home'
+        
+        # Convert hyphens and underscores to spaces
+        clean_path = path.replace('-', ' ').replace('_', ' ').replace('/', ' ')
+        # Remove file extensions
+        clean_path = re.sub(r'\.(html|php|jsp|asp)$', '', clean_path)
+        # Capitalize first letter of each word
+        clean_path = clean_path.title().strip()
+        
+        return clean_path[:50]
+    
+    def _extract_meaningful_link_text(self, page_elements: Dict) -> Optional[str]:
+        """
+        Extract meaningful link text from page links
+        Prioritizes navigation-style links over generic ones
+        """
+        links = page_elements.get('links', [])
+        if not links:
+            return None
+        
+        # Look for meaningful link text (not generic terms)
+        meaningful_links = []
+        for link in links:
+            text = link.get('text', '').strip()
+            if text and not self._is_generic_label(text) and len(text) > 3:
+                # Prioritize navigation-style links
+                if any(nav_word in text.lower() for nav_word in ['for', 'about', 'services', 'members', 'providers']):
+                    return text[:50]
+                meaningful_links.append(text)
+        
+        # Return first meaningful link if found
+        if meaningful_links:
+            return meaningful_links[0][:50]
+        
+        return None
+    
+    def categorize_link_type(self, url: str, domain: str) -> str:
+        """
+        Categorize links as internal vs external based on domain
+        """
+        parsed_url = urlparse(url)
+        
+        if not parsed_url.netloc:  # Relative URL
+            return 'internal'
+        elif parsed_url.netloc == domain:
+            return 'internal'
+        else:
+            return 'external'
+    
+    def generate_semantic_paths_for_crawl_data(
+        self,
+        navigation_map: Dict,
+        domain: str
+    ) -> Dict[str, Dict]:
+        """
+        Generate semantic paths for all pages in crawl data
+        Returns enhanced navigation map with semantic paths
+        """
+        enhanced_map = {}
+        
+        for url, node in navigation_map.items():
+            # Generate semantic path using URL + heading
+            semantic_path = self.generate_url_heading_semantic_path(
+                url, 
+                node.page_elements, 
+                domain
+            )
+            
+            # Categorize link type
+            link_type = self.categorize_link_type(url, domain)
+            
+            # Create enhanced node data
+            enhanced_map[url] = {
+                'original_url': url,
+                'semantic_path': semantic_path,
+                'link_type': link_type,
+                'primary_heading': self._extract_primary_heading(node.page_elements),
+                'depth': node.depth,
+                'parent_url': node.parent_url,
+                'element_count': node.element_count,
+                'page_elements': node.page_elements,
+                'main_content': node.main_content
+            }
+            
+            logger.info(f"Generated semantic path: {semantic_path} [{link_type}]")
+        
+        return enhanced_map

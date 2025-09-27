@@ -56,6 +56,27 @@
             align-items: center;
         }
         
+        .filter-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+            color: #495057;
+            cursor: pointer;
+        }
+        
+        .filter-options input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+        
         select {
             padding: 10px 15px;
             border: 2px solid #667eea;
@@ -220,6 +241,19 @@
             white-space: nowrap;
         }
         
+        .element-text-cell {
+            font-weight: 500;
+            color: #495057;
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .content-cell {
+            max-width: 300px;
+        }
+        
         .badge {
             display: inline-block;
             padding: 3px 8px;
@@ -306,6 +340,25 @@
                 <button class="btn-primary" onclick="loadSelectedFile()">Load File</button>
             </div>
             
+            <div class="filter-options">
+                <label>
+                    <input type="checkbox" id="hideNoContent" onchange="toggleNoContentFilter()">
+                    Hide elements with no content
+                </label>
+                <label>
+                    <input type="checkbox" id="showOnlyHeadings" onchange="toggleElementTypeFilter('heading')">
+                    Show only headings
+                </label>
+                <label>
+                    <input type="checkbox" id="showOnlyLinks" onchange="toggleElementTypeFilter('link')">
+                    Show only links
+                </label>
+                <label>
+                    <input type="checkbox" id="showOnlyButtons" onchange="toggleElementTypeFilter('button')">
+                    Show only buttons
+                </label>
+            </div>
+            
             <div class="action-buttons">
                 <button class="btn-success" onclick="categorizeSelected('visible')">
                     ✅ Mark as Visible (Important)
@@ -354,10 +407,11 @@
                     <tr>
                         <th class="checkbox-cell">Select</th>
                         <th>Semantic Path</th>
-                        <th>Training Phrases</th>
-                        <th>Domain</th>
-                        <th>Quality</th>
-                        <th>URL</th>
+                        <th>Element Type</th>
+                        <th>Element Text</th>
+                        <th>Content</th>
+                        <th>Depth</th>
+                        <th>Original URL</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -442,33 +496,68 @@
             
             data.forEach((item, index) => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="checkbox-cell">
-                        <input type="checkbox" class="item-checkbox" data-url="${item.url}" onchange="updateSelectedCount()">
-                    </td>
-                    <td class="path-cell">${item.semantic_path || 'N/A'}</td>
-                    <td class="phrases-cell">
-                        <button class="show-phrases-btn" onclick="togglePhrases('phrases-${index}')">
-                            Show ${item.training_phrases.length} phrases
-                        </button>
-                        <div id="phrases-${index}" class="phrase-list">
-                            <ol>
-                                ${item.training_phrases.map(p => `<li>${p}</li>`).join('')}
-                            </ol>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="badge badge-${getDomainBadgeClass(item.domain_type)}">
-                            ${item.domain_type}
-                        </span>
-                    </td>
-                    <td>
-                        ${item.meets_golden_image 
-                            ? '<span class="badge badge-success">✓ Good</span>' 
-                            : '<span class="badge badge-warning">⚠ Needs Review</span>'}
-                    </td>
-                    <td class="url-cell" title="${item.url}">${item.url}</td>
-                `;
+                
+                // Check if this is new hierarchical format or legacy format
+                if (item.element_type !== undefined) {
+                    // New hierarchical flattened format
+                    row.innerHTML = `
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="item-checkbox" data-url="${item.id}" onchange="updateSelectedCount()">
+                        </td>
+                        <td class="path-cell" title="${item.semantic_path}">${item.semantic_path || 'N/A'}</td>
+                        <td>
+                            <span class="badge badge-${getElementTypeBadgeClass(item.element_type)}">
+                                ${item.element_type}
+                            </span>
+                        </td>
+                        <td class="element-text-cell" title="${item.element_text}">${item.element_text || 'N/A'}</td>
+                        <td class="content-cell">
+                            ${item.element_content ? 
+                                `<button class="show-phrases-btn" onclick="toggleContent('content-${index}')">
+                                    Show Content (${item.element_content.length} chars)
+                                </button>
+                                <div id="content-${index}" class="phrase-list">
+                                    ${item.element_content}
+                                </div>` 
+                                : 'No content'}
+                        </td>
+                        <td>
+                            <span class="badge badge-${getDepthBadgeClass(item.depth)}">
+                                ${item.depth}
+                            </span>
+                        </td>
+                        <td class="url-cell" title="${item.original_url}">${item.original_url}</td>
+                    `;
+                } else {
+                    // Legacy training data format
+                    row.innerHTML = `
+                        <td class="checkbox-cell">
+                            <input type="checkbox" class="item-checkbox" data-url="${item.url}" onchange="updateSelectedCount()">
+                        </td>
+                        <td class="path-cell">${item.semantic_path || 'N/A'}</td>
+                        <td class="phrases-cell">
+                            <button class="show-phrases-btn" onclick="togglePhrases('phrases-${index}')">
+                                Show ${item.training_phrases.length} phrases
+                            </button>
+                            <div id="phrases-${index}" class="phrase-list">
+                                <ol>
+                                    ${item.training_phrases.map(p => `<li>${p}</li>`).join('')}
+                                </ol>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-${getDomainBadgeClass(item.domain_type)}">
+                                ${item.domain_type}
+                            </span>
+                        </td>
+                        <td>
+                            ${item.meets_golden_image 
+                                ? '<span class="badge badge-success">✓ Good</span>' 
+                                : '<span class="badge badge-warning">⚠ Needs Review</span>'}
+                        </td>
+                        <td class="url-cell" title="${item.url}">${item.url}</td>
+                    `;
+                }
                 tbody.appendChild(row);
             });
         }
@@ -484,9 +573,131 @@
             return colorMap[domain] || 'warning';
         }
         
+        function getElementTypeBadgeClass(elementType) {
+            const colorMap = {
+                'heading': 'success',
+                'link': 'warning',
+                'button': 'success',
+                'page': 'warning'
+            };
+            return colorMap[elementType] || 'warning';
+        }
+        
+        function getDepthBadgeClass(depth) {
+            if (depth === 0) return 'success';
+            if (depth === 1) return 'warning';
+            return 'success';
+        }
+        
         function togglePhrases(id) {
             const phraseList = document.getElementById(id);
             phraseList.style.display = phraseList.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function toggleContent(id) {
+            const contentDiv = document.getElementById(id);
+            contentDiv.style.display = contentDiv.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function toggleNoContentFilter() {
+            applyFilters();
+        }
+        
+        function toggleElementTypeFilter(type) {
+            // Only allow one element type filter at a time
+            const checkboxes = ['showOnlyHeadings', 'showOnlyLinks', 'showOnlyButtons'];
+            const currentCheckbox = `showOnly${type.charAt(0).toUpperCase() + type.slice(1)}s`;
+            
+            checkboxes.forEach(id => {
+                if (id !== currentCheckbox) {
+                    document.getElementById(id).checked = false;
+                }
+            });
+            
+            applyFilters();
+        }
+        
+        function applyFilters() {
+            const hideNoContent = document.getElementById('hideNoContent').checked;
+            const showOnlyHeadings = document.getElementById('showOnlyHeadings').checked;
+            const showOnlyLinks = document.getElementById('showOnlyLinks').checked;
+            const showOnlyButtons = document.getElementById('showOnlyButtons').checked;
+            
+            const rows = document.querySelectorAll('#tableBody tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                let shouldShow = true;
+                
+                // Get element data from the row
+                const elementTypeCell = row.cells[2]; // Element Type column
+                const contentCell = row.cells[4]; // Content column
+                
+                if (!elementTypeCell || !contentCell) {
+                    // Legacy format or missing data
+                    return;
+                }
+                
+                const elementType = elementTypeCell.textContent.toLowerCase().trim();
+                const hasContent = contentCell.textContent.includes('Show Content') || 
+                                 contentCell.textContent.includes('chars)');
+                
+                // Apply no content filter
+                if (hideNoContent && !hasContent) {
+                    shouldShow = false;
+                }
+                
+                // Apply element type filters
+                if (showOnlyHeadings && elementType !== 'heading') {
+                    shouldShow = false;
+                }
+                if (showOnlyLinks && elementType !== 'link') {
+                    shouldShow = false;
+                }
+                if (showOnlyButtons && elementType !== 'button') {
+                    shouldShow = false;
+                }
+                
+                // Show/hide row
+                if (shouldShow) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update visible count in stats
+            updateFilterStats(visibleCount);
+        }
+        
+        function updateFilterStats(visibleCount) {
+            // Update the stats to show filtered count
+            const totalItems = document.getElementById('totalItems').textContent;
+            const statsContainer = document.querySelector('.stats');
+            
+            // Remove existing filter stat if present
+            const existingFilterStat = document.getElementById('filteredItems');
+            if (existingFilterStat) {
+                existingFilterStat.remove();
+            }
+            
+            // Add filtered count if filters are active
+            const hasActiveFilters = document.getElementById('hideNoContent').checked ||
+                                   document.getElementById('showOnlyHeadings').checked ||
+                                   document.getElementById('showOnlyLinks').checked ||
+                                   document.getElementById('showOnlyButtons').checked;
+            
+            if (hasActiveFilters && visibleCount < parseInt(totalItems)) {
+                const filterStatCard = document.createElement('div');
+                filterStatCard.className = 'stat-card';
+                filterStatCard.id = 'filteredItems';
+                filterStatCard.innerHTML = `
+                    <div class="stat-value" style="color: #ed8936;">${visibleCount}</div>
+                    <div class="stat-label">Filtered Results</div>
+                `;
+                statsContainer.appendChild(filterStatCard);
+            }
         }
         
         function toggleSelectAll() {

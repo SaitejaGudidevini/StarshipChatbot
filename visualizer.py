@@ -32,24 +32,55 @@ def load_json(filename):
         with open(filepath, 'r', encoding='utf-8') as f:
             current_data = json.load(f)
         
-        # Extract just the training data for visualization
-        formatted_data = []
-        for url, data in current_data.get('training_data', {}).items():
-            formatted_data.append({
-                'url': url,
-                'semantic_path': ' → '.join(data.get('semantic_path', [])),
-                'target': data.get('target', ''),
-                'training_phrases': data.get('training_phrases', []),
-                'domain_type': data.get('domain_type', 'unknown'),
-                'meets_golden_image': data.get('meets_golden_image', False)
+        # Check if this is the new hierarchical flattened format
+        if 'semantic_elements' in current_data:
+            # New hierarchical flattened format
+            formatted_data = []
+            for semantic_path, element_data in current_data.get('semantic_elements', {}).items():
+                formatted_data.append({
+                    'id': semantic_path,  # Use semantic path as unique ID
+                    'semantic_path': element_data.get('semantic_path', ''),
+                    'element_text': element_data.get('element_text', ''),
+                    'element_content': element_data.get('element_content', ''),
+                    'element_type': element_data.get('element_type', 'unknown'),
+                    'source_type': element_data.get('source_type', 'unknown'),
+                    'original_url': element_data.get('original_url', ''),
+                    'parent_semantic_path': element_data.get('parent_semantic_path', ''),
+                    'depth': element_data.get('depth', 0),
+                    'href': element_data.get('href', ''),
+                    'button_type': element_data.get('button_type', '')
+                })
+            
+            return jsonify({
+                'status': 'success',
+                'data': formatted_data,
+                'metadata': current_data.get('crawl_metadata', {}),
+                'total_items': len(formatted_data),
+                'format_type': 'hierarchical_flattened'
             })
         
-        return jsonify({
-            'status': 'success',
-            'data': formatted_data,
-            'metadata': current_data.get('metadata', {}),
-            'total_items': len(formatted_data)
-        })
+        else:
+            # Legacy training data format
+            formatted_data = []
+            for url, data in current_data.get('training_data', {}).items():
+                formatted_data.append({
+                    'url': url,
+                    'semantic_path': ' → '.join(data.get('semantic_path', [])),
+                    'target': data.get('target', ''),
+                    'training_phrases': data.get('training_phrases', []),
+                    'domain_type': data.get('domain_type', 'unknown'),
+                    'meets_golden_image': data.get('meets_golden_image', False),
+                    'summary': data.get('summary', '')
+                })
+            
+            return jsonify({
+                'status': 'success',
+                'data': formatted_data,
+                'metadata': current_data.get('metadata', {}),
+                'total_items': len(formatted_data),
+                'format_type': 'legacy_training'
+            })
+        
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
@@ -61,7 +92,10 @@ def list_files():
         if not output_dir.exists():
             return jsonify({'files': []})
         
-        files = [f.name for f in output_dir.glob('complete_*.json')]
+        # Include both legacy and new hierarchical formats
+        files = []
+        files.extend([f.name for f in output_dir.glob('complete_*.json')])  # Legacy format
+        files.extend([f.name for f in output_dir.glob('hierarchical_crawl_*.json')])  # New format
         files.sort(reverse=True)  # Most recent first
         
         return jsonify({'files': files})
@@ -75,25 +109,35 @@ def categorize():
     
     try:
         req_data = request.json
-        selected_urls = req_data.get('urls', [])
+        selected_ids = req_data.get('urls', [])  # Actually IDs for new format
         category = req_data.get('category', 'visible')
         
-        if not current_data or 'training_data' not in current_data:
+        if not current_data:
             return jsonify({'status': 'error', 'message': 'No data loaded'}), 400
         
-        # Categorize the selected URLs
-        for url in selected_urls:
-            if url in current_data['training_data']:
-                data_item = current_data['training_data'][url]
+        # Handle both new and legacy formats
+        if 'semantic_elements' in current_data:
+            # New hierarchical flattened format
+            data_source = current_data['semantic_elements']
+        elif 'training_data' in current_data:
+            # Legacy format
+            data_source = current_data['training_data']
+        else:
+            return jsonify({'status': 'error', 'message': 'Invalid data format'}), 400
+        
+        # Categorize the selected items
+        for item_id in selected_ids:
+            if item_id in data_source:
+                data_item = data_source[item_id]
                 
                 if category == 'visible':
-                    visible_data[url] = data_item
+                    visible_data[item_id] = data_item
                     # Remove from not_visible if it was there
-                    not_visible_data.pop(url, None)
+                    not_visible_data.pop(item_id, None)
                 else:
-                    not_visible_data[url] = data_item
+                    not_visible_data[item_id] = data_item
                     # Remove from visible if it was there
-                    visible_data.pop(url, None)
+                    visible_data.pop(item_id, None)
         
         # Save to files
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

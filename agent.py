@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 
 from crawler import WebCrawler, NavigationNode
 from labeling import SemanticLabeler
+from summarizer import SemanticSummaryService
 
 # Load environment variables
 load_dotenv()
@@ -54,6 +55,12 @@ class AgenticWebNavigator:
         )
         
         self.labeler = SemanticLabeler(groq_api_key=groq_api_key)
+        
+        self.summarizer = SemanticSummaryService(
+            groq_api_key=groq_api_key,
+            model=os.getenv("SUMMARY_MODEL", "llama-3.1-8b-instant"),
+            enabled=os.getenv("GENERATE_SUMMARIES", "true").lower() == "true"
+        )
         
         # Results storage
         self.navigation_paths = {}
@@ -127,7 +134,19 @@ class AgenticWebNavigator:
                     path_data = await self._process_navigation_node(node, navigation_map)
                     self.navigation_paths[url] = path_data
             
-            # Step 3: Compile metadata
+            # Step 3: Generate summaries for pages with content
+            logger.info("Step 3: Generating page summaries...")
+            for url, node in navigation_map.items():
+                if node.page_text:
+                    node.summary = await self.summarizer.summarize(node.page_text, node.url)
+                    # Add summary to navigation paths
+                    if url in self.navigation_paths:
+                        self.navigation_paths[url]["summary"] = node.summary
+                    else:
+                        # Root node case
+                        self.navigation_paths[url]["summary"] = node.summary
+            
+            # Step 4: Compile metadata
             end_time = datetime.now()
             self.metadata = {
                 "start_url": self.start_url,
@@ -196,7 +215,7 @@ async def main():
     Main entry point for the Agentic Web Navigator
     """
     # Configuration from environment or defaults
-    start_url = os.getenv("START_URL", "https://www.example.com")
+    start_url = os.getenv("START_URL", "https://www.mhsindiana.com")
     groq_api_key = os.getenv("GROQ_API_KEY")
     max_depth = int(os.getenv("MAX_DEPTH", 3))
     max_pages = int(os.getenv("MAX_PAGES", 100))
