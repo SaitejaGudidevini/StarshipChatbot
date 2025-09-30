@@ -182,23 +182,20 @@ class HierarchicalWebCrawler:
                             tag_name = await element.evaluate('el => el.tagName.toLowerCase()')
                             text_content = await element.inner_text()
                             
-                            # Get following content for this element
+                            # Get following content for this element using multiple strategies
                             following_content = await element.evaluate('''
                                 (el) => {
                                     let content = '';
+                                    
+                                    // Strategy 1: Look at immediate siblings
                                     let current = el.nextElementSibling;
-                                    let maxElements = 3; // Look at next 3 elements max
                                     let elementCount = 0;
+                                    let maxElements = 5; // Increased to look deeper
                                     
                                     while (current && elementCount < maxElements) {
                                         const tagName = current.tagName.toLowerCase();
                                         
-                                        // Stop if we hit another heading, link, or button
-                                        if (tagName.match(/^h[1-6]$/) || tagName === 'a' || tagName === 'button') {
-                                            break;
-                                        }
-                                        
-                                        // Collect content from paragraphs, divs, spans
+                                        // Collect content from paragraphs, divs, spans (more permissive)
                                         if (tagName === 'p' || tagName === 'div' || tagName === 'span') {
                                             const text = current.innerText || current.textContent || '';
                                             if (text.trim().length > 10) {
@@ -206,8 +203,43 @@ class HierarchicalWebCrawler:
                                             }
                                         }
                                         
+                                        // Only stop if we hit a heading (allow links to continue)
+                                        if (tagName.match(/^h[1-6]$/)) {
+                                            break;
+                                        }
+                                        
                                         current = current.nextElementSibling;
                                         elementCount++;
+                                    }
+                                    
+                                    // Strategy 2: If no content found, look within parent container
+                                    if (content.trim().length === 0) {
+                                        const parent = el.parentElement;
+                                        if (parent) {
+                                            // Look for content divs in the same parent
+                                            const contentDivs = parent.querySelectorAll('div.excerpt, div.content, div.description, .summary, .abstract');
+                                            for (let div of contentDivs) {
+                                                const text = div.innerText || div.textContent || '';
+                                                if (text.trim().length > 10) {
+                                                    content += text.trim() + ' ';
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Strategy 3: If still no content, look for nearby paragraph content
+                                    if (content.trim().length === 0) {
+                                        const parent = el.parentElement;
+                                        if (parent) {
+                                            const paragraphs = parent.querySelectorAll('p');
+                                            for (let p of paragraphs) {
+                                                const text = p.innerText || p.textContent || '';
+                                                if (text.trim().length > 10) {
+                                                    content += text.trim() + ' ';
+                                                    break; // Take first meaningful paragraph
+                                                }
+                                            }
+                                        }
                                     }
                                     
                                     return content.trim();
@@ -432,6 +464,36 @@ class HierarchicalWebCrawler:
                         self.crawl_nodes[semantic_path] = link_node
                         self.link_queue.append(link_node)
                         self.stats["total_links_found"] += 1
+            else:
+                # Track "extra deep" elements that exceeded max depth
+                for heading_text, semantic_path in discovered_headings:
+                    if semantic_path not in self.crawl_nodes:
+                        extra_deep_heading = CrawlNode(
+                            original_url=node.original_url,
+                            semantic_path=semantic_path,
+                            source_type='heading',
+                            parent_url=node.original_url,
+                            depth=node.depth + 1,
+                            visited=False,
+                            page_content="extra deep"
+                        )
+                        self.crawl_nodes[semantic_path] = extra_deep_heading
+                        self.stats["total_headings_found"] += 1
+                
+                # Track "extra deep" links that exceeded max depth
+                for link_text, link_url, semantic_path in discovered_links:
+                    if semantic_path not in self.crawl_nodes:
+                        extra_deep_link = CrawlNode(
+                            original_url=link_url,
+                            semantic_path=semantic_path,
+                            source_type='link',
+                            parent_url=node.original_url,
+                            depth=node.depth + 1,
+                            visited=False,
+                            page_content="extra deep"
+                        )
+                        self.crawl_nodes[semantic_path] = extra_deep_link
+                        self.stats["total_links_found"] += 1
             
             # Update statistics
             if node.source_type == 'heading':
@@ -553,42 +615,59 @@ class HierarchicalWebCrawler:
         
         # Process each crawl node and create individual entries for each element
         for semantic_path, node in self.crawl_nodes.items():
-            if not node.visited or not node.page_elements:
-                continue
+            # Handle regular visited nodes
+            if node.visited and node.page_elements:
+                # Create entries for each element type
+                for element_type in ['headings', 'links', 'buttons']:
+                    elements = node.page_elements.get(element_type, [])
+                    
+                    for element in elements:
+                        if element.get('text'):
+                            # Create semantic path for this specific element
+                            element_text = element['text'].strip()
+                            # Clean element text for use in path
+                            clean_text = self._clean_text_for_path(element_text)
+                            
+                            element_semantic_path = f"{semantic_path}/{clean_text}"
+                            
+                            element_entry = {
+                                "semantic_path": element_semantic_path,
+                                "original_url": node.original_url,
+                                "source_type": element_type[:-1],  # Remove 's' (heading, link, button)
+                                "parent_url": node.parent_url,
+                                "parent_semantic_path": semantic_path,
+                                "depth": node.depth,
+                                "element_text": element_text,
+                                "element_content": element.get('content', ''),
+                                "element_type": element_type[:-1]
+                            }
+                            
+                            # Add specific attributes
+                            if element_type == 'links' and 'href' in element:
+                                element_entry['href'] = element['href']
+                            elif element_type == 'buttons' and 'type' in element:
+                                element_entry['button_type'] = element['type']
+                            
+                            crawl_data["semantic_elements"][element_semantic_path] = element_entry
+                            total_elements += 1
             
-            # Create entries for each element type
-            for element_type in ['headings', 'links', 'buttons']:
-                elements = node.page_elements.get(element_type, [])
+            # Handle "extra deep" nodes that exceeded max depth
+            elif not node.visited and node.page_content == "extra deep":
+                # Create a special entry for this extra deep node
+                element_entry = {
+                    "semantic_path": semantic_path,
+                    "original_url": node.original_url,
+                    "source_type": node.source_type,
+                    "parent_url": node.parent_url,
+                    "parent_semantic_path": node.parent_url,
+                    "depth": node.depth,
+                    "element_text": semantic_path.split('/')[-1],  # Extract element text from path
+                    "element_content": "extra deep",
+                    "element_type": node.source_type
+                }
                 
-                for element in elements:
-                    if element.get('text'):
-                        # Create semantic path for this specific element
-                        element_text = element['text'].strip()
-                        # Clean element text for use in path
-                        clean_text = self._clean_text_for_path(element_text)
-                        
-                        element_semantic_path = f"{semantic_path}/{clean_text}"
-                        
-                        element_entry = {
-                            "semantic_path": element_semantic_path,
-                            "original_url": node.original_url,
-                            "source_type": element_type[:-1],  # Remove 's' (heading, link, button)
-                            "parent_url": node.parent_url,
-                            "parent_semantic_path": semantic_path,
-                            "depth": node.depth + 1,
-                            "element_text": element_text,
-                            "element_content": element.get('content', ''),
-                            "element_type": element_type[:-1]
-                        }
-                        
-                        # Add specific attributes
-                        if element_type == 'links' and 'href' in element:
-                            element_entry['href'] = element['href']
-                        elif element_type == 'buttons' and 'type' in element:
-                            element_entry['button_type'] = element['type']
-                        
-                        crawl_data["semantic_elements"][element_semantic_path] = element_entry
-                        total_elements += 1
+                crawl_data["semantic_elements"][semantic_path] = element_entry
+                total_elements += 1
         
         # Update metadata with element count
         crawl_data["crawl_metadata"]["total_elements"] = total_elements
@@ -607,10 +686,10 @@ class HierarchicalWebCrawler:
 async def main():
     """Example usage of hierarchical crawler"""
     crawler = HierarchicalWebCrawler(
-        start_url="https://www.mhsindiana.com/",
+        start_url="https://pytorch.org",
         max_depth=2,
         max_pages=20,  # Only crawl homepage
-        headless=True
+        headless=True  # Show browser window for debugging
     )
     
     # Run hierarchical crawl
