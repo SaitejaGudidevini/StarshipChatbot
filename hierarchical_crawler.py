@@ -43,6 +43,7 @@ class CrawlNode:
     element_count: int = 0
     discovered_headings: List[str] = field(default_factory=list)
     discovered_links: List[str] = field(default_factory=list)
+    page_primary_heading: str = ""  # The main heading/title of this page
 
 
 class HierarchicalWebCrawler:
@@ -250,10 +251,18 @@ class HierarchicalWebCrawler:
                             extra_info = {}
                             if element_type == 'links':
                                 href = await element.get_attribute('href')
+                                class_attr = await element.get_attribute('class')
+                                aria_label = await element.get_attribute('aria-label')
+                                data_style = await element.get_attribute('data-style')
                                 extra_info['href'] = href
+                                extra_info['class'] = class_attr
+                                extra_info['aria_label'] = aria_label
+                                extra_info['data_style'] = data_style
                             elif element_type == 'buttons':
                                 button_type = await element.get_attribute('type')
+                                class_attr = await element.get_attribute('class')
                                 extra_info['type'] = button_type
+                                extra_info['class'] = class_attr
                             
                             element_info = {
                                 'text': text_content.strip() if text_content else '',
@@ -288,6 +297,306 @@ class HierarchicalWebCrawler:
             logger.error(f"Error extracting page data from {url}: {e}")
             return {}, "", 0
     
+    async def _extract_page_data_with_relationships(self, page: Page, url: str):
+        """
+        Extract page data by understanding element relationships within containers
+        Uses Playwright locators for better relationship detection
+        """
+        structured_content = []
+
+        try:
+            # Step 1: Identify content containers (articles, posts, sections)
+            container_selectors = [
+                'article',
+                '.post',
+                '.blog-entry',
+                '.card',
+                'section[class*="content"]',
+                'div[class*="item"]',
+                '.row .col',  # Grid-based layouts
+                'div[class*="post-"][class*="type-post"]'  # WordPress-style posts
+            ]
+
+            # Track what we've already processed to avoid duplicates
+            processed_texts = set()
+
+            for selector in container_selectors:
+                containers = page.locator(selector)
+                count = await containers.count()
+
+                if count > 0:
+                    logger.debug(f"Found {count} containers with selector: {selector}")
+
+                for i in range(count):
+                    container = containers.nth(i)
+                    container_data = {
+                        'selector': selector,
+                        'elements': {},
+                        'relationships': {}
+                    }
+
+                    try:
+                        # Find the main heading within this container
+                        heading_locator = container.locator('h1, h2, h3, h4, h5, h6').first
+                        if await heading_locator.count() > 0:
+                            heading_text = await heading_locator.inner_text()
+
+                            # Skip if we've already processed this heading
+                            if heading_text in processed_texts:
+                                continue
+                            processed_texts.add(heading_text)
+
+                            container_data['elements']['heading'] = {
+                                'text': heading_text.strip(),
+                                'tag': await heading_locator.evaluate('el => el.tagName.toLowerCase()')
+                            }
+
+                            # Find content related to this heading using multiple strategies
+
+                            # Strategy 1: Look for immediate sibling after heading
+                            sibling_content = heading_locator.locator('xpath=./following-sibling::*[1][self::p or self::div]')
+                            if await sibling_content.count() > 0:
+                                content_text = await sibling_content.inner_text()
+                                container_data['elements']['sibling_content'] = content_text.strip()
+
+                            # Strategy 2: Look for excerpt/content divs within the container
+                            excerpt_locator = container.locator('.excerpt, .content, .description, .summary').first
+                            if await excerpt_locator.count() > 0:
+                                excerpt_text = await excerpt_locator.inner_text()
+                                container_data['elements']['excerpt'] = excerpt_text.strip()
+
+                            # Strategy 3: Get all paragraphs within container
+                            paragraphs = container.locator('p')
+                            p_count = await paragraphs.count()
+                            if p_count > 0:
+                                p_texts = []
+                                for j in range(min(p_count, 3)):  # Limit to first 3 paragraphs
+                                    p_text = await paragraphs.nth(j).inner_text()
+                                    if p_text and len(p_text.strip()) > 20:
+                                        p_texts.append(p_text.strip())
+                                if p_texts:
+                                    container_data['elements']['paragraphs'] = p_texts
+
+                        # Find the main link within this container
+                        link_locator = container.locator('a[href]').first
+                        if await link_locator.count() > 0:
+                            link_data = {
+                                'href': await link_locator.get_attribute('href'),
+                                'text': await link_locator.inner_text(),
+                                'class': await link_locator.get_attribute('class'),
+                                'aria_label': await link_locator.get_attribute('aria-label')
+                            }
+                            container_data['elements']['main_link'] = link_data
+
+                        # Find metadata (date, author, category)
+                        metadata = {}
+
+                        # Date
+                        date_locator = container.locator('time, .date, .post-date, [datetime]').first
+                        if await date_locator.count() > 0:
+                            metadata['date'] = await date_locator.inner_text()
+
+                        # Author
+                        author_locator = container.locator('.author, .by-author, [rel="author"]').first
+                        if await author_locator.count() > 0:
+                            metadata['author'] = await author_locator.inner_text()
+
+                        # Category
+                        category_locator = container.locator('.category, .tag, [rel="category"]').first
+                        if await category_locator.count() > 0:
+                            metadata['category'] = await category_locator.inner_text()
+
+                        if metadata:
+                            container_data['elements']['metadata'] = metadata
+
+                        # Build relationships
+                        if 'heading' in container_data['elements']:
+                            heading_text = container_data['elements']['heading']['text']
+
+                            # Map heading to its content
+                            content = (container_data['elements'].get('sibling_content') or
+                                     container_data['elements'].get('excerpt') or
+                                     (container_data['elements'].get('paragraphs', [''])[0] if 'paragraphs' in container_data['elements'] else ''))
+
+                            if content:
+                                container_data['relationships']['heading_to_content'] = {
+                                    heading_text: content
+                                }
+
+                            # Map heading to its link
+                            if 'main_link' in container_data['elements']:
+                                container_data['relationships']['heading_to_link'] = {
+                                    heading_text: container_data['elements']['main_link']['href']
+                                }
+
+                        # Only add if we found meaningful content
+                        if container_data['elements']:
+                            structured_content.append(container_data)
+
+                    except Exception as e:
+                        logger.debug(f"Error processing container: {e}")
+                        continue
+
+            return structured_content
+
+        except Exception as e:
+            logger.error(f"Error in relationship extraction from {url}: {e}")
+            return []
+
+    async def _extract_article_cards(self, page: Page):
+        """
+        Extract structured data from article cards (common blog/news pattern)
+        Specifically handles patterns like PyTorch's blog cards
+        """
+        article_cards = []
+
+        try:
+            # Look for common article card patterns
+            card_selectors = [
+                'a.post[class*="type-post"]',  # PyTorch specific pattern
+                'article.card',
+                'div.blog-card',
+                '.article-preview',
+                'a[class*="col"][class*="post-"]',  # Grid-based post links
+                '.post-item',
+                '.news-item'
+            ]
+
+            for selector in card_selectors:
+                cards = page.locator(selector)
+                card_count = await cards.count()
+
+                if card_count > 0:
+                    logger.debug(f"Found {card_count} article cards with selector: {selector}")
+
+                    for i in range(card_count):
+                        card = cards.nth(i)
+
+                        try:
+                            # Extract all attributes from the card
+                            card_data = {
+                                'selector_used': selector,
+                                'href': await card.get_attribute('href'),
+                                'class': await card.get_attribute('class'),
+                                'aria_label': await card.get_attribute('aria-label'),
+                                'id': await card.get_attribute('id'),
+                                'data_attributes': {},
+                                'heading': None,
+                                'excerpt': None,
+                                'image': None,
+                                'metadata': {}
+                            }
+
+                            # Get all data-* attributes
+                            # We'll extract these using JavaScript for efficiency
+                            data_attrs = await card.evaluate('''
+                                (el) => {
+                                    const attrs = {};
+                                    for (let attr of el.attributes) {
+                                        if (attr.name.startsWith('data-')) {
+                                            attrs[attr.name] = attr.value;
+                                        }
+                                    }
+                                    return attrs;
+                                }
+                            ''')
+                            card_data['data_attributes'] = data_attrs
+
+                            # Find heading within card (try multiple selectors)
+                            heading_selectors = ['h1', 'h2', 'h3', 'h4', '.title', '.post-title', '.entry-title']
+                            for h_sel in heading_selectors:
+                                card_heading = card.locator(h_sel).first
+                                if await card_heading.count() > 0:
+                                    card_data['heading'] = await card_heading.inner_text()
+                                    break
+
+                            # Find excerpt within card
+                            excerpt_selectors = ['.excerpt', '.description', '.content', '.summary', 'p']
+                            for e_sel in excerpt_selectors:
+                                card_excerpt = card.locator(e_sel).first
+                                if await card_excerpt.count() > 0:
+                                    excerpt_text = await card_excerpt.inner_text()
+                                    if excerpt_text and len(excerpt_text.strip()) > 20:
+                                        card_data['excerpt'] = excerpt_text.strip()
+                                        break
+
+                            # Find image
+                            img_locator = card.locator('img').first
+                            if await img_locator.count() > 0:
+                                card_data['image'] = {
+                                    'src': await img_locator.get_attribute('src'),
+                                    'alt': await img_locator.get_attribute('alt')
+                                }
+
+                            # Extract date
+                            date_locator = card.locator('time, .date, .post-date').first
+                            if await date_locator.count() > 0:
+                                card_data['metadata']['date'] = await date_locator.inner_text()
+
+                            # Extract author
+                            author_locator = card.locator('.author, .by-author').first
+                            if await author_locator.count() > 0:
+                                card_data['metadata']['author'] = await author_locator.inner_text()
+
+                            # Extract category/tags
+                            category_locator = card.locator('.category, .tag').first
+                            if await category_locator.count() > 0:
+                                card_data['metadata']['category'] = await category_locator.inner_text()
+
+                            # Only add if we have meaningful data
+                            if card_data['href'] or card_data['heading']:
+                                article_cards.append(card_data)
+
+                        except Exception as e:
+                            logger.debug(f"Error processing article card: {e}")
+                            continue
+
+            return article_cards
+
+        except Exception as e:
+            logger.error(f"Error extracting article cards: {e}")
+            return []
+
+    def _build_element_relationships(self, structured_content):
+        """
+        Build a map of how elements relate to each other
+        """
+        relationships = {
+            'heading_to_content': {},  # heading_text -> content_text
+            'heading_to_links': {},    # heading_text -> [links]
+            'container_groups': [],     # Groups of related elements
+            'content_hierarchy': {}     # Nested structure
+        }
+
+        try:
+            for container in structured_content:
+                if 'relationships' in container and container['relationships']:
+                    # Merge heading-to-content mappings
+                    if 'heading_to_content' in container['relationships']:
+                        relationships['heading_to_content'].update(
+                            container['relationships']['heading_to_content']
+                        )
+
+                    # Merge heading-to-link mappings
+                    if 'heading_to_link' in container['relationships']:
+                        for heading, link in container['relationships']['heading_to_link'].items():
+                            if heading not in relationships['heading_to_links']:
+                                relationships['heading_to_links'][heading] = []
+                            relationships['heading_to_links'][heading].append(link)
+
+                # Group related elements from the same container
+                if 'elements' in container and container['elements']:
+                    group = {
+                        'container_type': container.get('selector', 'unknown'),
+                        'elements': container['elements']
+                    }
+                    relationships['container_groups'].append(group)
+
+        except Exception as e:
+            logger.error(f"Error building relationships: {e}")
+
+        return relationships
+
     def _clean_content(self, content: str) -> str:
         """Clean and normalize content text"""
         if not content:
@@ -317,14 +626,112 @@ class HierarchicalWebCrawler:
         
         return content
     
-    async def _discover_headings_and_links(self, page: Page, current_url: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+    async def _discover_headings_and_links_with_locators(self, page: Page, current_url: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
         """
-        Discover headings and links from current page
+        Discover headings and links using Playwright locators for better relationship understanding
         Returns: ([(heading_text, semantic_path), ...], [(link_text, link_url, semantic_path), ...])
         """
         discovered_headings = []
         discovered_links = []
-        
+
+        try:
+            # Use locators for headings with content verification
+            headings = page.locator('h1, h2, h3, h4, h5, h6')
+            heading_count = await headings.count()
+
+            for i in range(heading_count):
+                heading = headings.nth(i)
+
+                try:
+                    heading_text = await heading.inner_text()
+                    if heading_text and len(heading_text.strip()) > 2:
+                        # Check if heading has meaningful content after it using XPath
+                        # Look for following siblings that are paragraphs or content divs
+                        following_content = heading.locator('xpath=./following-sibling::*[self::p or self::div][1]')
+                        has_content = await following_content.count() > 0
+
+                        if has_content:
+                            # Verify the content is substantial
+                            content_text = await following_content.inner_text() if await following_content.count() > 0 else ""
+                            if len(content_text.strip()) > 20:  # Only process if meaningful content exists
+                                # Create semantic path for heading (single slash)
+                                clean_text = self.labeler._clean_text_natural(heading_text.strip())
+                                semantic_path = f"https://{self.domain}/{clean_text}"
+                                discovered_headings.append((heading_text.strip(), semantic_path))
+
+                except Exception as e:
+                    logger.debug(f"Error processing heading: {e}")
+                    continue
+
+            # Use locators for links with better filtering
+            links = page.locator('a[href]')
+            link_count = await links.count()
+
+            # Track processed URLs to avoid duplicates
+            processed_in_batch = set()
+
+            for i in range(link_count):
+                link = links.nth(i)
+
+                try:
+                    href = await link.get_attribute('href')
+                    link_text = await link.inner_text()
+
+                    # Skip invalid links
+                    if not href or href.startswith('#') or href.startswith('javascript:'):
+                        continue
+
+                    # Get absolute URL
+                    absolute_url = urljoin(current_url, href)
+                    normalized_url = self._normalize_url(absolute_url)
+
+                    # Check if URL is within the same domain
+                    if not self._is_same_domain(normalized_url):
+                        continue
+
+                    # Skip if already processed
+                    if normalized_url in self.processed_urls or normalized_url in processed_in_batch:
+                        continue
+
+                    processed_in_batch.add(normalized_url)
+
+                    # Check if link has meaningful text or aria-label
+                    aria_label = await link.get_attribute('aria-label')
+                    meaningful_text = link_text.strip() if link_text else (aria_label if aria_label else "")
+
+                    if meaningful_text and len(meaningful_text) > 2:
+                        # Create semantic path for link (double slash)
+                        clean_text = self.labeler._clean_text_natural(meaningful_text)
+                        semantic_path = f"https://{self.domain}//{clean_text}"
+                        discovered_links.append((meaningful_text, normalized_url, semantic_path))
+
+                except Exception as e:
+                    logger.debug(f"Error processing link: {e}")
+                    continue
+
+        except Exception as e:
+            logger.error(f"Error discovering with locators from {current_url}: {e}")
+
+        return discovered_headings, discovered_links
+
+    async def _discover_headings_and_links(self, page: Page, current_url: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+        """
+        Discover headings and links from current page
+        Now uses the improved locator-based method
+        Returns: ([(heading_text, semantic_path), ...], [(link_text, link_url, semantic_path), ...])
+        """
+        # Use the new locator-based discovery method
+        return await self._discover_headings_and_links_with_locators(page, current_url)
+
+    async def _discover_headings_and_links_legacy(self, page: Page, current_url: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+        """
+        Legacy discovery method using query_selector_all
+        Kept for backward compatibility
+        Returns: ([(heading_text, semantic_path), ...], [(link_text, link_url, semantic_path), ...])
+        """
+        discovered_headings = []
+        discovered_links = []
+
         try:
             # Extract headings first (priority 1)
             heading_elements = await page.query_selector_all('h1, h2, h3, h4, h5, h6')
@@ -424,15 +831,61 @@ class HierarchicalWebCrawler:
                 logger.warning(f"❌ Failed to load {node.original_url}: Status {response.status if response else 'None'}")
                 return False
             
-            # Extract comprehensive page data
+            # Extract comprehensive page data using BOTH methods
+            # Method 1: Original extraction (for backward compatibility)
             page_elements, main_content, element_count = await self._extract_page_data(page, node.original_url)
-            
+
+            # Method 2: New relationship-aware extraction
+            structured_content = await self._extract_page_data_with_relationships(page, node.original_url)
+            article_cards = await self._extract_article_cards(page)
+            relationships = self._build_element_relationships(structured_content)
+
+            # Combine both extraction methods
+            enhanced_elements = {
+                **page_elements,  # Keep original extracted elements
+                'structured_content': structured_content,
+                'article_cards': article_cards,
+                'relationships': relationships
+            }
+
             # Update node with extracted data
-            node.page_elements = page_elements
+            node.page_elements = enhanced_elements
             node.page_content = main_content
             node.element_count = element_count
             node.visited = True
-            
+
+            # Extract and store the page's primary heading/title
+            page_primary_heading = ""
+
+            # Strategy 1: Try to get the first H1 heading
+            if 'headings' in page_elements and page_elements['headings']:
+                for heading in page_elements['headings']:
+                    if heading.get('text'):
+                        page_primary_heading = heading['text'].strip()
+                        break
+
+            # Strategy 2: Try structured content for main heading
+            if not page_primary_heading and 'structured_content' in enhanced_elements:
+                for container in enhanced_elements['structured_content']:
+                    if 'elements' in container and 'heading' in container['elements']:
+                        heading_elem = container['elements']['heading']
+                        if heading_elem.get('text') and heading_elem.get('tag') in ['h1', 'h2']:
+                            page_primary_heading = heading_elem['text'].strip()
+                            break
+
+            # Strategy 3: Extract from the node's semantic_path as fallback
+            if not page_primary_heading:
+                # For links: extract from semantic path (e.g., "https://domain//Text" -> "Text")
+                if '//' in node.semantic_path:
+                    page_primary_heading = node.semantic_path.split('//')[-1].split('/')[0]
+                else:
+                    # For headings or other: extract last segment
+                    page_primary_heading = node.semantic_path.split('/')[-1]
+
+            # Store the primary heading in the node
+            node.page_primary_heading = page_primary_heading
+            logger.debug(f"Page primary heading identified: '{page_primary_heading}'")
+
             # Discover headings and links for further crawling
             discovered_headings, discovered_links = await self._discover_headings_and_links(page, node.original_url)
             
@@ -608,34 +1061,89 @@ class HierarchicalWebCrawler:
                 "total_nodes": len(self.crawl_nodes),
                 "format_description": "Each element (heading/link/button) has its own semantic path entry"
             },
-            "semantic_elements": {}
+            "semantic_elements": {},
+            "article_cards": [],
+            "structured_content": [],
+            "element_relationships": {}
         }
-        
+
         total_elements = 0
-        
+        total_article_cards = 0
+
         # Process each crawl node and create individual entries for each element
         for semantic_path, node in self.crawl_nodes.items():
             # Handle regular visited nodes
             if node.visited and node.page_elements:
-                # Create entries for each element type
+                # Add new structured content if available
+                if 'structured_content' in node.page_elements:
+                    crawl_data["structured_content"].extend(node.page_elements['structured_content'])
+
+                # Add article cards if available
+                if 'article_cards' in node.page_elements:
+                    for card in node.page_elements['article_cards']:
+                        card['found_on_page'] = node.original_url
+                        crawl_data["article_cards"].append(card)
+                        total_article_cards += 1
+
+                # Add relationships if available
+                if 'relationships' in node.page_elements:
+                    rel = node.page_elements['relationships']
+                    if 'heading_to_content' in rel:
+                        crawl_data["element_relationships"].update(rel['heading_to_content'])
+
+                # Create entries for each element type (original method)
                 for element_type in ['headings', 'links', 'buttons']:
                     elements = node.page_elements.get(element_type, [])
-                    
+
                     for element in elements:
                         if element.get('text'):
                             # Create semantic path for this specific element
                             element_text = element['text'].strip()
                             # Clean element text for use in path
                             clean_text = self._clean_text_for_path(element_text)
-                            
-                            element_semantic_path = f"{semantic_path}/{clean_text}"
-                            
+
+                            # Build semantic path based on page context and element type
+                            if node.depth == 0:
+                                # Homepage elements (depth 0)
+                                if element_type == 'links':
+                                    # Links from homepage: https://pytorch.org//LinkText
+                                    element_semantic_path = f"https://{self.domain}//{clean_text}"
+                                    parent_semantic = None
+                                else:
+                                    # Headings from homepage: https://pytorch.org/HeadingText
+                                    element_semantic_path = f"https://{self.domain}/{clean_text}"
+                                    parent_semantic = None
+                            else:
+                                # Sub-page elements (depth >= 1)
+                                # Use the page's primary heading as the base context
+                                if node.page_primary_heading:
+                                    base_context = node.page_primary_heading
+                                else:
+                                    # Fallback: extract from semantic_path
+                                    if '//' in semantic_path:
+                                        base_context = semantic_path.split('//')[-1].split('/')[0]
+                                    else:
+                                        base_context = semantic_path.split('/')[-1]
+
+                                if element_type == 'links':
+                                    # Links: https://pytorch.org//PageHeading/LinkText
+                                    element_semantic_path = f"https://{self.domain}//{base_context}/{clean_text}"
+                                    parent_semantic = f"https://{self.domain}//{base_context}"
+                                elif element_type == 'buttons':
+                                    # Buttons: https://pytorch.org//PageHeading/ButtonText
+                                    element_semantic_path = f"https://{self.domain}//{base_context}/{clean_text}"
+                                    parent_semantic = f"https://{self.domain}//{base_context}"
+                                else:
+                                    # Headings: https://pytorch.org/PageHeading/SubHeading
+                                    element_semantic_path = f"https://{self.domain}/{base_context}/{clean_text}"
+                                    parent_semantic = f"https://{self.domain}/{base_context}"
+
                             element_entry = {
                                 "semantic_path": element_semantic_path,
                                 "original_url": node.original_url,
                                 "source_type": element_type[:-1],  # Remove 's' (heading, link, button)
                                 "parent_url": node.parent_url,
-                                "parent_semantic_path": semantic_path,
+                                "parent_semantic_path": parent_semantic if node.depth == 0 else parent_semantic,
                                 "depth": node.depth,
                                 "element_text": element_text,
                                 "element_content": element.get('content', ''),
@@ -669,8 +1177,11 @@ class HierarchicalWebCrawler:
                 crawl_data["semantic_elements"][semantic_path] = element_entry
                 total_elements += 1
         
-        # Update metadata with element count
+        # Update metadata with all counts
         crawl_data["crawl_metadata"]["total_elements"] = total_elements
+        crawl_data["crawl_metadata"]["total_article_cards"] = total_article_cards
+        crawl_data["crawl_metadata"]["total_structured_containers"] = len(crawl_data["structured_content"])
+        crawl_data["crawl_metadata"]["total_relationships"] = len(crawl_data["element_relationships"])
         
         # Save to file
         import os
@@ -686,10 +1197,10 @@ class HierarchicalWebCrawler:
 async def main():
     """Example usage of hierarchical crawler"""
     crawler = HierarchicalWebCrawler(
-        start_url="https://pytorch.org",
+        start_url="https://pytorch.org/",
         max_depth=2,
         max_pages=20,  # Only crawl homepage
-        headless=True  # Show browser window for debugging
+        headless=True
     )
     
     # Run hierarchical crawl
