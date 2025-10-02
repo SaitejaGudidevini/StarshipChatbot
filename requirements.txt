@@ -16,7 +16,7 @@ jinja2==3.1.4
 python-multipart==0.0.12
 
 # Chatbot dependencies  
-chromadb==1.1.1
+chromadb==1.1.0
 pydantic==2.9.2
 
 # Additional dependencies for async operations
