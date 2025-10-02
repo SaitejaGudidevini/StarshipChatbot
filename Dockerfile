@@ -6,24 +6,29 @@ WORKDIR /app
 # Install system dependencies including Playwright browser dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
+    wget \
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
     libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libgtk-3-0 \
-    libgbm1 \
-    libasound2 \
-    libxss1 \
-    libgconf-2-4 \
-    libxrandr2 \
-    libasound2 \
-    libpangocairo-1.0-0 \
     libatk1.0-0 \
-    libcairo-gobject2 \
+    libatspi2.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
     libgtk-3-0 \
-    libgdk-pixbuf2.0-0 \
+    libnspr4 \
+    libnss3 \
+    libwayland-client0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    libxss1 \
+    libxtst6 \
+    xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
