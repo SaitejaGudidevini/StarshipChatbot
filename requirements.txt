@@ -9,8 +9,15 @@ urllib3==2.3.0
 # Development dependencies
 python-dotenv==1.0.1
 
-# FastAPI dependencies for visualizer
+# FastAPI dependencies for chatbot and visualizer
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
 jinja2==3.1.4
 python-multipart==0.0.12
+
+# Chatbot dependencies
+chromadb==0.5.5
+pydantic==2.9.2
+
+# Additional dependencies for async operations
+aiofiles==24.1.0
