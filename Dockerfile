@@ -12,19 +12,27 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
-COPY visualizer_fastapi.py .
+# Copy application files for chatbot
+COPY chatbot_server.py .
+COPY vector_query_service.py .
+COPY content_extractor.py .
+COPY query_chroma.py .
 COPY templates/ templates/
 
-# Create output directory
+# Copy ChromaDB and output data
+COPY chroma_db/ chroma_db/
 COPY output/ output/
 
+# Install Playwright and dependencies
+RUN pip install playwright
+RUN playwright install chromium
+
 # Expose port
-EXPOSE 8000
+EXPOSE 8002
 
 # Set environment variables for Railway
 ENV HOST=0.0.0.0
-ENV PORT=8000
+ENV PORT=8002
 
-# Run the application
-CMD ["uvicorn", "visualizer_fastapi:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the chatbot application
+CMD ["uvicorn", "chatbot_server:app", "--host", "0.0.0.0", "--port", "8002"]
