@@ -1139,22 +1139,18 @@ class HierarchicalWebCrawler:
                                     parent_semantic = f"https://{self.domain}/{base_context}"
 
                             element_entry = {
-                                "semantic_path": element_semantic_path,
-                                "original_url": node.original_url,
-                                "source_type": element_type[:-1],  # Remove 's' (heading, link, button)
-                                "parent_url": node.parent_url,
-                                "parent_semantic_path": parent_semantic if node.depth == 0 else parent_semantic,
-                                "depth": node.depth,
-                                "element_text": element_text,
-                                "element_content": element.get('content', ''),
-                                "element_type": element_type[:-1]
-                            }
-                            
+                                    "semantic_path": element_semantic_path,
+                                    "original_url": node.original_url,
+                                    "source_type": element_type[:-1],  # Remove 's' (heading, link, button)
+                                    "element_type": element_type[:-1]
+                                }
+                            """
                             # Add specific attributes
                             if element_type == 'links' and 'href' in element:
                                 element_entry['href'] = element['href']
                             elif element_type == 'buttons' and 'type' in element:
                                 element_entry['button_type'] = element['type']
+                            """
                             
                             crawl_data["semantic_elements"][element_semantic_path] = element_entry
                             total_elements += 1
@@ -1166,11 +1162,6 @@ class HierarchicalWebCrawler:
                     "semantic_path": semantic_path,
                     "original_url": node.original_url,
                     "source_type": node.source_type,
-                    "parent_url": node.parent_url,
-                    "parent_semantic_path": node.parent_url,
-                    "depth": node.depth,
-                    "element_text": semantic_path.split('/')[-1],  # Extract element text from path
-                    "element_content": "extra deep",
                     "element_type": node.source_type
                 }
                 
@@ -1197,7 +1188,7 @@ class HierarchicalWebCrawler:
 async def main():
     """Example usage of hierarchical crawler"""
     crawler = HierarchicalWebCrawler(
-        start_url="https://pytorch.org/",
+        start_url="https://www.mhsindiana.com/",
         max_depth=2,
         max_pages=20,  # Only crawl homepage
         headless=True

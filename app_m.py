@@ -20,7 +20,7 @@ load_dotenv()
 
 
 DATA_PATH = Path(
-   "/Users/saitejagudidevini/Documents/Dev/StarshipChatbot/output/hierarchical_crawl_pytorch_org_20250930_213016_filtered.json"
+   "/Users/saitejagudidevini/Documents/Dev/StarshipChatbot/output/hierarchical_crawl_www_mhsindiana_com_20251005_172659.json"
 )
 
 app = FastAPI(title="Starship AI-Powered Semantic Scraper")

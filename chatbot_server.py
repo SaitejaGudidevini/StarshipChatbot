@@ -15,6 +15,14 @@ import os
 import asyncio
 from datetime import datetime
 from pathlib import Path
+import logging
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Import our custom services
 from vector_query_service import VectorQueryService
@@ -65,49 +73,69 @@ async def chat_endpoint(message: ChatMessage) -> ChatResponse:
         user_query = message.message.strip()
         timestamp = datetime.now().isoformat()
         
+        logger.info(f"📥 PHASE 1: Received user query: '{user_query}'")
+        
         if not user_query:
+            logger.warning("❌ Empty query received")
             return ChatResponse(
                 response="Please ask me something!",
                 timestamp=timestamp
             )
         
         # Step 1: Query vector database for relevant content
+        logger.info(f"🔍 PHASE 2: Starting vector DB search for: '{user_query}'")
         print(f"🔍 Searching vector DB for: '{user_query}'")
-        vector_results = await vector_service.query(user_query, top_k=3)
+        vector_results = await vector_service.query(user_query, top_k=10)
         
         if not vector_results:
+            logger.warning("❌ PHASE 2 FAILED: No vector results found")
             return ChatResponse(
                 response="I couldn't find any relevant information about that topic.",
                 timestamp=timestamp
             )
         
+        logger.info(f"✅ PHASE 2 SUCCESS: Found {len(vector_results)} vector results")
+        
         # Step 2: Extract live content for the best match
         best_match = vector_results[0]
+        logger.info(f"📄 PHASE 3: Starting content extraction for best match")
+        logger.info(f"   → Semantic path: {best_match['semantic_path']}")
+        logger.info(f"   → URL: {best_match['url']}")
+        logger.info(f"   → Type: {best_match['type']}")
+        logger.info(f"   → Similarity: {best_match['similarity']}")
         print(f"📄 Best match: {best_match['semantic_path']}")
         
         # Extract live content using Playwright
+        element_type = best_match['type'].split('/')[0].strip()
+        target_text = best_match['semantic_path'].split('/')[-1]
+        logger.info(f"🎭 PHASE 3: Playwright extracting - Type: '{element_type}', Target: '{target_text}'")
+        
         live_content = await content_extractor.extract_content(
             url=best_match['url'],
-            element_type=best_match['type'].split('/')[0].strip(),
-            target_text=best_match['semantic_path'].split('/')[-1]
+            element_type=element_type,
+            target_text=target_text
         )
         
         # Step 3: Build response
         if live_content and live_content != "Content not found":
+            logger.info(f"✅ PHASE 3 SUCCESS: Extracted {len(live_content)} characters of live content")
             response_text = f"Based on the latest information from {best_match['url']}:\n\n{live_content}"
         else:
+            logger.warning(f"❌ PHASE 3 FAILED: Live extraction failed, using fallback")
             # Fallback to vector result if live extraction fails
             response_text = f"Here's what I found about '{user_query}':\n\n{best_match.get('content', 'No content available')}"
         
         # Prepare sources for transparency
+        logger.info(f"📋 PHASE 4: Preparing {len(vector_results)} sources for response")
         sources = []
-        for result in vector_results:
+        for i, result in enumerate(vector_results):
             sources.append({
                 "semantic_path": result['semantic_path'],
                 "url": result['url'],
                 "type": result['type'],
                 "similarity": result['similarity']
             })
+            logger.info(f"   Source {i+1}: {result['semantic_path']} (similarity: {result['similarity']})")
         
         # Store in chat history
         chat_entry = {
@@ -118,6 +146,9 @@ async def chat_endpoint(message: ChatMessage) -> ChatResponse:
         }
         chat_history.append(chat_entry)
         
+        logger.info(f"✅ PHASE 4 SUCCESS: Response prepared and stored in history")
+        logger.info(f"🎯 PIPELINE COMPLETE: Total response length: {len(response_text)} characters")
+        
         return ChatResponse(
             response=response_text,
             sources=sources,
@@ -125,6 +156,7 @@ async def chat_endpoint(message: ChatMessage) -> ChatResponse:
         )
         
     except Exception as e:
+        logger.error(f"💥 PIPELINE ERROR: {str(e)}", exc_info=True)
         print(f"❌ Error in chat endpoint: {e}")
         return ChatResponse(
             response=f"Sorry, I encountered an error while processing your question: {str(e)}",
