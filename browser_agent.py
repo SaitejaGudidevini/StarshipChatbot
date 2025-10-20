@@ -8,25 +8,25 @@ Agents (4 Total):
 1. CrawlerAgent (OPTIONAL) - Hierarchical web crawler with semantic path generation
 2. LoadJSONAgent - Loads and validates semantic elements from crawler or file
 3. BrowserAgent - Extracts detailed web content using browser_use + Groq AI
-4. ParaphraserAgent - Transforms technical content into chatbot-friendly summaries
+4. QAGeneratorAgent - Generates 10 Q&A pairs per semantic path using Pydantic validation
 
 Architecture:
 - Uses LangGraph for agent orchestration
 - Hierarchical crawler discovers semantic elements (headings/links)
 - Conditional routing loops through all items
-- Each item goes through: Crawl → Load → Extract → Paraphrase → Next item
+- Each item goes through: Crawl → Load → Extract → Generate Q&A → Next item
 - AsyncSqliteSaver checkpointing for automatic resume from failures
 
 Flow (WITH Crawler):
-START → crawler → load_json → browser_agent → paraphraser_agent → should_continue?
-    (crawl site)              ↑                                          |
-                              |---------------- YES ---------------------|
+START → crawler → load_json → browser_agent → qa_generator → should_continue?
+    (crawl site)              ↑                                    |
+                              |------------- YES -----------------|
                               NO → END
 
 Flow (WITHOUT Crawler):
-START → load_json → browser_agent → paraphraser_agent → should_continue?
-                         ↑                                    |
-                         |------------- YES -----------------|
+START → load_json → browser_agent → qa_generator → should_continue?
+                         ↑                              |
+                         |---------- YES --------------|
                          NO → END
 
 Crawler Features:
@@ -51,10 +51,11 @@ from typing import Dict, List, TypedDict, Optional
 
 from browser_use import Agent, BrowserSession, ChatGroq
 from dotenv import load_dotenv
-from groq import Groq
+from langchain_groq import ChatGroq as LangChainChatGroq
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from hierarchical_crawler import HierarchicalWebCrawler
+from pydantic import BaseModel, Field
 
 # Load environment variables
 load_dotenv()
@@ -69,6 +70,25 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# PYDANTIC MODELS FOR Q&A GENERATION
+# ============================================================================
+
+class QAPair(BaseModel):
+    """Single question-answer pair"""
+    question: str = Field(description="A plausible question a user might ask about the topic")
+    answer: str = Field(description="Comprehensive answer based on the extracted content")
+
+
+class QAList(BaseModel):
+    """List of Q&A pairs generated from content"""
+    qa_pairs: List[QAPair] = Field(
+        description="List of 10 question-answer pairs covering different aspects of the topic",
+        min_length=8,   # Allow slight flexibility (at least 8)
+        max_length=12   # Allow up to 12 if LLM generates more
+    )
 
 
 # ============================================================================
@@ -90,9 +110,9 @@ class AgentState(TypedDict):
     browser_content: str             # Extracted content from browser_use
     extraction_method: str           # How content was extracted
     processing_time: float           # Time taken for extraction
-    chatbot_summary: str             # Paraphrased chatbot-friendly content
-    paraphrase_status: str           # Status: completed/failed/skipped
-    paraphrase_time: float           # Time taken for paraphrasing
+    qa_pairs: List[Dict]             # Generated Q&A pairs (list of {"question": str, "answer": str})
+    qa_generation_status: str        # Status: completed/failed/skipped
+    qa_generation_time: float        # Time taken for Q&A generation
     status: str                      # Current status: pending/loading/extracting/complete/failed
     error_message: str               # Error details if any
     total_items: int                 # Total number of items to process
@@ -161,34 +181,40 @@ def infer_topic(semantic_path: str) -> str:
     return topic or semantic_path
 
 
-def create_paraphrase_prompt(content: str, topic: str) -> str:
+def create_qa_generation_prompt(content: str, topic: str) -> str:
     """
-    Create prompt for chatbot-friendly paraphrasing
-    Transforms technical content into conversational summaries
+    Create prompt for Q&A pair generation
+    Generates 10 plausible questions and comprehensive answers based on content
     """
-    return f"""You are a helpful assistant that transforms technical documentation into conversational, easy-to-understand content for a chatbot.
+    return f"""You are a helpful assistant that generates question-answer pairs for chatbot training.
 
-Your task: Transform the following content about "{topic}" into a chatbot-friendly response that a human can easily understand.
+Your task: Analyze the following content about "{topic}" and generate 10 diverse, plausible questions that users might ask, along with comprehensive answers.
 
 CRITICAL REQUIREMENTS:
-1. Write in a friendly, conversational tone (like you're explaining to a colleague)
-2. PRESERVE ALL important details:
-   - ALL URLs and links (include the full URL)
-   - ALL dates and times
-   - ALL requirements, dependencies, or prerequisites
-   - ALL contact information
-   - ALL procedures and steps
-   - ALL important features or capabilities
-3. Organize information clearly with bullet points or sections
-4. Use bold (**text**) for important headers or key information
-5. Keep it comprehensive but easy to scan
-6. Start with a brief overview sentence explaining what this is
-7. Make it actionable - if there are steps to follow, list them clearly
+1. Generate EXACTLY 10 question-answer pairs
+2. Cover different question types:
+   - What/Definition questions (e.g., "What is {topic}?")
+   - How-to/Procedural questions (e.g., "How do I use {topic}?")
+   - Why/Reasoning questions (e.g., "Why should I use {topic}?")
+   - When/Timing questions (e.g., "When is {topic} available?")
+   - Where/Location questions (e.g., "Where can I find {topic}?")
+   - Who/Contact questions (e.g., "Who should I contact about {topic}?")
 
-ORIGINAL CONTENT:
+3. Make questions natural and conversational (how real users would ask)
+4. Answers must be comprehensive and include:
+   - ALL important URLs and links
+   - ALL dates, times, and contact information
+   - ALL procedures and steps
+   - ALL requirements and prerequisites
+   - Clear, actionable information
+
+5. Keep answers easy to understand but comprehensive
+6. Base all answers ONLY on the provided content (don't make up information)
+
+CONTENT ABOUT "{topic}":
 {content}
 
-CHATBOT-FRIENDLY SUMMARY:"""
+Generate 10 question-answer pairs now."""
 
 
 # ============================================================================
@@ -399,14 +425,22 @@ def load_json_node(state: AgentState) -> AgentState:
         logger.info(f"✅ Loaded {total_items} semantic elements")
         logger.info(f"🚀 Starting batch processing with conditional routing...")
 
+        # Preserve checkpoint values if resuming (don't reset!)
+        current_index = state.get("current_index", 0)
+        processed_items = state.get("processed_items", [])
+
+        # Log if resuming from checkpoint
+        if current_index > 0:
+            logger.info(f"✅ Preserving checkpoint: continuing from item {current_index+1}")
+
         return {
             **state,
             "semantic_paths": semantic_elements,
-            "current_item": {},           # Will be set by browser_agent_node
-            "current_index": 0,           # Start at first item
+            "current_item": state.get("current_item", {}),
+            "current_index": current_index,        # Preserve from checkpoint
             "total_items": total_items,
             "status": "loaded",
-            "processed_items": []
+            "processed_items": processed_items     # Preserve from checkpoint
         }
 
     except Exception as e:
@@ -494,10 +528,10 @@ async def browser_agent_node(state: AgentState) -> AgentState:
         }
 
 
-async def paraphraser_agent_node(state: AgentState) -> AgentState:
+async def qa_generator_node(state: AgentState) -> AgentState:
     """
-    Node: Paraphrase browser_use_content into chatbot-friendly summary
-    Uses Groq API to transform technical content into conversational format
+    Node: Generate Q&A pairs from browser_use content
+    Uses LangChain's structured output with Pydantic models for validation
     """
     browser_content = state.get("browser_content", "")
     current_item = state.get("current_item", {})
@@ -505,82 +539,91 @@ async def paraphraser_agent_node(state: AgentState) -> AgentState:
 
     # Skip if no content
     if not browser_content or browser_content in ["No content extracted", "AI extraction failed"]:
-        logger.warning(f"⚠️ Skipping paraphrase for {topic}: No valid content")
+        logger.warning(f"⚠️ Skipping Q&A generation for {topic}: No valid content")
 
         # Update the last processed item
         processed_items = state.get("processed_items", [])
         if processed_items:
-            processed_items[-1]["chatbot_summary"] = browser_content
-            processed_items[-1]["paraphrase_status"] = "skipped"
+            processed_items[-1]["qa_pairs"] = []
+            processed_items[-1]["qa_generation_status"] = "skipped"
 
         return {
             **state,
-            "chatbot_summary": browser_content,
-            "paraphrase_status": "skipped",
-            "paraphrase_time": 0.0,
+            "qa_pairs": [],
+            "qa_generation_status": "skipped",
+            "qa_generation_time": 0.0,
             "processed_items": processed_items
         }
 
-    logger.info(f"💬 Paraphrasing: {topic}")
+    logger.info(f"❓ Generating Q&A pairs for: {topic}")
 
     try:
-        # Initialize Groq client
+        # Initialize LangChain ChatGroq with structured output
         groq_api_key = os.getenv('GROQ_API_KEY')
         if not groq_api_key:
             raise ValueError("GROQ_API_KEY not found in environment")
 
-        groq_client = Groq(api_key=groq_api_key)
-
-        # Create paraphrase prompt
-        prompt = create_paraphrase_prompt(browser_content, topic)
-
-        # Call Groq API
-        start_time = time.time()
-        completion = groq_client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
+        # Create LangChain ChatGroq instance
+        llm = LangChainChatGroq(
             model="meta-llama/llama-4-maverick-17b-128e-instruct",
+            api_key=groq_api_key,
             temperature=0.3,  # Slightly creative but mostly factual
-            max_tokens=2000   # Allow longer responses to preserve details
+            max_tokens=3000   # Allow longer responses for 10 Q&A pairs
         )
-        paraphrase_time = time.time() - start_time
 
-        chatbot_summary = completion.choices[0].message.content.strip()
+        # Add structured output with Pydantic validation
+        structured_llm = llm.with_structured_output(QAList)
 
-        logger.info(f"✅ Paraphrased {topic} ({paraphrase_time:.1f}s)")
+        # Create Q&A generation prompt
+        prompt = create_qa_generation_prompt(browser_content, topic)
 
-        # Update the last processed item with summary
+        # Generate Q&A pairs with validation
+        start_time = time.time()
+        result = structured_llm.invoke(prompt)  # Returns QAList object
+        qa_generation_time = time.time() - start_time
+
+        # Convert Pydantic models to dictionaries
+        qa_pairs = [
+            {"question": qa.question, "answer": qa.answer}
+            for qa in result.qa_pairs
+        ]
+
+        logger.info(f"✅ Generated {len(qa_pairs)} Q&A pairs for {topic} ({qa_generation_time:.1f}s)")
+
+        # Update the last processed item with Q&A pairs
         processed_items = state.get("processed_items", [])
         if processed_items:
-            processed_items[-1]["chatbot_summary"] = chatbot_summary
-            processed_items[-1]["paraphrase_status"] = "completed"
-            processed_items[-1]["paraphrase_time"] = round(paraphrase_time, 2)
-            processed_items[-1]["paraphrase_model"] = "meta-llama/llama-4-maverick-17b-128e-instruct"
+            processed_items[-1]["qa_pairs"] = qa_pairs
+            processed_items[-1]["qa_generation_status"] = "completed"
+            processed_items[-1]["qa_generation_time"] = round(qa_generation_time, 2)
+            processed_items[-1]["qa_model"] = "meta-llama/llama-4-maverick-17b-128e-instruct"
+            processed_items[-1]["qa_count"] = len(qa_pairs)
 
         return {
             **state,
-            "chatbot_summary": chatbot_summary,
-            "paraphrase_status": "completed",
-            "paraphrase_time": paraphrase_time,
+            "qa_pairs": qa_pairs,
+            "qa_generation_status": "completed",
+            "qa_generation_time": qa_generation_time,
             "processed_items": processed_items
         }
 
     except Exception as e:
-        logger.error(f"❌ Paraphrase failed for {topic}: {e}")
+        logger.error(f"❌ Q&A generation failed for {topic}: {e}")
 
-        # Fallback to original content
+        # Return empty Q&A list on failure
         processed_items = state.get("processed_items", [])
         if processed_items:
-            processed_items[-1]["chatbot_summary"] = browser_content
-            processed_items[-1]["paraphrase_status"] = "failed"
-            processed_items[-1]["paraphrase_error"] = str(e)
+            processed_items[-1]["qa_pairs"] = []
+            processed_items[-1]["qa_generation_status"] = "failed"
+            processed_items[-1]["qa_generation_error"] = str(e)
 
         return {
             **state,
-            "chatbot_summary": browser_content,  # Fallback to original
-            "paraphrase_status": "failed",
-            "paraphrase_time": 0.0,
+            "qa_pairs": [],
+            "qa_generation_status": "failed",
+            "qa_generation_time": 0.0,
             "processed_items": processed_items,
-            "error_message": f"Paraphrase failed: {str(e)}"
+            "error_message": f"Q&A generation failed: {str(e)}"
         }
 
 
@@ -616,18 +659,18 @@ def build_browser_agent_graph(checkpointer: Optional[AsyncSqliteSaver] = None, e
     Build LangGraph workflow for Multi-Agent Pipeline with Conditional Routing
 
     Flow (with crawler):
-    START → crawler_node → load_json → browser_agent → paraphraser_agent → should_continue?
-                                             ↑                                    |
-                                             |------------- YES -----------------|
+    START → crawler_node → load_json → browser_agent → qa_generator → should_continue?
+                                             ↑                              |
+                                             |------------ YES -------------|
                                              |
                                              NO
                                              ↓
                                             END
 
     Flow (without crawler):
-    START → load_json → browser_agent → paraphraser_agent → should_continue?
-                             ↑                                    |
-                             |------------- YES -----------------|
+    START → load_json → browser_agent → qa_generator → should_continue?
+                             ↑                              |
+                             |------------ YES -------------|
                              |
                              NO
                              ↓
@@ -645,7 +688,7 @@ def build_browser_agent_graph(checkpointer: Optional[AsyncSqliteSaver] = None, e
         builder.add_node("crawler", crawler_node)
     builder.add_node("load_json", load_json_node)
     builder.add_node("browser_agent", browser_agent_node)
-    builder.add_node("paraphraser_agent", paraphraser_agent_node)
+    builder.add_node("qa_generator", qa_generator_node)
 
     # Define edges
     if enable_crawler:
@@ -655,11 +698,11 @@ def build_browser_agent_graph(checkpointer: Optional[AsyncSqliteSaver] = None, e
         builder.add_edge(START, "load_json")       # START → load_json (skip crawler)
 
     builder.add_edge("load_json", "browser_agent")
-    builder.add_edge("browser_agent", "paraphraser_agent")  # Browser → Paraphraser
+    builder.add_edge("browser_agent", "qa_generator")  # Browser → Q&A Generator
 
     # Conditional edge: Loop back or finish
     builder.add_conditional_edges(
-        "paraphraser_agent",  # From paraphraser node
+        "qa_generator",       # From qa_generator node
         should_continue,      # Call this router function
         {
             "continue": "browser_agent",  # Loop back to process next item
@@ -744,9 +787,9 @@ async def run_browser_agent(
         "browser_content": "",
         "extraction_method": "",
         "processing_time": 0.0,
-        "chatbot_summary": "",           # Paraphrase output
-        "paraphrase_status": "",         # Paraphrase status
-        "paraphrase_time": 0.0,          # Paraphrase timing
+        "qa_pairs": [],                  # Generated Q&A pairs
+        "qa_generation_status": "",      # Q&A generation status
+        "qa_generation_time": 0.0,       # Q&A generation timing
         "status": "pending",
         "error_message": "",
         "total_items": 0,
@@ -755,8 +798,13 @@ async def run_browser_agent(
         "max_items": max_items
     }
 
-    # Configuration with thread_id for checkpointing
-    config = {"configurable": {"thread_id": thread_id}} if enable_checkpointing else {}
+    # Configuration with thread_id for checkpointing and recursion limit
+    config = {
+        "configurable": {"thread_id": thread_id},
+        "recursion_limit": 1000  # Allow up to 1000 loop iterations (500 items)
+    } if enable_checkpointing else {
+        "recursion_limit": 1000
+    }
 
     # Branch based on checkpointing enabled/disabled
     if enable_checkpointing:
@@ -774,6 +822,7 @@ async def run_browser_agent(
             )
 
             # Check if resuming from previous state
+            is_resuming = False
             try:
                 existing_state = await graph.aget_state(config)
                 if existing_state and existing_state.values:
@@ -782,12 +831,20 @@ async def run_browser_agent(
                     if current_idx > 0 and current_idx < total:
                         logger.info(f"🔄 RESUMING from checkpoint: Item {current_idx}/{total}")
                         logger.info(f"✅ Already processed: {current_idx} items")
+                        is_resuming = True
             except Exception as e:
                 logger.debug(f"No previous state found (this is normal for first run): {e}")
 
             # Run graph
+            # IMPORTANT: Pass None when resuming to load state from checkpoint
+            # Pass initial_state only when starting fresh
             try:
-                result = await graph.ainvoke(initial_state, config=config)
+                if is_resuming:
+                    logger.info("📥 Loading state from checkpoint (passing None to ainvoke)")
+                    result = await graph.ainvoke(None, config=config)
+                else:
+                    logger.info("🆕 Starting fresh workflow with initial state")
+                    result = await graph.ainvoke(initial_state, config=config)
 
                 # Log and save results
                 _log_and_save_results(result, output_file)
@@ -829,12 +886,14 @@ def _log_and_save_results(result: dict, output_file: str):
     logger.info(f"Status: {result['status']}")
     logger.info(f"Items Processed: {len(result.get('processed_items', []))}")
 
-    # Show paraphrase statistics
+    # Show Q&A generation statistics
     processed_items = result.get('processed_items', [])
-    paraphrased_count = sum(1 for item in processed_items if item.get('paraphrase_status') == 'completed')
-    skipped_count = sum(1 for item in processed_items if item.get('paraphrase_status') == 'skipped')
+    qa_generated_count = sum(1 for item in processed_items if item.get('qa_generation_status') == 'completed')
+    skipped_count = sum(1 for item in processed_items if item.get('qa_generation_status') == 'skipped')
+    total_qa_pairs = sum(item.get('qa_count', 0) for item in processed_items)
 
-    logger.info(f"Paraphrased: {paraphrased_count}/{len(processed_items)}")
+    logger.info(f"Q&A Generated: {qa_generated_count}/{len(processed_items)}")
+    logger.info(f"Total Q&A Pairs: {total_qa_pairs}")
     logger.info(f"Skipped: {skipped_count}/{len(processed_items)}")
     logger.info(f"Processing Time: {result.get('processing_time', 0):.1f}s")
 
@@ -856,7 +915,7 @@ async def main():
     """Main entry point for testing"""
     print("\n" + "="*60)
     print("MULTI-AGENT PIPELINE")
-    print("Crawler → Browser → Paraphraser")
+    print("Crawler → Browser → Q&A Generator")
     print("LangGraph Conditional Routing + Checkpointing")
     print("="*60)
 
@@ -926,10 +985,12 @@ async def main():
     print(f"Status: {result['status']}")
     print(f"Processed: {len(result.get('processed_items', []))} items")
 
-    # Show paraphrase stats
+    # Show Q&A generation stats
     processed_items = result.get('processed_items', [])
-    paraphrased = sum(1 for item in processed_items if item.get('paraphrase_status') == 'completed')
-    print(f"Paraphrased: {paraphrased}/{len(processed_items)}")
+    qa_generated = sum(1 for item in processed_items if item.get('qa_generation_status') == 'completed')
+    total_qa_pairs = sum(item.get('qa_count', 0) for item in processed_items)
+    print(f"Q&A Generated: {qa_generated}/{len(processed_items)}")
+    print(f"Total Q&A Pairs: {total_qa_pairs}")
     print(f"Output saved to: browser_agent_test_output.json")
 
     if enable_crawler and result.get('crawler_output_path'):

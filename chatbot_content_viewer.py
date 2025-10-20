@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 # Default input file (from browser_agent.py output)
-DEFAULT_INPUT = '/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json'
+DEFAULT_INPUT = '/Users/saiteja/Documents/Dev/StarshipChatbot/checkpoint_progress.json'
 
 # Allow custom input file via command line argument
 input_file = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_INPUT
@@ -30,7 +30,7 @@ html_template = f'''<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot Content Viewer</title>
+    <title>Q&A Content Viewer - Chatbot Training Data</title>
     <style>
         * {{
             margin: 0;
@@ -252,6 +252,117 @@ html_template = f'''<!DOCTYPE html>
             border-bottom-color: #764ba2;
         }}
 
+        /* Q&A Accordion Styles */
+        .qa-container {{
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+        }}
+
+        .qa-item {{
+            border-bottom: 1px solid #e9ecef;
+        }}
+
+        .qa-item:last-child {{
+            border-bottom: none;
+        }}
+
+        .qa-question {{
+            padding: 18px 20px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-left: 4px solid transparent;
+        }}
+
+        .qa-question:hover {{
+            background: #f8f9fa;
+            border-left-color: #667eea;
+        }}
+
+        .qa-question.active {{
+            background: #f0f1ff;
+            border-left-color: #667eea;
+        }}
+
+        .qa-number {{
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            flex-shrink: 0;
+        }}
+
+        .qa-question-text {{
+            flex: 1;
+            font-weight: 600;
+            color: #212529;
+            font-size: 1em;
+        }}
+
+        .qa-toggle {{
+            color: #667eea;
+            font-size: 1.2em;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }}
+
+        .qa-question.active .qa-toggle {{
+            transform: rotate(180deg);
+        }}
+
+        .qa-answer {{
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: #ffffff;
+        }}
+
+        .qa-answer.show {{
+            max-height: 1000px;
+            border-top: 1px solid #e9ecef;
+        }}
+
+        .qa-answer-content {{
+            padding: 20px 20px 20px 67px;
+            line-height: 1.8;
+            color: #495057;
+        }}
+
+        .qa-stats {{
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }}
+
+        .qa-stat {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }}
+
+        .qa-stat-label {{
+            color: #6c757d;
+        }}
+
+        .qa-stat-value {{
+            color: #212529;
+            font-weight: 600;
+        }}
+
         .empty-state {{
             display: flex;
             flex-direction: column;
@@ -319,7 +430,7 @@ html_template = f'''<!DOCTYPE html>
     <div class="container">
         <div class="sidebar">
             <div class="header">
-                <h1>📚 Chatbot Content</h1>
+                <h1>❓ Q&A Training Data</h1>
                 <p id="topic-count">0 topics</p>
             </div>
             <div class="search-box">
@@ -338,9 +449,9 @@ html_template = f'''<!DOCTYPE html>
         <div class="content-area">
             <div id="contentDisplay">
                 <div class="empty-state">
-                    <div class="empty-state-icon">📖</div>
+                    <div class="empty-state-icon">❓</div>
                     <h2>Select a Topic</h2>
-                    <p>Choose a topic from the left sidebar to view its chatbot summary</p>
+                    <p>Choose a topic from the left sidebar to view Q&A pairs and content</p>
                 </div>
             </div>
         </div>
@@ -394,29 +505,40 @@ html_template = f'''<!DOCTYPE html>
             // Render content
             const contentDisplay = document.getElementById('contentDisplay');
 
-            // Convert markdown-style formatting to HTML
-            const formattedSummary = formatMarkdown(item.chatbot_summary || 'No summary available');
-
-            // Handle both field naming conventions (browser_content vs browser_use_content)
+            // Handle both old format (chatbot_summary) and new format (qa_pairs)
+            const hasQAPairs = item.qa_pairs && item.qa_pairs.length > 0;
             const browserContent = item.browser_content || item.browser_use_content || 'No content available';
-            const paraphraseTime = item.paraphrase_time || item.paraphrase_time_seconds || 'N/A';
+
+            // Meta badge values
+            const qaTime = item.qa_generation_time || item.paraphrase_time || 0;
+            const qaModel = item.qa_model || item.paraphrase_model || 'N/A';
+            const qaStatus = item.qa_generation_status || item.paraphrase_status || 'unknown';
+            const qaCount = item.qa_count || (item.qa_pairs ? item.qa_pairs.length : 0);
 
             contentDisplay.innerHTML = `
                 <div class="content-header">
                     <div class="content-title">${{escapeHtml(item.topic)}}</div>
                     <div class="content-meta">
-                        <span class="meta-badge">📊 Status: ${{item.status || 'unknown'}}</span>
-                        <span class="meta-badge">🤖 Model: ${{item.paraphrase_model || 'N/A'}}</span>
-                        <span class="meta-badge">⏱️ ${{typeof paraphraseTime === 'number' ? paraphraseTime.toFixed(2) + 's' : paraphraseTime}}</span>
+                        <span class="meta-badge">📊 Status: ${{qaStatus}}</span>
+                        <span class="meta-badge">🤖 Model: ${{qaModel}}</span>
+                        <span class="meta-badge">⏱️ ${{typeof qaTime === 'number' ? qaTime.toFixed(2) + 's' : qaTime}}</span>
+                        ${{hasQAPairs ? `<span class="meta-badge">❓ ${{qaCount}} Q&A Pairs</span>` : ''}}
                     </div>
                 </div>
                 <div class="content-body">
-                    <div class="content-section">
-                        <div class="section-label">🤖 Chatbot Summary</div>
-                        <div class="section-content">
-                            ${{formattedSummary}}
+                    ${{hasQAPairs ? `
+                        <div class="content-section">
+                            <div class="section-label">❓ Question & Answer Pairs</div>
+                            ${{renderQAPairs(item.qa_pairs)}}
                         </div>
-                    </div>
+                    ` : `
+                        <div class="content-section">
+                            <div class="section-label">🤖 Chatbot Summary</div>
+                            <div class="section-content">
+                                ${{formatMarkdown(item.chatbot_summary || 'No summary available')}}
+                            </div>
+                        </div>
+                    `}}
 
                     <div class="content-section">
                         <div class="section-label">🌐 Original Content</div>
@@ -433,6 +555,46 @@ html_template = f'''<!DOCTYPE html>
                     </div>
                 </div>
             `;
+        }}
+
+        // Render Q&A pairs as interactive accordion
+        function renderQAPairs(qaPairs) {{
+            if (!qaPairs || qaPairs.length === 0) {{
+                return '<div class="section-content">No Q&A pairs available</div>';
+            }}
+
+            const qaHtml = qaPairs.map((qa, index) => `
+                <div class="qa-item">
+                    <div class="qa-question" onclick="toggleQA(${{index}})">
+                        <div class="qa-number">${{index + 1}}</div>
+                        <div class="qa-question-text">${{escapeHtml(qa.question)}}</div>
+                        <div class="qa-toggle">▼</div>
+                    </div>
+                    <div class="qa-answer" id="qa-answer-${{index}}">
+                        <div class="qa-answer-content">${{escapeHtml(qa.answer)}}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            return `<div class="qa-container">${{qaHtml}}</div>`;
+        }}
+
+        // Toggle Q&A accordion
+        function toggleQA(index) {{
+            const answer = document.getElementById(`qa-answer-${{index}}`);
+            const question = answer.previousElementSibling;
+
+            // Close all other answers
+            document.querySelectorAll('.qa-answer').forEach((el, i) => {{
+                if (i !== index) {{
+                    el.classList.remove('show');
+                    el.previousElementSibling.classList.remove('active');
+                }}
+            }});
+
+            // Toggle current answer
+            answer.classList.toggle('show');
+            question.classList.toggle('active');
         }}
 
         // Simple markdown-to-HTML converter
@@ -471,10 +633,21 @@ html_template = f'''<!DOCTYPE html>
             const filtered = DATA.filter(item => {{
                 const searchLower = searchTerm.toLowerCase();
                 const browserContent = item.browser_content || item.browser_use_content || '';
+
+                // Search in Q&A pairs if available
+                let qaMatch = false;
+                if (item.qa_pairs && item.qa_pairs.length > 0) {{
+                    qaMatch = item.qa_pairs.some(qa =>
+                        (qa.question && qa.question.toLowerCase().includes(searchLower)) ||
+                        (qa.answer && qa.answer.toLowerCase().includes(searchLower))
+                    );
+                }}
+
                 return !searchTerm ||
                     (item.topic && item.topic.toLowerCase().includes(searchLower)) ||
                     (item.chatbot_summary && item.chatbot_summary.toLowerCase().includes(searchLower)) ||
-                    (browserContent && browserContent.toLowerCase().includes(searchLower));
+                    (browserContent && browserContent.toLowerCase().includes(searchLower)) ||
+                    qaMatch;
             }});
 
             renderTopics(filtered);

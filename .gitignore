@@ -26,7 +26,6 @@ wheels/
 # Environment
 .env
 .env.local
-.env.example
 
 # IDE
 .vscode/
@@ -35,14 +34,57 @@ wheels/
 *.swo
 *~
 
-# Output
+# Database files
+*.db
+*.db-shm
+*.db-wal
+semantic_content.db
+browser_agent_checkpoints.db
 
+# Output files and test results
+output/
+backup_*.json
+batch_results_*.json
+*_metadata.json
+*_output.html
+*_chatbot_ready.json
+chatbot_ready_content*.json
+westlake_chatbot_ready.json
+processed_semantic_content.json
+browser_agent_test_output.json
+browser_agent_test_output_viewer.html
+checkpoint_progress.json
+checkpoint_progress_viewer.html
+comparison_results.json
+comparison_dashboard*.html
+mhs_indianafiltered_data.json
 
+# Temporary/working files
+browser_agent_working.py
+browser_agent_ollama.py
+checkpoint_data.py
+compare_responses.py
+generate_dashboard.py
+paraphrase_content.py
+test_extraction.py
+tinydb_data.py
+diff_prompts.md
+https:/
 
 # Logs
 logs/
 *.log
+automation.log
+browser_agent.log
+paraphrase.log
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Documentation (temporary)
+BROWSER_AGENT_CONDITIONAL_ROUTING.md
+LANGGRAPH_CHECKPOINTING.md
+
+# Nested project folders
+StarshipChatbot/
