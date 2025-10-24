@@ -1,0 +1,700 @@
+"""
+LangGraph FastAPI Server
+=========================
+
+FastAPI server that integrates with LangGraph chatbot backend.
+
+Endpoints:
+- GET / - Serve HTML viewer with JSON data
+- POST /api/chat - Send query, get intelligent response from JSON data
+- GET /api/chat/history - Get conversation history
+- DELETE /api/chat/history - Clear conversation history
+- GET /api/health - Health check
+
+Features:
+- Async request handling
+- CORS enabled for frontend
+- Session management
+- Error handling
+- Dynamically generates HTML viewer from JSON
+- LangGraph agent searches JSON data to answer questions
+"""
+
+import logging
+import json
+from pathlib import Path
+from typing import Optional, List, Dict
+from datetime import datetime
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
+from pydantic import BaseModel
+
+from langgraph_chatbot import (
+    LangGraphChatbot,
+    QAModifier,
+    QA_THREAD_ID,
+    build_chatbot_graph,
+    build_qa_modifier_graph
+)
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# LIFESPAN CONTEXT MANAGER
+# ============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for FastAPI
+    Manages AsyncSqliteSaver connection and graph initialization
+    """
+    logger.info("="*60)
+    logger.info("LANGGRAPH CHATBOT SERVER - STARTUP")
+    logger.info("="*60)
+
+    # Open AsyncSqliteSaver connection (stays open for server lifetime)
+    async with AsyncSqliteSaver.from_conn_string("langgraph_checkpoints.db") as checkpointer:
+        logger.info("✓ AsyncSqliteSaver connection opened")
+
+        # Build chatbot graph with checkpointer
+        chatbot_graph = build_chatbot_graph(checkpointer)
+        logger.info("✓ Chatbot graph compiled")
+
+        # Build QA modifier graph with checkpointer
+        qa_graph = build_qa_modifier_graph(checkpointer)
+        logger.info("✓ QA Modifier graph compiled")
+
+        # Create instances
+        chatbot = LangGraphChatbot(
+            chatbot_graph,
+            system_prompt="You are a helpful AI assistant for the Starship Chatbot project."
+        )
+        qa_modifier = QAModifier(qa_graph)
+
+        # Store in app state
+        app.state.chatbot = chatbot
+        app.state.qa_modifier = qa_modifier
+
+        # Initialize Q&A data if needed
+        try:
+            current_state = await qa_modifier.get_current_state()
+            if current_state and current_state.get("modified_data"):
+                logger.info("✓ Found existing Q&A state in LangGraph checkpoint")
+            else:
+                logger.info("🔄 First startup - loading JSON into LangGraph state")
+                logger.info("📥 Loading data from JSON...")
+
+                # Load JSON
+                JSON_FILE_PATH = Path("/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json")
+                with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                    json_data = json.load(f)
+                logger.info(f"✓ Loaded {len(json_data)} topics from JSON")
+
+                # Initialize state with JSON data (version 1)
+                await qa_modifier.modify("Initial data load from JSON", json_data)
+                logger.info("✓ Data loaded into LangGraph checkpoint")
+                logger.info("📋 JSON file is now idle (seed data only)")
+        except Exception as e:
+            logger.error(f"Startup initialization error: {e}")
+
+        logger.info("🚀 Server ready at: http://localhost:8000")
+        logger.info("📚 API docs at: http://localhost:8000/docs")
+        logger.info("="*60)
+
+        yield  # Server runs here
+
+        # Cleanup on shutdown
+        logger.info("="*60)
+        logger.info("LANGGRAPH CHATBOT SERVER - SHUTDOWN")
+        logger.info("="*60)
+        logger.info("✓ AsyncSqliteSaver connection closed")
+
+
+# ============================================================================
+# INITIALIZE FASTAPI APP WITH LIFESPAN
+# ============================================================================
+
+app = FastAPI(
+    title="LangGraph Chatbot Server",
+    description="FastAPI server with LangGraph + Groq LLM integration",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify exact origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================================
+# PYDANTIC MODELS
+# ============================================================================
+
+class ChatRequest(BaseModel):
+    """Request model for chat endpoint"""
+    message: str
+    system_prompt: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    """Response model for chat endpoint"""
+    response: str
+    timestamp: str
+    error: Optional[str] = None
+
+
+class ModifyRequest(BaseModel):
+    """Request model for modify endpoint"""
+    user_request: str
+
+
+class ModifyResponse(BaseModel):
+    """Response model for modify endpoint"""
+    modified_data: List[Dict]
+    agent_response: str
+    error: Optional[str] = None
+    timestamp: str
+
+
+
+
+# ============================================================================
+# JSON TO HTML CONVERTER
+# ============================================================================
+
+# Path to JSON file
+JSON_FILE_PATH = Path("/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json")
+
+
+def generate_html_viewer(json_data: list) -> str:
+    """
+    Generate HTML viewer with embedded JSON data
+
+    Args:
+        json_data: List of topics from JSON file
+
+    Returns:
+        Complete HTML string with embedded data
+    """
+    # Convert JSON to JavaScript format
+    json_str = json.dumps(json_data, ensure_ascii=False, indent=2)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Content Viewer - LangGraph Server</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }}
+        .container {{ max-width: 1600px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); overflow: hidden; display: grid; grid-template-columns: 350px 1fr; min-height: 90vh; }}
+        .sidebar {{ background: #f8f9fa; border-right: 2px solid #e9ecef; display: flex; flex-direction: column; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 20px; text-align: center; }}
+        .header h1 {{ font-size: 1.5em; margin-bottom: 5px; }}
+        .header p {{ font-size: 0.9em; opacity: 0.9; }}
+        .search-box {{ padding: 20px; border-bottom: 2px solid #e9ecef; }}
+        .search-input {{ width: 100%; padding: 12px 15px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 1em; transition: border-color 0.3s ease; }}
+        .search-input:focus {{ outline: none; border-color: #667eea; }}
+        .topic-list {{ flex: 1; overflow-y: auto; padding: 10px; }}
+        .topic-item {{ padding: 15px; margin-bottom: 8px; background: white; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent; }}
+        .topic-item:hover {{ background: #f8f9fa; border-color: #667eea; transform: translateX(5px); }}
+        .topic-item.active {{ background: #667eea; color: white; border-color: #667eea; }}
+        .topic-name {{ font-weight: 600; font-size: 0.95em; margin-bottom: 5px; }}
+        .topic-status {{ font-size: 0.8em; opacity: 0.7; }}
+        .content-area {{ display: flex; flex-direction: column; overflow: hidden; }}
+        .content-header {{ background: #f8f9fa; padding: 30px 40px; border-bottom: 2px solid #e9ecef; }}
+        .content-title {{ font-size: 2em; color: #212529; margin-bottom: 10px; }}
+        .content-meta {{ display: flex; gap: 15px; flex-wrap: wrap; }}
+        .meta-badge {{ padding: 6px 12px; background: #667eea; color: white; border-radius: 12px; font-size: 0.85em; }}
+        .content-body {{ flex: 1; overflow-y: auto; padding: 40px; }}
+        .content-section {{ margin-bottom: 30px; }}
+        .section-label {{ font-weight: 600; color: #495057; text-transform: uppercase; font-size: 0.9em; letter-spacing: 0.5px; margin-bottom: 15px; }}
+        .section-content {{ background: #f8f9fa; padding: 20px; border-radius: 12px; line-height: 1.8; color: #212529; border-left: 4px solid #667eea; white-space: pre-wrap; }}
+        .qa-container {{ background: #f8f9fa; border-radius: 12px; overflow: hidden; }}
+        .qa-item {{ border-bottom: 1px solid #e9ecef; }}
+        .qa-question {{ padding: 18px 20px; background: white; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 15px; border-left: 4px solid transparent; }}
+        .qa-question:hover {{ background: #f8f9fa; border-left-color: #667eea; }}
+        .qa-question.active {{ background: #f0f1ff; border-left-color: #667eea; }}
+        .qa-number {{ background: #667eea; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.9em; flex-shrink: 0; }}
+        .qa-question-text {{ flex: 1; font-weight: 600; color: #212529; }}
+        .qa-toggle {{ color: #667eea; font-size: 1.2em; transition: transform 0.3s ease; }}
+        .qa-question.active .qa-toggle {{ transform: rotate(180deg); }}
+        .qa-answer {{ max-height: 0; overflow: hidden; transition: max-height 0.3s ease; background: #ffffff; }}
+        .qa-answer.show {{ max-height: 1000px; }}
+        .qa-answer-content {{ padding: 20px 20px 20px 67px; line-height: 1.8; color: #495057; }}
+        .empty-state {{ display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6c757d; text-align: center; padding: 40px; }}
+        .empty-state-icon {{ font-size: 4em; margin-bottom: 20px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <h1>❓ Q&A Training Data</h1>
+                <p id="topic-count">0 topics</p>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search topics...">
+            </div>
+            <div class="search-box" style="border-bottom: none; padding-top: 10px;">
+                <input type="text" id="modifyInput" class="search-input" placeholder="✨ Modify request (e.g., 'Simplify all Q&A')">
+                <button onclick="sendModifyRequest()" style="width: 100%; margin-top: 10px; padding: 12px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Send Request</button>
+                <div id="modifyStatus" style="margin-top: 10px; padding: 10px; border-radius: 8px; display: none; font-size: 0.9em;"></div>
+            </div>
+            <div class="topic-list" id="topicList"></div>
+        </div>
+        <div class="content-area">
+            <div id="contentDisplay">
+                <div class="empty-state">
+                    <div class="empty-state-icon">❓</div>
+                    <h2>Select a Topic</h2>
+                    <p>Choose a topic from the left sidebar to view Q&A pairs</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const DATA = {json_str};
+
+        function renderTopics(topics) {{
+            document.getElementById('topicList').innerHTML = topics.map((item, index) => `
+                <div class="topic-item" onclick="selectTopic(${{index}})">
+                    <div class="topic-name">${{escapeHtml(item.topic)}}</div>
+                    <div class="topic-status">Status: ${{item.status || 'unknown'}}</div>
+                </div>
+            `).join('');
+        }}
+
+        function selectTopic(index) {{
+            const item = DATA[index];
+            document.querySelectorAll('.topic-item').forEach((el, i) => el.classList.toggle('active', i === index));
+
+            const hasQA = item.qa_pairs && item.qa_pairs.length > 0;
+            document.getElementById('contentDisplay').innerHTML = `
+                <div class="content-header">
+                    <div class="content-title">${{escapeHtml(item.topic)}}</div>
+                    <div class="content-meta">
+                        <span class="meta-badge">📊 ${{item.qa_generation_status || 'unknown'}}</span>
+                        <span class="meta-badge">🤖 ${{item.qa_model || 'N/A'}}</span>
+                        <span class="meta-badge">⏱️ ${{item.qa_generation_time || 0}}s</span>
+                        <span class="meta-badge">❓ ${{item.qa_count || 0}} Q&A</span>
+                    </div>
+                </div>
+                <div class="content-body">
+                    ${{hasQA ? `<div class="content-section"><div class="section-label">❓ Questions & Answers</div>${{renderQA(item.qa_pairs)}}</div>` : ''}}
+                    <div class="content-section">
+                        <div class="section-label">🌐 Original Content</div>
+                        <div class="section-content">${{escapeHtml(item.browser_content || 'No content')}}</div>
+                    </div>
+                    <div class="content-section">
+                        <div class="section-label">🔗 Source</div>
+                        <div class="section-content"><a href="${{item.original_url}}" target="_blank">${{escapeHtml(item.semantic_path)}}</a></div>
+                    </div>
+                </div>
+            `;
+        }}
+
+        function renderQA(qaPairs) {{
+            return `<div class="qa-container">${{qaPairs.map((qa, i) => `
+                <div class="qa-item">
+                    <div class="qa-question" onclick="toggleQA(${{i}})">
+                        <div class="qa-number">${{i + 1}}</div>
+                        <div class="qa-question-text">${{escapeHtml(qa.question)}}</div>
+                        <div class="qa-toggle">▼</div>
+                    </div>
+                    <div class="qa-answer" id="qa-${{i}}">
+                        <div class="qa-answer-content">${{escapeHtml(qa.answer)}}</div>
+                    </div>
+                </div>
+            `).join('')}}</div>`;
+        }}
+
+        function toggleQA(index) {{
+            const answer = document.getElementById(`qa-${{index}}`);
+            const question = answer.previousElementSibling;
+            document.querySelectorAll('.qa-answer').forEach((el, i) => {{
+                if (i !== index) {{ el.classList.remove('show'); el.previousElementSibling.classList.remove('active'); }}
+            }});
+            answer.classList.toggle('show');
+            question.classList.toggle('active');
+        }}
+
+        function escapeHtml(text) {{ const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }}
+
+        function filterTopics(searchTerm) {{
+            const filtered = DATA.filter(item => {{
+                const search = searchTerm.toLowerCase();
+                return !searchTerm || (item.topic && item.topic.toLowerCase().includes(search)) ||
+                    (item.browser_content && item.browser_content.toLowerCase().includes(search)) ||
+                    (item.qa_pairs && item.qa_pairs.some(qa => qa.question.toLowerCase().includes(search) || qa.answer.toLowerCase().includes(search)));
+            }});
+            renderTopics(filtered);
+            document.getElementById('topic-count').textContent = `${{filtered.length}} topic${{filtered.length !== 1 ? 's' : ''}}`;
+        }}
+
+        renderTopics(DATA);
+        document.getElementById('topic-count').textContent = `${{DATA.length}} topic${{DATA.length !== 1 ? 's' : ''}}`;
+        document.getElementById('searchInput').addEventListener('input', (e) => filterTopics(e.target.value));
+
+        // Modify request functionality
+        async function sendModifyRequest() {{
+            const modifyInput = document.getElementById('modifyInput');
+            const statusDiv = document.getElementById('modifyStatus');
+            const userRequest = modifyInput.value.trim();
+
+            if (!userRequest) {{
+                showStatus('Please enter a modification request', 'error');
+                return;
+            }}
+
+            showStatus('Processing request with LangGraph agents...', 'loading');
+
+            try {{
+                const response = await fetch('/api/modify', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ user_request: userRequest }})
+                }});
+
+                const result = await response.json();
+
+                if (result.error) {{
+                    showStatus(`Error: ${{result.error}}`, 'error');
+                }} else {{
+                    showStatus(`✅ ${{result.agent_response}}. Reloading page...`, 'success');
+                    // Reload page after 2 seconds to show updated data
+                    setTimeout(() => location.reload(), 2000);
+                }}
+            }} catch (error) {{
+                showStatus(`Failed: ${{error.message}}`, 'error');
+            }}
+        }}
+
+        function showStatus(message, type) {{
+            const statusDiv = document.getElementById('modifyStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = message;
+            statusDiv.style.background = type === 'success' ? '#d4edda' :
+                                        type === 'error' ? '#f8d7da' :
+                                        '#d1ecf1';
+            statusDiv.style.color = type === 'success' ? '#155724' :
+                                   type === 'error' ? '#721c24' :
+                                   '#0c5460';
+        }}
+
+        // Allow Enter key to send modify request
+        document.getElementById('modifyInput').addEventListener('keypress', (e) => {{
+            if (e.key === 'Enter') sendModifyRequest();
+        }});
+    </script>
+</body>
+</html>"""
+
+    return html
+
+
+# ============================================================================
+# API ENDPOINTS
+# ============================================================================
+
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """
+    Root endpoint - Serves HTML viewer with Q&A data
+
+    Loads from LangGraph checkpoint state
+    """
+    try:
+        # Get QA modifier from app state
+        modifier = request.app.state.qa_modifier
+
+        # Load from LangGraph state
+        current_state = await modifier.get_current_state()
+
+        if current_state and current_state.get("modified_data"):
+            data = current_state.get("modified_data")
+            logger.info(f"✅ Loaded {len(data)} topics from LangGraph checkpoint")
+        else:
+            # Fallback to JSON file if no state exists
+            JSON_FILE_PATH = Path("/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json")
+            if not JSON_FILE_PATH.exists():
+                logger.error("No LangGraph state and no JSON file found")
+                return HTMLResponse(content="<h1>Error: No data source available</h1>", status_code=404)
+
+            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            logger.info(f"✅ Loaded {len(data)} topics from JSON (fallback)")
+
+        # Generate HTML viewer
+        html_content = generate_html_viewer(data)
+        logger.info("✅ Generated HTML viewer successfully")
+
+        return HTMLResponse(content=html_content)
+
+    except Exception as e:
+        logger.error(f"Error generating HTML viewer: {e}")
+        return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_endpoint(chat_request: ChatRequest, request: Request) -> ChatResponse:
+    """
+    Main chat endpoint - send message, get LLM response
+
+    Args:
+        chat_request: ChatRequest with user message
+        request: FastAPI Request object
+
+    Returns:
+        ChatResponse with LLM's reply
+    """
+    try:
+        logger.info(f"Received chat request: {chat_request.message[:50]}...")
+
+        # Validate input
+        if not chat_request.message or not chat_request.message.strip():
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+        # Get chatbot instance from app state
+        bot = request.app.state.chatbot
+
+        # Update system prompt if provided
+        if chat_request.system_prompt:
+            bot.system_prompt = chat_request.system_prompt
+
+        # Get LLM response via LangGraph
+        response = await bot.chat(chat_request.message)
+
+        logger.info(f"Response generated: {len(response)} characters")
+
+        return ChatResponse(
+            response=response,
+            timestamp=datetime.now().isoformat(),
+            error=None
+        )
+
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {e}")
+        return ChatResponse(
+            response=f"Sorry, I encountered an error: {str(e)}",
+            timestamp=datetime.now().isoformat(),
+            error=str(e)
+        )
+
+
+@app.get("/api/chat/history")
+async def get_history(request: Request):
+    """Get conversation history"""
+    try:
+        bot = request.app.state.chatbot
+        history = bot.get_history()
+
+        return {
+            "history": history,
+            "message_count": len(history),
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"History endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/chat/history")
+async def clear_history(request: Request):
+    """Clear conversation history"""
+    try:
+        bot = request.app.state.chatbot
+        bot.reset_conversation()
+
+        logger.info("Conversation history cleared")
+
+        return {
+            "message": "Conversation history cleared successfully",
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Clear history endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/modify", response_model=ModifyResponse)
+async def modify_endpoint(modify_request: ModifyRequest, request: Request) -> ModifyResponse:
+    """
+    Modify Q&A pairs using LangGraph agents with checkpoint persistence
+
+    Args:
+        modify_request: ModifyRequest with user's modification request
+        request: FastAPI Request object
+
+    Returns:
+        ModifyResponse with modified data
+    """
+    try:
+        logger.info(f"Received modify request: {modify_request.user_request[:100]}...")
+
+        # Validate input
+        if not modify_request.user_request or not modify_request.user_request.strip():
+            raise HTTPException(status_code=400, detail="Request cannot be empty")
+
+        # Get QA modifier instance from app state
+        modifier = request.app.state.qa_modifier
+
+        # Load current state from LangGraph
+        current_state = await modifier.get_current_state()
+
+        if current_state and current_state.get("modified_data"):
+            current_data = current_state.get("modified_data")
+            logger.info(f"Loaded {len(current_data)} topics from LangGraph state")
+        else:
+            # If no state, load from JSON
+            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                current_data = json.load(f)
+            logger.info(f"Loaded {len(current_data)} topics from JSON")
+
+        # Process modification through LangGraph agents (auto-creates checkpoint)
+        result = await modifier.modify(modify_request.user_request, current_data)
+
+        logger.info(f"Modification complete: {result['agent_response']} (v{result.get('version', 'unknown')})")
+
+        return ModifyResponse(
+            modified_data=result["modified_data"],
+            agent_response=result["agent_response"],
+            error=result.get("error"),
+            timestamp=datetime.now().isoformat()
+        )
+
+    except Exception as e:
+        logger.error(f"Modify endpoint error: {e}")
+        return ModifyResponse(
+            modified_data=[],
+            agent_response=f"Modification failed: {str(e)}",
+            error=str(e),
+            timestamp=datetime.now().isoformat()
+        )
+
+
+@app.get("/api/health")
+async def health_check(request: Request):
+    """Health check endpoint"""
+    try:
+        # Check if chatbot is initialized
+        bot = request.app.state.chatbot
+
+        return {
+            "status": "healthy",
+            "service": "LangGraph Chatbot Server",
+            "chatbot_initialized": bot is not None,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+
+
+# ============================================================================
+# CHECKPOINT MANAGEMENT ENDPOINTS
+# ============================================================================
+
+@app.get("/api/checkpoints")
+async def list_checkpoints(request: Request):
+    """Get list of all Q&A data checkpoints from LangGraph"""
+    try:
+        modifier = request.app.state.qa_modifier
+        checkpoints = await modifier.get_history()
+
+        return {
+            "checkpoints": checkpoints,
+            "total": len(checkpoints),
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"List checkpoints error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/checkpoint/{version}/activate")
+async def activate_checkpoint_endpoint(version: int, request: Request):
+    """Activate specific checkpoint version (rollback) in LangGraph"""
+    try:
+        modifier = request.app.state.qa_modifier
+        data = await modifier.rollback_to_version(version)
+
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"Checkpoint version {version} not found")
+
+        return {
+            "message": f"Successfully rolled back to checkpoint version {version}",
+            "version": version,
+            "topics_count": len(data),
+            "timestamp": datetime.now().isoformat()
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Activate checkpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/status")
+async def get_status(request: Request):
+    """Get system status including LangGraph checkpoint info"""
+    try:
+        modifier = request.app.state.qa_modifier
+        current_state = await modifier.get_current_state()
+        history = await modifier.get_history()
+
+        return {
+            "service": "LangGraph Chatbot Server",
+            "checkpoint_system": "LangGraph AsyncSqliteSaver",
+            "database_file": "langgraph_checkpoints.db",
+            "current_version": current_state.get("version", 0) if current_state else 0,
+            "total_checkpoints": len(history),
+            "current_topics": len(current_state.get("modified_data", [])) if current_state else 0,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Status endpoint error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# RUN SERVER
+# ============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(
+        "langgraph_server:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
