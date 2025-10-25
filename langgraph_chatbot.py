@@ -493,6 +493,140 @@ class QAModifier:
             "version": result.get("version", prev_version + 1)
         }
 
+    async def modify_selective(
+        self,
+        user_request: str,
+        topic_index: int,
+        selected_qa_indices: List[int],
+        selected_qa_pairs: List[Dict],
+        all_data: List[Dict],
+        thread_id: str = QA_THREAD_ID
+    ) -> Dict:
+        """
+        Modify specific Q&A pairs within a single topic
+
+        Args:
+            user_request: User's modification request
+            topic_index: Index of the topic to modify
+            selected_qa_indices: Indices of Q&A pairs to modify
+            selected_qa_pairs: The actual Q&A pairs selected for modification
+            all_data: All current Q&A data
+            thread_id: Thread ID for versioning
+
+        Returns:
+            Dict with modified_data, agent_response, error
+        """
+        # Get previous state to determine version
+        config = {"configurable": {"thread_id": thread_id}}
+
+        try:
+            prev_state = await self.graph.aget_state(config)
+            prev_version = prev_state.values.get("version", 0) if prev_state and prev_state.values else 0
+        except:
+            prev_version = 0
+
+        try:
+            # Initialize LLM
+            llm = ChatGroq(
+                model="meta-llama/llama-4-maverick-17b-128e-instruct",
+                api_key=os.getenv('GROQ_API_KEY'),
+                temperature=0.3,
+                max_tokens=2000
+            )
+
+            # Format selected Q&A pairs for LLM (preserve original numbering)
+            qa_text = "\n\n".join([f"Q{selected_qa_indices[i]+1}: {qa['question']}\nA{selected_qa_indices[i]+1}: {qa['answer']}"
+                                   for i, qa in enumerate(selected_qa_pairs)])
+
+            # Create prompt for selective modification
+            messages = [
+                SystemMessage(content=f"""You are modifying Q&A pairs based on the user's request.
+
+User Request: {user_request}
+
+IMPORTANT: Apply the modification to ALL the Q&A pairs provided below.
+Keep the original question numbers (Q1, Q2, Q3, etc.) in your response.
+Return the modified Q&A pairs in the exact same format: Q#: ... A#: ...
+
+If the user request doesn't make sense for some pairs, still try to apply it in a reasonable way."""),
+                HumanMessage(content=qa_text)
+            ]
+
+            # Get LLM response
+            response = await llm.ainvoke(messages)
+
+            # Parse modified Q&A pairs
+            modified_pairs = []
+            current_q = current_a = None
+
+            for line in response.content.split('\n'):
+                line = line.strip()
+                if line.startswith('Q') and ':' in line:
+                    if current_q and current_a:
+                        modified_pairs.append({"question": current_q, "answer": current_a})
+                    current_q = line.split(':', 1)[1].strip()
+                elif line.startswith('A') and ':' in line:
+                    current_a = line.split(':', 1)[1].strip()
+
+            if current_q and current_a:
+                modified_pairs.append({"question": current_q, "answer": current_a})
+
+            # Apply selective modifications to the data
+            modified_all_data = []
+            for idx, topic_item in enumerate(all_data):
+                if idx == topic_index:
+                    # This is the topic to modify
+                    modified_topic = topic_item.copy()
+                    modified_qa_pairs = modified_topic.get("qa_pairs", []).copy()
+
+                    # Replace selected Q&A pairs with modified versions
+                    for selected_idx, modified_qa in zip(selected_qa_indices, modified_pairs):
+                        if selected_idx < len(modified_qa_pairs):
+                            modified_qa_pairs[selected_idx] = modified_qa
+
+                    modified_topic["qa_pairs"] = modified_qa_pairs
+                    modified_topic["qa_count"] = len(modified_qa_pairs)
+                    modified_all_data.append(modified_topic)
+                else:
+                    # Keep other topics unchanged
+                    modified_all_data.append(topic_item)
+
+            topic_name = all_data[topic_index].get("topic", "Unknown Topic")
+            agent_response = f"Modified {len(selected_qa_pairs)} Q&A pairs in '{topic_name}'"
+
+            # Create state for checkpoint
+            checkpoint_state = {
+                "user_request": user_request,
+                "current_data": all_data,
+                "target_topic": topic_name,
+                "modification_type": f"selective ({len(selected_qa_pairs)} Q&A pairs)",
+                "modified_data": modified_all_data,
+                "agent_response": agent_response,
+                "error": "",
+                "version": prev_version + 1,
+                "timestamp": datetime.now().isoformat()
+            }
+
+            # Save to checkpoint
+            await self.graph.aupdate_state(config, checkpoint_state)
+            logger.info(f"✓ Created selective modification checkpoint version {prev_version + 1}")
+
+            return {
+                "modified_data": modified_all_data,
+                "agent_response": agent_response,
+                "error": "",
+                "version": prev_version + 1
+            }
+
+        except Exception as e:
+            logger.error(f"Selective modification failed: {e}")
+            return {
+                "modified_data": all_data,
+                "agent_response": f"Modification failed: {str(e)}",
+                "error": str(e),
+                "version": prev_version + 1
+            }
+
     async def get_current_state(self, thread_id: str = QA_THREAD_ID) -> Optional[Dict]:
         """Get current state from LangGraph checkpoint"""
         config = {"configurable": {"thread_id": thread_id}}

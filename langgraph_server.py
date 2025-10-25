@@ -164,6 +164,20 @@ class ModifyRequest(BaseModel):
     user_request: str
 
 
+class QAPair(BaseModel):
+    """Model for a single Q&A pair"""
+    question: str
+    answer: str
+
+
+class SelectiveModifyRequest(BaseModel):
+    """Request model for selective modification endpoint"""
+    user_request: str
+    topic_index: int
+    selected_qa_indices: List[int]
+    selected_qa_pairs: List[QAPair]
+
+
 class ModifyResponse(BaseModel):
     """Response model for modify endpoint"""
     modified_data: List[Dict]
@@ -213,11 +227,15 @@ def generate_html_viewer(json_data: list) -> str:
         .search-input {{ width: 100%; padding: 12px 15px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 1em; transition: border-color 0.3s ease; }}
         .search-input:focus {{ outline: none; border-color: #667eea; }}
         .topic-list {{ flex: 1; overflow-y: auto; padding: 10px; }}
-        .topic-item {{ padding: 15px; margin-bottom: 8px; background: white; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent; }}
+        .topic-item {{ padding: 15px; margin-bottom: 8px; background: white; border-radius: 8px; transition: all 0.3s ease; border: 2px solid transparent; position: relative; }}
         .topic-item:hover {{ background: #f8f9fa; border-color: #667eea; transform: translateX(5px); }}
         .topic-item.active {{ background: #667eea; color: white; border-color: #667eea; }}
-        .topic-name {{ font-weight: 600; font-size: 0.95em; margin-bottom: 5px; }}
+        .topic-name {{ font-weight: 600; font-size: 0.95em; margin-bottom: 5px; cursor: pointer; }}
         .topic-status {{ font-size: 0.8em; opacity: 0.7; }}
+        .topic-modify-btn {{ margin-top: 8px; padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: 600; width: 100%; transition: background 0.3s ease; }}
+        .topic-modify-btn:hover {{ background: #218838; }}
+        .topic-item.active .topic-modify-btn {{ background: #fff; color: #667eea; }}
+        .topic-item.active .topic-modify-btn:hover {{ background: #f0f1ff; }}
         .content-area {{ display: flex; flex-direction: column; overflow: hidden; }}
         .content-header {{ background: #f8f9fa; padding: 30px 40px; border-bottom: 2px solid #e9ecef; }}
         .content-title {{ font-size: 2em; color: #212529; margin-bottom: 10px; }}
@@ -241,6 +259,18 @@ def generate_html_viewer(json_data: list) -> str:
         .qa-answer-content {{ padding: 20px 20px 20px 67px; line-height: 1.8; color: #495057; }}
         .empty-state {{ display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6c757d; text-align: center; padding: 40px; }}
         .empty-state-icon {{ font-size: 4em; margin-bottom: 20px; }}
+        .qa-checkbox {{ width: 18px; height: 18px; cursor: pointer; margin-right: 10px; }}
+        .modify-panel {{ background: #fff3cd; border: 2px solid #ffc107; border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; }}
+        .modify-panel.active {{ display: block; }}
+        .modify-panel h3 {{ margin: 0 0 15px 0; color: #856404; font-size: 1.2em; }}
+        .modify-panel input {{ width: 100%; padding: 12px; border: 2px solid #ffc107; border-radius: 8px; font-size: 1em; margin-bottom: 10px; }}
+        .modify-panel-buttons {{ display: flex; gap: 10px; }}
+        .modify-submit-btn {{ flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }}
+        .modify-submit-btn:hover {{ background: #218838; }}
+        .modify-submit-btn:disabled {{ background: #6c757d; cursor: not-allowed; }}
+        .modify-cancel-btn {{ flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }}
+        .modify-cancel-btn:hover {{ background: #5a6268; }}
+        .selection-info {{ background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.9em; }}
     </style>
 </head>
 <body>
@@ -273,16 +303,24 @@ def generate_html_viewer(json_data: list) -> str:
     <script>
         const DATA = {json_str};
 
+        let currentTopicIndex = null;
+        let selectedQAIndices = new Set();
+
         function renderTopics(topics) {{
             document.getElementById('topicList').innerHTML = topics.map((item, index) => `
-                <div class="topic-item" onclick="selectTopic(${{index}})">
-                    <div class="topic-name">${{escapeHtml(item.topic)}}</div>
+                <div class="topic-item" id="topic-${{index}}">
+                    <div class="topic-name" onclick="selectTopic(${{index}})">${{escapeHtml(item.topic)}}</div>
                     <div class="topic-status">Status: ${{item.status || 'unknown'}}</div>
+                    <button class="topic-modify-btn" onclick="event.stopPropagation(); showModifyPanel(${{index}})">
+                        ✏️ Modify This Topic
+                    </button>
                 </div>
             `).join('');
         }}
 
         function selectTopic(index) {{
+            currentTopicIndex = index;
+            selectedQAIndices.clear();
             const item = DATA[index];
             document.querySelectorAll('.topic-item').forEach((el, i) => el.classList.toggle('active', i === index));
 
@@ -298,7 +336,8 @@ def generate_html_viewer(json_data: list) -> str:
                     </div>
                 </div>
                 <div class="content-body">
-                    ${{hasQA ? `<div class="content-section"><div class="section-label">❓ Questions & Answers</div>${{renderQA(item.qa_pairs)}}</div>` : ''}}
+                    <div id="modifyPanelContainer"></div>
+                    ${{hasQA ? `<div class="content-section"><div class="section-label">❓ Questions & Answers</div>${{renderQA(item.qa_pairs, index)}}</div>` : ''}}
                     <div class="content-section">
                         <div class="section-label">🌐 Original Content</div>
                         <div class="section-content">${{escapeHtml(item.browser_content || 'No content')}}</div>
@@ -311,13 +350,14 @@ def generate_html_viewer(json_data: list) -> str:
             `;
         }}
 
-        function renderQA(qaPairs) {{
+        function renderQA(qaPairs, topicIndex) {{
             return `<div class="qa-container">${{qaPairs.map((qa, i) => `
                 <div class="qa-item">
-                    <div class="qa-question" onclick="toggleQA(${{i}})">
+                    <div class="qa-question">
+                        <input type="checkbox" class="qa-checkbox" id="qa-check-${{i}}" onchange="toggleQASelection(${{i}})" />
                         <div class="qa-number">${{i + 1}}</div>
-                        <div class="qa-question-text">${{escapeHtml(qa.question)}}</div>
-                        <div class="qa-toggle">▼</div>
+                        <div class="qa-question-text" onclick="toggleQA(${{i}})" style="cursor: pointer; flex: 1;">${{escapeHtml(qa.question)}}</div>
+                        <div class="qa-toggle" onclick="toggleQA(${{i}})" style="cursor: pointer;">▼</div>
                     </div>
                     <div class="qa-answer" id="qa-${{i}}">
                         <div class="qa-answer-content">${{escapeHtml(qa.answer)}}</div>
@@ -353,6 +393,24 @@ def generate_html_viewer(json_data: list) -> str:
         document.getElementById('topic-count').textContent = `${{DATA.length}} topic${{DATA.length !== 1 ? 's' : ''}}`;
         document.getElementById('searchInput').addEventListener('input', (e) => filterTopics(e.target.value));
 
+        // Restore last modified topic after page reload
+        const lastModifiedTopic = localStorage.getItem('lastModifiedTopic');
+        if (lastModifiedTopic !== null) {{
+            const topicIndex = parseInt(lastModifiedTopic, 10);
+            if (topicIndex >= 0 && topicIndex < DATA.length) {{
+                selectTopic(topicIndex);
+                // Scroll the topic into view
+                setTimeout(() => {{
+                    const topicElement = document.getElementById(`topic-${{topicIndex}}`);
+                    if (topicElement) {{
+                        topicElement.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                    }}
+                }}, 100);
+            }}
+            // Clear the saved topic
+            localStorage.removeItem('lastModifiedTopic');
+        }}
+
         // Modify request functionality
         async function sendModifyRequest() {{
             const modifyInput = document.getElementById('modifyInput');
@@ -379,6 +437,10 @@ def generate_html_viewer(json_data: list) -> str:
                     showStatus(`Error: ${{result.error}}`, 'error');
                 }} else {{
                     showStatus(`✅ ${{result.agent_response}}. Reloading page...`, 'success');
+                    // Save current topic index before reload (if one is selected)
+                    if (currentTopicIndex !== null) {{
+                        localStorage.setItem('lastModifiedTopic', currentTopicIndex);
+                    }}
                     // Reload page after 2 seconds to show updated data
                     setTimeout(() => location.reload(), 2000);
                 }}
@@ -403,6 +465,132 @@ def generate_html_viewer(json_data: list) -> str:
         document.getElementById('modifyInput').addEventListener('keypress', (e) => {{
             if (e.key === 'Enter') sendModifyRequest();
         }});
+
+        // Selective modification functions
+        function showModifyPanel(topicIndex) {{
+            selectTopic(topicIndex);
+
+            const modifyPanel = `
+                <div class="modify-panel active" id="selectiveModifyPanel">
+                    <h3>✏️ Modify Selected Q&A Pairs</h3>
+                    <div class="selection-info" id="selectionInfo">
+                        No questions selected. Select checkboxes below to modify specific Q&A pairs.
+                    </div>
+                    <input type="text" id="selectiveModifyInput" placeholder="Enter modification request (e.g., 'Simplify to 5th grade level')" />
+                    <div class="modify-panel-buttons">
+                        <button class="modify-cancel-btn" onclick="hideModifyPanel()">Cancel</button>
+                        <button class="modify-submit-btn" id="selectiveSubmitBtn" onclick="sendSelectiveModifyRequest()" disabled>
+                            Apply to Selected Q&A
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modifyPanelContainer').innerHTML = modifyPanel;
+        }}
+
+        function hideModifyPanel() {{
+            document.getElementById('modifyPanelContainer').innerHTML = '';
+            selectedQAIndices.clear();
+            // Uncheck all checkboxes
+            document.querySelectorAll('.qa-checkbox').forEach(cb => cb.checked = false);
+        }}
+
+        function toggleQASelection(index) {{
+            const checkbox = document.getElementById(`qa-check-${{index}}`);
+            if (checkbox.checked) {{
+                selectedQAIndices.add(index);
+            }} else {{
+                selectedQAIndices.delete(index);
+            }}
+            updateSelectionInfo();
+        }}
+
+        function updateSelectionInfo() {{
+            const infoDiv = document.getElementById('selectionInfo');
+            const submitBtn = document.getElementById('selectiveSubmitBtn');
+
+            if (!infoDiv || !submitBtn) return;
+
+            const count = selectedQAIndices.size;
+            if (count === 0) {{
+                infoDiv.textContent = 'No questions selected. Select checkboxes below to modify specific Q&A pairs.';
+                submitBtn.disabled = true;
+            }} else {{
+                infoDiv.textContent = `${{count}} question${{count !== 1 ? 's' : ''}} selected for modification.`;
+                infoDiv.style.background = '#d4edda';
+                infoDiv.style.color = '#155724';
+                submitBtn.disabled = false;
+            }}
+        }}
+
+        async function sendSelectiveModifyRequest() {{
+            const userRequest = document.getElementById('selectiveModifyInput').value.trim();
+
+            if (!userRequest) {{
+                alert('Please enter a modification request');
+                return;
+            }}
+
+            if (selectedQAIndices.size === 0) {{
+                alert('Please select at least one Q&A pair');
+                return;
+            }}
+
+            if (currentTopicIndex === null) {{
+                alert('No topic selected');
+                return;
+            }}
+
+            // Get selected Q&A pairs
+            const topic = DATA[currentTopicIndex];
+            const selectedPairs = [];
+            const selectedIndices = Array.from(selectedQAIndices);
+
+            selectedIndices.forEach(index => {{
+                const qa = topic.qa_pairs[index];
+                selectedPairs.push({{
+                    question: qa.question,
+                    answer: qa.answer
+                }});
+            }});
+
+            // Show loading state
+            const submitBtn = document.getElementById('selectiveSubmitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+
+            try {{
+                const response = await fetch('/api/modify-selective', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{
+                        user_request: userRequest,
+                        topic_index: currentTopicIndex,
+                        selected_qa_indices: selectedIndices,
+                        selected_qa_pairs: selectedPairs
+                    }})
+                }});
+
+                const result = await response.json();
+
+                if (result.error) {{
+                    alert(`Error: ${{result.error}}`);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Apply to Selected Q&A';
+                }} else {{
+                    alert(`✅ ${{result.agent_response}}`);
+                    // Save current topic index before reload
+                    localStorage.setItem('lastModifiedTopic', currentTopicIndex);
+                    // Reload page to show updated data
+                    location.reload();
+                }}
+            }} catch (error) {{
+                alert(`Failed: ${{error.message}}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Apply to Selected Q&A';
+            }}
+        }}
     </script>
 </body>
 </html>"""
@@ -587,6 +775,79 @@ async def modify_endpoint(modify_request: ModifyRequest, request: Request) -> Mo
         return ModifyResponse(
             modified_data=[],
             agent_response=f"Modification failed: {str(e)}",
+            error=str(e),
+            timestamp=datetime.now().isoformat()
+        )
+
+
+@app.post("/api/modify-selective", response_model=ModifyResponse)
+async def modify_selective_endpoint(modify_request: SelectiveModifyRequest, request: Request) -> ModifyResponse:
+    """
+    Modify specific Q&A pairs within a topic using LangGraph agents
+
+    Args:
+        modify_request: SelectiveModifyRequest with selected Q&A pairs
+        request: FastAPI Request object
+
+    Returns:
+        ModifyResponse with modified data
+    """
+    try:
+        logger.info(f"Received selective modify request for topic #{modify_request.topic_index}")
+        logger.info(f"  Request: {modify_request.user_request[:100]}...")
+        logger.info(f"  Selected Q&A pairs: {len(modify_request.selected_qa_pairs)}")
+
+        # Validate input
+        if not modify_request.user_request or not modify_request.user_request.strip():
+            raise HTTPException(status_code=400, detail="Request cannot be empty")
+
+        if not modify_request.selected_qa_pairs:
+            raise HTTPException(status_code=400, detail="No Q&A pairs selected")
+
+        # Get QA modifier instance from app state
+        modifier = request.app.state.qa_modifier
+
+        # Load current state from LangGraph
+        current_state = await modifier.get_current_state()
+
+        if current_state and current_state.get("modified_data"):
+            all_data = current_state.get("modified_data")
+            logger.info(f"Loaded {len(all_data)} topics from LangGraph state")
+        else:
+            # If no state, load from JSON
+            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                all_data = json.load(f)
+            logger.info(f"Loaded {len(all_data)} topics from JSON")
+
+        # Validate topic index
+        if modify_request.topic_index < 0 or modify_request.topic_index >= len(all_data):
+            raise HTTPException(status_code=400, detail=f"Invalid topic index: {modify_request.topic_index}")
+
+        # Process selective modification through LangGraph agents
+        result = await modifier.modify_selective(
+            user_request=modify_request.user_request,
+            topic_index=modify_request.topic_index,
+            selected_qa_indices=modify_request.selected_qa_indices,
+            selected_qa_pairs=[qa.model_dump() for qa in modify_request.selected_qa_pairs],
+            all_data=all_data
+        )
+
+        logger.info(f"Selective modification complete: {result['agent_response']} (v{result.get('version', 'unknown')})")
+
+        return ModifyResponse(
+            modified_data=result["modified_data"],
+            agent_response=result["agent_response"],
+            error=result.get("error"),
+            timestamp=datetime.now().isoformat()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Selective modify endpoint error: {e}")
+        return ModifyResponse(
+            modified_data=[],
+            agent_response=f"Selective modification failed: {str(e)}",
             error=str(e),
             timestamp=datetime.now().isoformat()
         )
