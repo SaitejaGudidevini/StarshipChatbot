@@ -33,13 +33,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 from langgraph_chatbot import (
-    LangGraphChatbot,
-    QAModifier,
-    QA_THREAD_ID,
-    build_chatbot_graph,
-    build_qa_modifier_graph
+    QAWorkflowManager,
+    build_merge_qa_graph,
+    QADataset,  # Class-based data navigation
+    SimplifyAgent  # Simplify Q&A pairs
 )
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 # Configure logging
 logging.basicConfig(
@@ -57,68 +55,62 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     Lifespan context manager for FastAPI
-    Manages AsyncSqliteSaver connection and graph initialization
+    Manages graph initialization (NO checkpointing - uses JSON file)
     """
     logger.info("="*60)
     logger.info("LANGGRAPH CHATBOT SERVER - STARTUP")
     logger.info("="*60)
 
-    # Open AsyncSqliteSaver connection (stays open for server lifetime)
-    async with AsyncSqliteSaver.from_conn_string("langgraph_checkpoints.db") as checkpointer:
-        logger.info("✓ AsyncSqliteSaver connection opened")
+    # Build merge QA graph (3-agent, uses MergeQAState)
+    # This handles merging 2+ Q&A pairs into 1 using Groq LLM
+    merge_graph = build_merge_qa_graph()
+    logger.info("✓ Merge QA graph (3-agent) compiled (MergeQAState)")
 
-        # Build chatbot graph with checkpointer
-        chatbot_graph = build_chatbot_graph(checkpointer)
-        logger.info("✓ Chatbot graph compiled")
+    # QAWorkflowManager manages merge workflow
+    qa_modifier = QAWorkflowManager(
+        merge_graph=merge_graph
+    )
 
-        # Build QA modifier graph with checkpointer
-        qa_graph = build_qa_modifier_graph(checkpointer)
-        logger.info("✓ QA Modifier graph compiled")
+    # Store in app state
+    app.state.qa_modifier = qa_modifier
 
-        # Create instances
-        chatbot = LangGraphChatbot(
-            chatbot_graph,
-            system_prompt="You are a helpful AI assistant for the Starship Chatbot project."
-        )
-        qa_modifier = QAModifier(qa_graph)
+    # Setup data directory (Railway volume support)
+    import os
+    DATA_DIR = Path(os.getenv("DATA_DIR", "."))
+    JSON_FILE_PATH = DATA_DIR / "browser_agent_test_output.json"
 
-        # Store in app state
-        app.state.chatbot = chatbot
-        app.state.qa_modifier = qa_modifier
+    # Store globally for use in endpoints
+    app.state.json_file_path = JSON_FILE_PATH
+    app.state.data_dir = DATA_DIR
 
-        # Initialize Q&A data if needed
-        try:
-            current_state = await qa_modifier.get_current_state()
-            if current_state and current_state.get("modified_data"):
-                logger.info("✓ Found existing Q&A state in LangGraph checkpoint")
-            else:
-                logger.info("🔄 First startup - loading JSON into LangGraph state")
-                logger.info("📥 Loading data from JSON...")
+    logger.info(f"📁 Data directory: {DATA_DIR}")
+    logger.info(f"📄 JSON file path: {JSON_FILE_PATH}")
 
-                # Load JSON
-                JSON_FILE_PATH = Path("/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json")
-                with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                    json_data = json.load(f)
-                logger.info(f"✓ Loaded {len(json_data)} topics from JSON")
+    # Verify JSON file exists
+    if JSON_FILE_PATH.exists():
+        # Load and show stats
+        with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+            json_data = json.load(f)
+        logger.info(f"✅ JSON file found: {len(json_data)} topics")
+        logger.info("📁 Data source: browser_agent_test_output.json")
+    else:
+        logger.warning("⚠️  JSON file not found - creating empty dataset")
+        # Create empty JSON file with sample structure
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump([], f, indent=2)
+        logger.info("✅ Created empty JSON file")
 
-                # Initialize state with JSON data (version 1)
-                await qa_modifier.modify("Initial data load from JSON", json_data)
-                logger.info("✓ Data loaded into LangGraph checkpoint")
-                logger.info("📋 JSON file is now idle (seed data only)")
-        except Exception as e:
-            logger.error(f"Startup initialization error: {e}")
+    logger.info("🚀 Server ready at: http://localhost:8000")
+    logger.info("📚 API docs at: http://localhost:8000/docs")
+    logger.info("="*60)
 
-        logger.info("🚀 Server ready at: http://localhost:8000")
-        logger.info("📚 API docs at: http://localhost:8000/docs")
-        logger.info("="*60)
+    yield  # Server runs here
 
-        yield  # Server runs here
-
-        # Cleanup on shutdown
-        logger.info("="*60)
-        logger.info("LANGGRAPH CHATBOT SERVER - SHUTDOWN")
-        logger.info("="*60)
-        logger.info("✓ AsyncSqliteSaver connection closed")
+    # Cleanup on shutdown
+    logger.info("="*60)
+    logger.info("LANGGRAPH CHATBOT SERVER - SHUTDOWN")
+    logger.info("="*60)
 
 
 # ============================================================================
@@ -146,36 +138,24 @@ app.add_middleware(
 # PYDANTIC MODELS
 # ============================================================================
 
-class ChatRequest(BaseModel):
-    """Request model for chat endpoint"""
-    message: str
-    system_prompt: Optional[str] = None
-
-
-class ChatResponse(BaseModel):
-    """Response model for chat endpoint"""
-    response: str
-    timestamp: str
-    error: Optional[str] = None
-
-
-class ModifyRequest(BaseModel):
-    """Request model for modify endpoint"""
-    user_request: str
-
-
-class QAPair(BaseModel):
-    """Model for a single Q&A pair"""
-    question: str
-    answer: str
-
-
-class SelectiveModifyRequest(BaseModel):
-    """Request model for selective modification endpoint"""
+class MergeQARequest(BaseModel):
+    """Request model for merge Q&A endpoint"""
     user_request: str
     topic_index: int
-    selected_qa_indices: List[int]
-    selected_qa_pairs: List[QAPair]
+    selected_qa_indices: List[int]  # Must have 2 or more indices
+
+
+class SimplifyTopicRequest(BaseModel):
+    """Request model for simplify topic endpoint"""
+    topic_index: int  # Which topic to simplify (e.g., 0, 1, 2...)
+
+
+class SimplifyTopicResponse(BaseModel):
+    """Response model for simplify topic endpoint"""
+    message: str              # Success message like "Simplified 10 Q&A pairs"
+    simplified_count: int     # How many Q&A pairs were simplified
+    error: Optional[str] = None   # Error message if something goes wrong
+    timestamp: str            # When the operation completed
 
 
 class ModifyResponse(BaseModel):
@@ -192,8 +172,8 @@ class ModifyResponse(BaseModel):
 # JSON TO HTML CONVERTER
 # ============================================================================
 
-# Path to JSON file
-JSON_FILE_PATH = Path("/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json")
+# Path to JSON file - will be set dynamically from environment
+# This is a placeholder, actual path is set in lifespan context
 
 
 def generate_html_viewer(json_data: list) -> str:
@@ -236,6 +216,10 @@ def generate_html_viewer(json_data: list) -> str:
         .topic-modify-btn:hover {{ background: #218838; }}
         .topic-item.active .topic-modify-btn {{ background: #fff; color: #667eea; }}
         .topic-item.active .topic-modify-btn:hover {{ background: #f0f1ff; }}
+        .topic-simplify-btn {{ margin-top: 8px; padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: 600; width: 100%; transition: background 0.3s ease; }}
+        .topic-simplify-btn:hover {{ background: #0056b3; }}
+        .topic-item.active .topic-simplify-btn {{ background: #fff; color: #007bff; }}
+        .topic-item.active .topic-simplify-btn:hover {{ background: #f0f1ff; }}
         .content-area {{ display: flex; flex-direction: column; overflow: hidden; }}
         .content-header {{ background: #f8f9fa; padding: 30px 40px; border-bottom: 2px solid #e9ecef; }}
         .content-title {{ font-size: 2em; color: #212529; margin-bottom: 10px; }}
@@ -268,9 +252,18 @@ def generate_html_viewer(json_data: list) -> str:
         .modify-submit-btn {{ flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }}
         .modify-submit-btn:hover {{ background: #218838; }}
         .modify-submit-btn:disabled {{ background: #6c757d; cursor: not-allowed; }}
+        .merge-btn {{ flex: 1; padding: 12px; background: #9b59b6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }}
+        .merge-btn:hover {{ background: #8e44ad; }}
+        .merge-btn:disabled {{ background: #6c757d; cursor: not-allowed; }}
         .modify-cancel-btn {{ flex: 1; padding: 12px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }}
         .modify-cancel-btn:hover {{ background: #5a6268; }}
         .selection-info {{ background: #d1ecf1; color: #0c5460; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 0.9em; }}
+        .unified-qa-box {{ background: linear-gradient(135deg, #f0f4ff 0%, #e8f4f8 100%); border: 3px solid #667eea; border-radius: 15px; padding: 30px; box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15); }}
+        .unified-questions-header {{ font-size: 1.3em; font-weight: 700; color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }}
+        .unified-questions-list {{ list-style: none; counter-reset: question-counter; padding-left: 0; margin-bottom: 30px; }}
+        .unified-question-item {{ counter-increment: question-counter; padding: 12px 15px; margin-bottom: 10px; background: white; border-radius: 8px; border-left: 4px solid #667eea; font-size: 1em; line-height: 1.6; color: #212529; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .unified-answer-header {{ font-size: 1.3em; font-weight: 700; color: #28a745; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border-top: 2px solid #dee2e6; padding-top: 20px; }}
+        .unified-answer-content {{ background: white; padding: 20px; border-radius: 10px; line-height: 1.8; color: #212529; font-size: 1.05em; border-left: 4px solid #28a745; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
     </style>
 </head>
 <body>
@@ -311,8 +304,8 @@ def generate_html_viewer(json_data: list) -> str:
                 <div class="topic-item" id="topic-${{index}}">
                     <div class="topic-name" onclick="selectTopic(${{index}})">${{escapeHtml(item.topic)}}</div>
                     <div class="topic-status">Status: ${{item.status || 'unknown'}}</div>
-                    <button class="topic-modify-btn" onclick="event.stopPropagation(); showModifyPanel(${{index}})">
-                        ✏️ Modify This Topic
+                    <button class="topic-simplify-btn" onclick="event.stopPropagation(); simplifyTopic(${{index}})">
+                        ✨ Simplify All Q&A
                     </button>
                 </div>
             `).join('');
@@ -325,6 +318,22 @@ def generate_html_viewer(json_data: list) -> str:
             document.querySelectorAll('.topic-item').forEach((el, i) => el.classList.toggle('active', i === index));
 
             const hasQA = item.qa_pairs && item.qa_pairs.length > 0;
+
+            // Check for unified Q&A pairs
+            const unifiedSection = hasQA ? detectUnifiedQA(item.qa_pairs) : null;
+            // Filter out unified pairs from regular display
+            let originalQA = item.qa_pairs || [];
+            if (unifiedSection) {{
+                // If unified section detected by flag, filter out flagged pairs
+                const hasFlaggedPairs = originalQA.some(qa => qa.is_unified === true);
+                if (hasFlaggedPairs) {{
+                    originalQA = originalQA.filter(qa => qa.is_unified !== true);
+                }} else {{
+                    // Old data: remove last 10 pairs
+                    originalQA = originalQA.slice(0, -10);
+                }}
+            }}
+
             document.getElementById('contentDisplay').innerHTML = `
                 <div class="content-header">
                     <div class="content-title">${{escapeHtml(item.topic)}}</div>
@@ -337,7 +346,8 @@ def generate_html_viewer(json_data: list) -> str:
                 </div>
                 <div class="content-body">
                     <div id="modifyPanelContainer"></div>
-                    ${{hasQA ? `<div class="content-section"><div class="section-label">❓ Questions & Answers</div>${{renderQA(item.qa_pairs, index)}}</div>` : ''}}
+                    ${{hasQA && originalQA.length > 0 ? `<div class="content-section"><div class="section-label">❓ Questions & Answers</div>${{renderQA(originalQA, index)}}</div>` : ''}}
+                    ${{unifiedSection ? renderUnifiedQA(unifiedSection) : ''}}
                     <div class="content-section">
                         <div class="section-label">🌐 Original Content</div>
                         <div class="section-content">${{escapeHtml(item.browser_content || 'No content')}}</div>
@@ -345,6 +355,53 @@ def generate_html_viewer(json_data: list) -> str:
                     <div class="content-section">
                         <div class="section-label">🔗 Source</div>
                         <div class="section-content"><a href="${{item.original_url}}" target="_blank">${{escapeHtml(item.semantic_path)}}</a></div>
+                    </div>
+                </div>
+            `;
+        }}
+
+        function detectUnifiedQA(qaPairs) {{
+            // Method 1: Check for is_unified flag (new SimplifyAgent data)
+            const flaggedPairs = qaPairs.filter(qa => qa.is_unified === true);
+            if (flaggedPairs.length >= 2) {{
+                return {{
+                    questions: flaggedPairs.map(qa => qa.question),
+                    answer: flaggedPairs[0].answer
+                }};
+            }}
+
+            // Method 2: Fallback - check if last 10 have same answer (old data)
+            if (qaPairs.length >= 10) {{
+                const last10 = qaPairs.slice(-10);
+                const firstAnswer = last10[0].answer;
+                const allSameAnswer = last10.every(qa => qa.answer === firstAnswer);
+
+                if (allSameAnswer) {{
+                    return {{
+                        questions: last10.map(qa => qa.question),
+                        answer: firstAnswer
+                    }};
+                }}
+            }}
+
+            return null;
+        }}
+
+        function renderUnifiedQA(unifiedData) {{
+            const questionsList = unifiedData.questions.map((q, i) =>
+                `<li class="unified-question-item">${{i + 1}}. ${{escapeHtml(q)}}</li>`
+            ).join('');
+
+            return `
+                <div class="content-section">
+                    <div class="section-label">✨ Comprehensive Q&A (Generated)</div>
+                    <div class="unified-qa-box">
+                        <div class="unified-questions-header">📋 Questions:</div>
+                        <ol class="unified-questions-list">
+                            ${{questionsList}}
+                        </ol>
+                        <div class="unified-answer-header">💡 Comprehensive Answer:</div>
+                        <div class="unified-answer-content">${{escapeHtml(unifiedData.answer)}}</div>
                     </div>
                 </div>
             `;
@@ -466,6 +523,38 @@ def generate_html_viewer(json_data: list) -> str:
             if (e.key === 'Enter') sendModifyRequest();
         }});
 
+        // Simplify topic functionality
+        async function simplifyTopic(topicIndex) {{
+            if (!confirm(`Simplify all Q&A pairs in this topic to make them more clear and understandable?`)) {{
+                return;
+            }}
+
+            const statusDiv = document.getElementById('modifyStatus');
+            showStatus('Simplifying Q&A pairs with LLM...', 'loading');
+
+            try {{
+                const response = await fetch('/api/simplify-topic', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ topic_index: topicIndex }})
+                }});
+
+                const result = await response.json();
+
+                if (result.error) {{
+                    showStatus(`Error: ${{result.error}}`, 'error');
+                }} else {{
+                    showStatus(`✅ ${{result.message}}. Reloading page...`, 'success');
+                    // Save current topic index before reload
+                    localStorage.setItem('lastModifiedTopic', topicIndex);
+                    // Reload page after 2 seconds to show updated data
+                    setTimeout(() => location.reload(), 2000);
+                }}
+            }} catch (error) {{
+                showStatus(`Failed: ${{error.message}}`, 'error');
+            }}
+        }}
+
         // Selective modification functions
         function showModifyPanel(topicIndex) {{
             selectTopic(topicIndex);
@@ -479,8 +568,8 @@ def generate_html_viewer(json_data: list) -> str:
                     <input type="text" id="selectiveModifyInput" placeholder="Enter modification request (e.g., 'Simplify to 5th grade level')" />
                     <div class="modify-panel-buttons">
                         <button class="modify-cancel-btn" onclick="hideModifyPanel()">Cancel</button>
-                        <button class="modify-submit-btn" id="selectiveSubmitBtn" onclick="sendSelectiveModifyRequest()" disabled>
-                            Apply to Selected Q&A
+                        <button class="merge-btn" id="mergeBtn" onclick="sendMergeRequest()" disabled title="Select 2 or more Q&A pairs to merge (originals kept)">
+                            🔗 Merge Q&A Pairs
                         </button>
                     </div>
                 </div>
@@ -509,31 +598,39 @@ def generate_html_viewer(json_data: list) -> str:
         function updateSelectionInfo() {{
             const infoDiv = document.getElementById('selectionInfo');
             const submitBtn = document.getElementById('selectiveSubmitBtn');
+            const mergeBtn = document.getElementById('mergeBtn');
 
             if (!infoDiv || !submitBtn) return;
 
             const count = selectedQAIndices.size;
             if (count === 0) {{
                 infoDiv.textContent = 'No questions selected. Select checkboxes below to modify specific Q&A pairs.';
+                infoDiv.style.background = '#d1ecf1';
+                infoDiv.style.color = '#0c5460';
                 submitBtn.disabled = true;
-            }} else {{
-                infoDiv.textContent = `${{count}} question${{count !== 1 ? 's' : ''}} selected for modification.`;
+                if (mergeBtn) mergeBtn.disabled = true;
+            }} else if (count === 1) {{
+                infoDiv.textContent = '1 question selected for modification. (Select 2+ to enable merge)';
                 infoDiv.style.background = '#d4edda';
                 infoDiv.style.color = '#155724';
                 submitBtn.disabled = false;
+                if (mergeBtn) mergeBtn.disabled = true;
+            }} else {{
+                infoDiv.textContent = `${{count}} questions selected. You can modify them or merge them into 1 Q&A pair (originals kept).`;
+                infoDiv.style.background = '#d1ecf1';
+                infoDiv.style.color = '#0c5460';
+                submitBtn.disabled = false;
+                if (mergeBtn) mergeBtn.disabled = false;
             }}
         }}
 
         async function sendSelectiveModifyRequest() {{
             const userRequest = document.getElementById('selectiveModifyInput').value.trim();
 
-            if (!userRequest) {{
-                alert('Please enter a modification request');
-                return;
-            }}
 
-            if (selectedQAIndices.size === 0) {{
-                alert('Please select at least one Q&A pair');
+            // Validate at least 2 indices
+            if (selectedQAIndices.size < 2) {{
+                alert('Please select at least 2 Q&A pairs to merge');
                 return;
             }}
 
@@ -542,42 +639,40 @@ def generate_html_viewer(json_data: list) -> str:
                 return;
             }}
 
-            // Get selected Q&A pairs
-            const topic = DATA[currentTopicIndex];
-            const selectedPairs = [];
+            const count = selectedQAIndices.size;
+            // Confirm merge action
+            if (!confirm(`Merge these ${{count}} Q&A pairs into 1? Original questions will be kept, and the merged Q&A will be added at the end.`)) {{
+                return;
+            }}
+
+            // Get selected indices
             const selectedIndices = Array.from(selectedQAIndices);
 
-            selectedIndices.forEach(index => {{
-                const qa = topic.qa_pairs[index];
-                selectedPairs.push({{
-                    question: qa.question,
-                    answer: qa.answer
-                }});
-            }});
-
             // Show loading state
+            const mergeBtn = document.getElementById('mergeBtn');
             const submitBtn = document.getElementById('selectiveSubmitBtn');
+            mergeBtn.disabled = true;
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Processing...';
+            mergeBtn.textContent = 'Merging...';
 
             try {{
-                const response = await fetch('/api/modify-selective', {{
+                const response = await fetch('/api/merge-qa', {{
                     method: 'POST',
                     headers: {{ 'Content-Type': 'application/json' }},
                     body: JSON.stringify({{
                         user_request: userRequest,
                         topic_index: currentTopicIndex,
-                        selected_qa_indices: selectedIndices,
-                        selected_qa_pairs: selectedPairs
+                        selected_qa_indices: selectedIndices
                     }})
                 }});
 
                 const result = await response.json();
 
                 if (result.error) {{
-                    alert(`Error: ${{result.error}}`);
+                    alert(`Merge Error: ${{result.error}}`);
+                    mergeBtn.disabled = false;
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Apply to Selected Q&A';
+                    mergeBtn.textContent = '🔗 Merge Q&A Pairs';
                 }} else {{
                     alert(`✅ ${{result.agent_response}}`);
                     // Save current topic index before reload
@@ -586,9 +681,10 @@ def generate_html_viewer(json_data: list) -> str:
                     location.reload();
                 }}
             }} catch (error) {{
-                alert(`Failed: ${{error.message}}`);
+                alert(`Merge Failed: ${{error.message}}`);
+                mergeBtn.disabled = false;
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Apply to Selected Q&A';
+                mergeBtn.textContent = '🔗 Merge Q&A Pairs';
             }}
         }}
     </script>
@@ -607,28 +703,22 @@ async def root(request: Request):
     """
     Root endpoint - Serves HTML viewer with Q&A data
 
-    Loads from LangGraph checkpoint state
+    Uses QADataset class for structured data access
     """
     try:
-        # Get QA modifier from app state
-        modifier = request.app.state.qa_modifier
+        # Get JSON file path from app state
+        JSON_FILE_PATH = request.app.state.json_file_path
 
-        # Load from LangGraph state
-        current_state = await modifier.get_current_state()
+        if not JSON_FILE_PATH.exists():
+            logger.error("JSON file not found")
+            return HTMLResponse(content="<h1>Error: JSON file not found</h1>", status_code=404)
 
-        if current_state and current_state.get("modified_data"):
-            data = current_state.get("modified_data")
-            logger.info(f"✅ Loaded {len(data)} topics from LangGraph checkpoint")
-        else:
-            # Fallback to JSON file if no state exists
-            JSON_FILE_PATH = Path("/Users/saiteja/Documents/Dev/StarshipChatbot/browser_agent_test_output.json")
-            if not JSON_FILE_PATH.exists():
-                logger.error("No LangGraph state and no JSON file found")
-                return HTMLResponse(content="<h1>Error: No data source available</h1>", status_code=404)
+        logger.info("🔍 HTML Viewer: Loading data with QADataset class...")
+        dataset = QADataset.from_json(str(JSON_FILE_PATH))  # ✅ Using class!
+        logger.info(f"✅ Loaded {dataset.total_topics()} topics, {dataset.total_qa_pairs()} Q&A pairs")
 
-            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            logger.info(f"✅ Loaded {len(data)} topics from JSON (fallback)")
+        # Convert to dict for HTML viewer
+        data = dataset.to_dict()
 
         # Generate HTML viewer
         html_content = generate_html_viewer(data)
@@ -641,201 +731,94 @@ async def root(request: Request):
         return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def chat_endpoint(chat_request: ChatRequest, request: Request) -> ChatResponse:
+@app.post("/api/merge-qa", response_model=ModifyResponse)
+async def merge_qa_endpoint(merge_request: MergeQARequest, request: Request) -> ModifyResponse:
     """
-    Main chat endpoint - send message, get LLM response
+    Merge 2+ Q&A pairs into 1 using 3-agent workflow (Agent1 → Merge Agent → Agent3)
+
+    Originals are kept intact, merged Q&A is appended at the end.
 
     Args:
-        chat_request: ChatRequest with user message
+        merge_request: MergeQARequest with 2 or more selected Q&A indices
         request: FastAPI Request object
 
     Returns:
-        ChatResponse with LLM's reply
+        ModifyResponse with merged data
     """
     try:
-        logger.info(f"Received chat request: {chat_request.message[:50]}...")
+        logger.info("="*60)
+        logger.info("🟣 MERGE ENDPOINT: Request received")
+        logger.info(f"   Topic Index: {merge_request.topic_index}")
+        logger.info(f"   User Request: {merge_request.user_request[:100]}...")
+        logger.info(f"   Selected Q&A indices: {merge_request.selected_qa_indices}")
+        logger.info(f"   Number of Q&A to merge: {len(merge_request.selected_qa_indices)}")
+        logger.info("="*60)
 
         # Validate input
-        if not chat_request.message or not chat_request.message.strip():
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
-
-        # Get chatbot instance from app state
-        bot = request.app.state.chatbot
-
-        # Update system prompt if provided
-        if chat_request.system_prompt:
-            bot.system_prompt = chat_request.system_prompt
-
-        # Get LLM response via LangGraph
-        response = await bot.chat(chat_request.message)
-
-        logger.info(f"Response generated: {len(response)} characters")
-
-        return ChatResponse(
-            response=response,
-            timestamp=datetime.now().isoformat(),
-            error=None
-        )
-
-    except Exception as e:
-        logger.error(f"Chat endpoint error: {e}")
-        return ChatResponse(
-            response=f"Sorry, I encountered an error: {str(e)}",
-            timestamp=datetime.now().isoformat(),
-            error=str(e)
-        )
-
-
-@app.get("/api/chat/history")
-async def get_history(request: Request):
-    """Get conversation history"""
-    try:
-        bot = request.app.state.chatbot
-        history = bot.get_history()
-
-        return {
-            "history": history,
-            "message_count": len(history),
-            "timestamp": datetime.now().isoformat()
-        }
-
-    except Exception as e:
-        logger.error(f"History endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/api/chat/history")
-async def clear_history(request: Request):
-    """Clear conversation history"""
-    try:
-        bot = request.app.state.chatbot
-        bot.reset_conversation()
-
-        logger.info("Conversation history cleared")
-
-        return {
-            "message": "Conversation history cleared successfully",
-            "timestamp": datetime.now().isoformat()
-        }
-
-    except Exception as e:
-        logger.error(f"Clear history endpoint error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/modify", response_model=ModifyResponse)
-async def modify_endpoint(modify_request: ModifyRequest, request: Request) -> ModifyResponse:
-    """
-    Modify Q&A pairs using LangGraph agents with checkpoint persistence
-
-    Args:
-        modify_request: ModifyRequest with user's modification request
-        request: FastAPI Request object
-
-    Returns:
-        ModifyResponse with modified data
-    """
-    try:
-        logger.info(f"Received modify request: {modify_request.user_request[:100]}...")
-
-        # Validate input
-        if not modify_request.user_request or not modify_request.user_request.strip():
+        if not merge_request.user_request or not merge_request.user_request.strip():
             raise HTTPException(status_code=400, detail="Request cannot be empty")
+
+        # Validate at least 2 indices
+        if len(merge_request.selected_qa_indices) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Merge requires at least 2 Q&A pairs, got {len(merge_request.selected_qa_indices)}"
+            )
 
         # Get QA modifier instance from app state
         modifier = request.app.state.qa_modifier
 
-        # Load current state from LangGraph
-        current_state = await modifier.get_current_state()
+        # Get JSON file path from app state and load using QADataset class
+        JSON_FILE_PATH = request.app.state.json_file_path
+        logger.info(f"📂 STEP 1: Loading data from JSON file")
+        logger.info(f"   File path: {JSON_FILE_PATH}")
 
-        if current_state and current_state.get("modified_data"):
-            current_data = current_state.get("modified_data")
-            logger.info(f"Loaded {len(current_data)} topics from LangGraph state")
-        else:
-            # If no state, load from JSON
-            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                current_data = json.load(f)
-            logger.info(f"Loaded {len(current_data)} topics from JSON")
-
-        # Process modification through LangGraph agents (auto-creates checkpoint)
-        result = await modifier.modify(modify_request.user_request, current_data)
-
-        logger.info(f"Modification complete: {result['agent_response']} (v{result.get('version', 'unknown')})")
-
-        return ModifyResponse(
-            modified_data=result["modified_data"],
-            agent_response=result["agent_response"],
-            error=result.get("error"),
-            timestamp=datetime.now().isoformat()
-        )
-
-    except Exception as e:
-        logger.error(f"Modify endpoint error: {e}")
-        return ModifyResponse(
-            modified_data=[],
-            agent_response=f"Modification failed: {str(e)}",
-            error=str(e),
-            timestamp=datetime.now().isoformat()
-        )
-
-
-@app.post("/api/modify-selective", response_model=ModifyResponse)
-async def modify_selective_endpoint(modify_request: SelectiveModifyRequest, request: Request) -> ModifyResponse:
-    """
-    Modify specific Q&A pairs within a topic using LangGraph agents
-
-    Args:
-        modify_request: SelectiveModifyRequest with selected Q&A pairs
-        request: FastAPI Request object
-
-    Returns:
-        ModifyResponse with modified data
-    """
-    try:
-        logger.info(f"Received selective modify request for topic #{modify_request.topic_index}")
-        logger.info(f"  Request: {modify_request.user_request[:100]}...")
-        logger.info(f"  Selected Q&A pairs: {len(modify_request.selected_qa_pairs)}")
-
-        # Validate input
-        if not modify_request.user_request or not modify_request.user_request.strip():
-            raise HTTPException(status_code=400, detail="Request cannot be empty")
-
-        if not modify_request.selected_qa_pairs:
-            raise HTTPException(status_code=400, detail="No Q&A pairs selected")
-
-        # Get QA modifier instance from app state
-        modifier = request.app.state.qa_modifier
-
-        # Load current state from LangGraph
-        current_state = await modifier.get_current_state()
-
-        if current_state and current_state.get("modified_data"):
-            all_data = current_state.get("modified_data")
-            logger.info(f"Loaded {len(all_data)} topics from LangGraph state")
-        else:
-            # If no state, load from JSON
-            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
-                all_data = json.load(f)
-            logger.info(f"Loaded {len(all_data)} topics from JSON")
+        dataset = QADataset.from_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.from_json() SUCCESS")
+        logger.info(f"   Dataset type: {type(dataset)}")
+        logger.info(f"   Total topics loaded: {dataset.total_topics()}")
+        logger.info(f"   Total Q&A pairs: {dataset.total_qa_pairs()}")
 
         # Validate topic index
-        if modify_request.topic_index < 0 or modify_request.topic_index >= len(all_data):
-            raise HTTPException(status_code=400, detail=f"Invalid topic index: {modify_request.topic_index}")
+        if merge_request.topic_index < 0 or merge_request.topic_index >= dataset.total_topics():
+            raise HTTPException(status_code=400, detail=f"Invalid topic index: {merge_request.topic_index}")
 
-        # Process selective modification through LangGraph agents
-        result = await modifier.modify_selective(
-            user_request=modify_request.user_request,
-            topic_index=modify_request.topic_index,
-            selected_qa_indices=modify_request.selected_qa_indices,
-            selected_qa_pairs=[qa.model_dump() for qa in modify_request.selected_qa_pairs],
-            all_data=all_data
+        # Convert to dict for agents (agents still use dict format)
+        logger.info(f"📦 STEP 2: Converting QADataset to dict for processing")
+        all_data = dataset.to_dict()
+        logger.info(f"✅ dataset.to_dict() SUCCESS")
+        logger.info(f"   Data type: {type(all_data)}")
+        logger.info(f"   Topics in dict: {len(all_data)}")
+
+        # Process merge through LangGraph agents
+        logger.info(f"🤖 STEP 3: Calling modifier.merge_qa_pairs()")
+        logger.info(f"   Merging indices: {merge_request.selected_qa_indices}")
+        result = await modifier.merge_qa_pairs(
+            topic_index=merge_request.topic_index,
+            selected_qa_indices=merge_request.selected_qa_indices,
+            all_data=all_data,
+            user_request=merge_request.user_request
         )
+        logger.info(f"✅ modifier.merge_qa_pairs() SUCCESS")
+        logger.info(f"   Agent response: {result['agent_response']}")
 
-        logger.info(f"Selective modification complete: {result['agent_response']} (v{result.get('version', 'unknown')})")
+        # SAVE TO JSON FILE using QADataset class
+        logger.info(f"💾 STEP 4: Converting dict back to QADataset and saving")
+        modified_data = result["modified_data"]
+        logger.info(f"   Creating QADataset from modified dict...")
+        modified_dataset = QADataset.from_dict(modified_data)
+        logger.info(f"✅ QADataset.from_dict() SUCCESS")
+        logger.info(f"   Dataset type: {type(modified_dataset)}")
+        logger.info(f"   Saving to JSON file...")
+        modified_dataset.save_to_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.save_to_json() SUCCESS")
+        logger.info(f"   File saved: {JSON_FILE_PATH}")
+        logger.info("="*60)
+        logger.info("✅ MERGE ENDPOINT: Complete data flow through QADataset")
+        logger.info("="*60)
 
         return ModifyResponse(
-            modified_data=result["modified_data"],
+            modified_data=modified_data,
             agent_response=result["agent_response"],
             error=result.get("error"),
             timestamp=datetime.now().isoformat()
@@ -844,10 +827,101 @@ async def modify_selective_endpoint(modify_request: SelectiveModifyRequest, requ
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Selective modify endpoint error: {e}")
+        logger.error(f"Merge Q&A endpoint error: {e}")
         return ModifyResponse(
             modified_data=[],
-            agent_response=f"Selective modification failed: {str(e)}",
+            agent_response=f"Merge failed: {str(e)}",
+            error=str(e),
+            timestamp=datetime.now().isoformat()
+        )
+
+
+@app.post("/api/simplify-topic", response_model=SimplifyTopicResponse)
+async def simplify_topic_endpoint(simplify_request: SimplifyTopicRequest, request: Request) -> SimplifyTopicResponse:
+    """
+    Simplify all Q&A pairs in a topic to make them clearer and more understandable
+    """
+    try:
+        logger.info("="*60)
+        logger.info(f"🔵 SIMPLIFY ENDPOINT: Request received")
+        logger.info(f"   Topic Index: {simplify_request.topic_index}")
+        logger.info("="*60)
+
+        # Step 1: Load current data using QADataset class
+        JSON_FILE_PATH = request.app.state.json_file_path
+        logger.info(f"📂 STEP 1: Loading data from JSON file")
+        logger.info(f"   File path: {JSON_FILE_PATH}")
+
+        dataset = QADataset.from_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.from_json() SUCCESS")
+        logger.info(f"   Dataset type: {type(dataset)}")
+        logger.info(f"   Total topics loaded: {dataset.total_topics()}")
+        logger.info(f"   Total Q&A pairs: {dataset.total_qa_pairs()}")
+
+        # Step 2: Validate topic index
+        if simplify_request.topic_index < 0 or simplify_request.topic_index >= dataset.total_topics():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid topic index: {simplify_request.topic_index}"
+            )
+
+        # Step 3: Get all data as dict
+        logger.info(f"📦 STEP 2: Converting QADataset to dict for processing")
+        all_data = dataset.to_dict()
+        logger.info(f"✅ dataset.to_dict() SUCCESS")
+        logger.info(f"   Data type: {type(all_data)}")
+        logger.info(f"   Topics in dict: {len(all_data)}")
+
+        topic = all_data[simplify_request.topic_index]
+        qa_pairs = topic.get('qa_pairs', [])
+        logger.info(f"✓ Topic '{topic['topic']}' extracted")
+        logger.info(f"   Q&A pairs before simplify: {len(qa_pairs)}")
+
+        if len(qa_pairs) == 0:
+            raise HTTPException(status_code=400, detail="Topic has no Q&A pairs")
+
+        # Step 4: Call SimplifyAgent to simplify Q&A pairs
+        logger.info(f"🤖 STEP 3: Calling SimplifyAgent.simplify()")
+        logger.info(f"   Input: {len(qa_pairs)} Q&A pairs")
+        simplified_qa_pairs = await SimplifyAgent.simplify(qa_pairs)
+        logger.info(f"✅ SimplifyAgent.simplify() SUCCESS")
+        logger.info(f"   Output: {len(simplified_qa_pairs)} Q&A pairs")
+        logger.info(f"   Added: {len(simplified_qa_pairs) - len(qa_pairs)} new Q&A pairs")
+
+        # Step 5: Update the topic with simplified Q&A pairs
+        logger.info(f"📝 STEP 4: Updating topic in dict")
+        all_data[simplify_request.topic_index]['qa_pairs'] = simplified_qa_pairs
+        all_data[simplify_request.topic_index]['qa_count'] = len(simplified_qa_pairs)
+        logger.info(f"✅ Topic updated in dict")
+
+        # Step 6: Save back to JSON file using QADataset class
+        logger.info(f"💾 STEP 5: Converting dict back to QADataset and saving")
+        logger.info(f"   Creating QADataset from modified dict...")
+        modified_dataset = QADataset.from_dict(all_data)
+        logger.info(f"✅ QADataset.from_dict() SUCCESS")
+        logger.info(f"   Dataset type: {type(modified_dataset)}")
+        logger.info(f"   Saving to JSON file...")
+        modified_dataset.save_to_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.save_to_json() SUCCESS")
+        logger.info(f"   File saved: {JSON_FILE_PATH}")
+        logger.info("="*60)
+        logger.info("✅ SIMPLIFY ENDPOINT: Complete data flow through QADataset")
+        logger.info("="*60)
+
+        return SimplifyTopicResponse(
+            message=f"Successfully simplified {len(simplified_qa_pairs)} Q&A pairs in topic '{topic['topic']}'",
+            simplified_count=len(simplified_qa_pairs),
+            error=None,
+            timestamp=datetime.now().isoformat()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Simplify topic endpoint error: {e}")
+        return SimplifyTopicResponse(
+            message=f"Failed: {str(e)}",
+            simplified_count=0,
             error=str(e),
             timestamp=datetime.now().isoformat()
         )
@@ -857,13 +931,14 @@ async def modify_selective_endpoint(modify_request: SelectiveModifyRequest, requ
 async def health_check(request: Request):
     """Health check endpoint"""
     try:
-        # Check if chatbot is initialized
-        bot = request.app.state.chatbot
+        # Check if QA modifier is initialized
+        modifier = request.app.state.qa_modifier
 
         return {
             "status": "healthy",
-            "service": "LangGraph Chatbot Server",
-            "chatbot_initialized": bot is not None,
+            "service": "LangGraph MergeQA & SimplifyAgent Server",
+            "qa_modifier_initialized": modifier is not None,
+            "active_features": ["SimplifyAgent", "MergeQA"],
             "timestamp": datetime.now().isoformat()
         }
 
@@ -946,8 +1021,96 @@ async def get_status(request: Request):
 
 
 # ============================================================================
+# DATA BACKUP/DOWNLOAD ENDPOINTS
+# ============================================================================
+
+@app.get("/api/download-data")
+async def download_data(request: Request):
+    """
+    Download current Q&A data as JSON file
+
+    Useful for:
+    - Backing up data from Railway
+    - Viewing data locally
+    - Migrating data between environments
+    """
+    try:
+        JSON_FILE_PATH = request.app.state.json_file_path
+
+        if not JSON_FILE_PATH.exists():
+            raise HTTPException(status_code=404, detail="Data file not found")
+
+        with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        logger.info(f"📥 Data download requested: {len(data)} topics")
+
+        return JSONResponse(
+            content=data,
+            headers={
+                "Content-Disposition": f"attachment; filename=browser_agent_test_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Download data error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/upload-data")
+async def upload_data(request: Request):
+    """
+    Upload Q&A data to replace current dataset
+
+    IMPORTANT: This will overwrite the existing data!
+    Use for restoring backups or migrating data
+    """
+    try:
+        JSON_FILE_PATH = request.app.state.json_file_path
+
+        # Parse request body as JSON
+        data = await request.json()
+
+        # Validate data structure
+        if not isinstance(data, list):
+            raise HTTPException(status_code=400, detail="Data must be a JSON array")
+
+        # Backup current data before overwriting
+        if JSON_FILE_PATH.exists():
+            backup_path = JSON_FILE_PATH.parent / f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
+                backup_data = json.load(f)
+            with open(backup_path, 'w', encoding='utf-8') as f:
+                json.dump(backup_data, f, indent=2, ensure_ascii=False)
+            logger.info(f"✅ Created backup: {backup_path}")
+
+        # Write new data
+        with open(JSON_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        logger.info(f"📤 Data uploaded: {len(data)} topics")
+
+        return {
+            "message": f"Successfully uploaded {len(data)} topics",
+            "topics_count": len(data),
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format")
+    except Exception as e:
+        logger.error(f"Upload data error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # RUN SERVER
 # ============================================================================
+
 
 if __name__ == "__main__":
     import uvicorn
