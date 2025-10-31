@@ -31,6 +31,10 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 # Copy application files for chatbot
 COPY chatbot_server.py .
 COPY vector_query_service.py .
@@ -42,8 +46,7 @@ COPY templates/ templates/
 COPY chroma_db/ chroma_db/
 COPY output/ output/
 
-# Install Playwright and dependencies
-RUN pip install playwright
+# Install Playwright browsers (playwright should already be installed from requirements.txt)
 RUN playwright install chromium
 
 # Expose port
