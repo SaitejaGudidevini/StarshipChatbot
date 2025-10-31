@@ -43,6 +43,8 @@ browser_agent_checkpoints.db
 
 # Output files and test results
 output/
+Backup_output/
+WorkingFiles/
 backup_*.json
 batch_results_*.json
 *_metadata.json
@@ -51,13 +53,20 @@ batch_results_*.json
 chatbot_ready_content*.json
 westlake_chatbot_ready.json
 processed_semantic_content.json
-browser_agent_test_output.json
 browser_agent_test_output_viewer.html
+browser_agent_test_ollama.json
+browser_agent_test_ollama_viewer.html
 checkpoint_progress.json
 checkpoint_progress_viewer.html
 comparison_results.json
 comparison_dashboard*.html
 mhs_indianafiltered_data.json
+
+# ChromaDB data (large vector database)
+chroma_db/
+
+# Keep essential JSON file for deployment (DO NOT IGNORE)
+!browser_agent_test_output.json
 
 # Temporary/working files
 browser_agent_working.py
