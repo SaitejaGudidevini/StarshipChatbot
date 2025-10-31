@@ -1,5 +1,5 @@
 # Core dependencies
-playwright==1.55.0
+#playwright==1.55.0
 groq==0.31.1
 #browser-use==0.8.0
 
@@ -9,7 +9,7 @@ google-generativeai>=0.8.0
 # Data handling
 urllib3==2.3.0
 
-sentence-transformers==5.1.1
+#sentence-transformers==5.1.1
 scikit-learn==1.7.2
 numpy==2.3.3
 
