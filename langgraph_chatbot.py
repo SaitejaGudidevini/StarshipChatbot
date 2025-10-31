@@ -56,26 +56,45 @@ class QAPair:
     Attributes:
         question: The question text
         answer: The answer text
+        metadata: Optional metadata (is_unified, is_bucketed, bucket_id, etc.)
     """
     question: str
     answer: str
+    metadata: Dict = None
+
+    def __post_init__(self):
+        """Initialize metadata as empty dict if None"""
+        if self.metadata is None:
+            self.metadata = {}
 
     def __repr__(self) -> str:
         return f"QAPair(Q: {self.question[:50]}...)"
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON serialization"""
-        return {
+        result = {
             "question": self.question,
             "answer": self.answer
         }
+        # Add all metadata fields to the result
+        if self.metadata:
+            result.update(self.metadata)
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'QAPair':
         """Create QAPair from dictionary"""
+        # Extract question and answer
+        question = data['question']
+        answer = data['answer']
+
+        # All other fields go into metadata
+        metadata = {k: v for k, v in data.items() if k not in ['question', 'answer']}
+
         return cls(
-            question=data['question'],
-            answer=data['answer']
+            question=question,
+            answer=answer,
+            metadata=metadata if metadata else {}
         )
 
 
@@ -306,7 +325,7 @@ class SimplifyAgent:
 
             # Step 3: Send to LLM
             llm = ChatGroq(
-                model="llama-3.3-70b-versatile",
+                model="meta-llama/llama-4-maverick-17b-128e-instruct",
                 temperature=0.3,
                 api_key=os.getenv("GROQ_API_KEY")
             )
@@ -342,6 +361,61 @@ class SimplifyAgent:
             return qa_pairs
 
     @staticmethod
+    async def dynamic_adjust(qa_pairs: List[Dict]) -> List[Dict]:
+        """
+        Apply dynamic adjustment - intelligently group similar Q&A pairs into optimized buckets
+
+        Args:
+            qa_pairs: List of dicts with 'question' and 'answer' keys
+
+        Returns:
+            List of bucketed Q&A pairs with bucket_id and is_bucketed flags
+        """
+        try:
+            num_original = len(qa_pairs)
+            logger.info(f"🎯 Dynamic Adjustment: Analyzing {num_original} Q&A pairs for intelligent grouping")
+
+            # Step 1: Format Q&A pairs for LLM analysis
+            formatted_qa = SimplifyAgent._format_qa_for_llm(qa_pairs)
+
+            # Step 2: Create prompt for bucketing
+            prompt = SimplifyAgent._create_unified_varied_prompt(formatted_qa, num_original)
+
+            # Step 3: Send to LLM
+            llm = ChatGroq(
+                model="llama-3.3-70b-versatile",
+                temperature=0.3,
+                api_key=os.getenv("GROQ_API_KEY")
+            )
+
+            response = await llm.ainvoke([HumanMessage(content=prompt)])
+            llm_output = response.content
+            logger.info(f"✓ LLM response received ({len(llm_output)} chars)")
+            logger.info(f"📝 LLM Response Preview:\n{llm_output[:500]}...")
+
+            # Step 4: Parse LLM response to get bucketed Q&A pairs
+            bucketed_pairs = SimplifyAgent._parse_bucketed_response(llm_output)
+
+            if not bucketed_pairs:
+                logger.warning("⚠️ No bucketed pairs returned, keeping original Q&A pairs")
+                return qa_pairs
+
+            # Count unique buckets
+            unique_buckets = len(set(pair["bucket_id"] for pair in bucketed_pairs))
+
+            logger.info(f"✅ Dynamic Adjustment: Successfully created {len(bucketed_pairs)} Q&A pairs")
+            logger.info(f"   - Original pairs analyzed: {num_original}")
+            logger.info(f"   - Buckets created: {unique_buckets}")
+            logger.info(f"   - Avg questions per bucket: {len(bucketed_pairs) / unique_buckets:.1f}")
+
+            return bucketed_pairs
+
+        except Exception as e:
+            logger.error(f"❌ Dynamic Adjustment error: {e}")
+            # Return original pairs if generation fails
+            return qa_pairs
+
+    @staticmethod
     def _format_qa_for_llm(qa_pairs: List[Dict]) -> str:
         """Format Q&A pairs into readable text for LLM"""
         formatted = ""
@@ -353,40 +427,54 @@ class SimplifyAgent:
     @staticmethod
     def _create_unified_varied_prompt(formatted_qa: str, num_original: int) -> str:
         """Create the prompt for LLM to generate n number of answers and each answer has k number of questions attached"""
-        return f"""You are an expert at analyzing Q&A pairs and creating the right buckets of answers and the questions uniquely attached to one of those answers.
+        return f"""You are an expert at analyzing Q&A pairs and creating smart groupings where similar questions share optimized answers.
 
 Your task:
 1. Read ALL {num_original} Q&A pairs below carefully
 2. Understand the style, tone, and format of the existing answers
-3. Generate n new answers (max 120 words each) based on the content (variations, related questions, etc.)
-4. Each existing question is placed under ONE of those new answers.
+3. Identify patterns and themes - which questions can naturally share the same answer?
+4. Create BUCKETS - group similar questions together
+5. Generate ONE comprehensive answer per bucket (max 120 words each)
+6. Each original question must be assigned to exactly ONE bucket
 
 Original Q&A pairs for reference:
 {formatted_qa}
 
 Requirements:
-- Generate the optimal number of new answers that capture the meaning of the content above
-TODO finish this prompt...
-- The 10 questions should be variations or related questions covering the main themes
-- Create ONE unified answer that addresses ALL 10 questions
-- The unified answer should:
+- Generate the optimal number of buckets (typically 3-7 buckets, but use your judgment)
+- Each bucket should have 2 or more related questions from the original list
+- Group questions that can be answered comprehensively by a single answer
+- Each answer should:
   * Be written in the SAME style/tone as the original answers
   * Be maximum 120 words
   * Be clear, concise, and comprehensive
-  * Address all 10 questions naturally
+  * Address ALL questions in that bucket naturally
+- Use the EXACT original questions (do not rephrase them)
+- Ensure every original question appears in exactly one bucket
 
 Respond in this EXACT format:
-Q1: [question 1]
-Q2: [question 2]
-Q3: [question 3]
-Q4: [question 4]
-Q5: [question 5]
-Q6: [question 6]
-Q7: [question 7]
-Q8: [question 8]
-Q9: [question 9]
-Q10: [question 10]
-UNIFIED_ANSWER: [your comprehensive answer here, max 120 words]"""
+
+BUCKET_1:
+Q: [exact original question text]
+Q: [exact original question text]
+Q: [exact original question text]
+ANSWER: [comprehensive answer for these questions, max 120 words]
+
+BUCKET_2:
+Q: [exact original question text]
+Q: [exact original question text]
+ANSWER: [comprehensive answer for these questions, max 120 words]
+
+BUCKET_3:
+Q: [exact original question text]
+Q: [exact original question text]
+Q: [exact original question text]
+Q: [exact original question text]
+ANSWER: [comprehensive answer for these questions, max 120 words]
+
+[Continue with more buckets as needed...]
+
+IMPORTANT: Use the exact format above. Each bucket must have at least 2 questions and one ANSWER line."""
 
     @staticmethod
     def _create_unified_prompt(formatted_qa: str, num_original: int) -> str:
@@ -493,6 +581,85 @@ UNIFIED_ANSWER: [your comprehensive answer here, max 120 words]"""
             generic_questions = [f"Question {i+1}" for i in range(10)]
             fallback_answer = "Information not available."
             return generic_questions, fallback_answer
+
+    @staticmethod
+    def _parse_bucketed_response(llm_output: str) -> List[Dict]:
+        """
+        Parse LLM response in bucketed format to extract grouped Q&A pairs
+
+        Expected format:
+        BUCKET_1:
+        Q: question 1
+        Q: question 2
+        ANSWER: answer text
+
+        BUCKET_2:
+        Q: question 3
+        ANSWER: answer text
+
+        Returns:
+            List[Dict]: List of Q&A pairs with is_bucketed flag and bucket_id
+        """
+        try:
+            result_pairs = []
+            current_bucket_id = None
+            current_questions = []
+            current_answer = ""
+
+            lines = llm_output.strip().split('\n')
+
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+
+                # Check for bucket marker (BUCKET_1:, BUCKET_2:, etc.)
+                if line.startswith('BUCKET_') and ':' in line:
+                    # Save previous bucket if exists
+                    if current_bucket_id and current_questions and current_answer:
+                        for question in current_questions:
+                            result_pairs.append({
+                                "question": question,
+                                "answer": current_answer,
+                                "is_bucketed": True,
+                                "bucket_id": current_bucket_id
+                            })
+
+                    # Start new bucket
+                    current_bucket_id = line.split(':')[0].strip()
+                    current_questions = []
+                    current_answer = ""
+
+                # Check for question (Q:)
+                elif line.startswith('Q:'):
+                    question_text = line.split(':', 1)[1].strip()
+                    current_questions.append(question_text)
+
+                # Check for answer (ANSWER:)
+                elif line.startswith('ANSWER:'):
+                    current_answer = line.split(':', 1)[1].strip()
+
+            # Save the last bucket
+            if current_bucket_id and current_questions and current_answer:
+                for question in current_questions:
+                    result_pairs.append({
+                        "question": question,
+                        "answer": current_answer,
+                        "is_bucketed": True,
+                        "bucket_id": current_bucket_id
+                    })
+
+            logger.info(f"✓ Parsed {len(result_pairs)} Q&A pairs from bucketed response")
+
+            # Count unique buckets
+            unique_buckets = len(set(pair["bucket_id"] for pair in result_pairs))
+            logger.info(f"✓ Found {unique_buckets} buckets")
+
+            return result_pairs
+
+        except Exception as e:
+            logger.error(f"❌ Error parsing bucketed response: {e}")
+            return []
 
 
 # ============================================================================

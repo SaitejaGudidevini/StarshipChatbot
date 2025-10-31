@@ -220,6 +220,10 @@ def generate_html_viewer(json_data: list) -> str:
         .topic-simplify-btn:hover {{ background: #0056b3; }}
         .topic-item.active .topic-simplify-btn {{ background: #fff; color: #007bff; }}
         .topic-item.active .topic-simplify-btn:hover {{ background: #f0f1ff; }}
+        .topic-dynamic-btn {{ margin-top: 8px; padding: 6px 12px; background: #fd7e14; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: 600; width: 100%; transition: background 0.3s ease; }}
+        .topic-dynamic-btn:hover {{ background: #e8590c; }}
+        .topic-item.active .topic-dynamic-btn {{ background: #fff; color: #fd7e14; }}
+        .topic-item.active .topic-dynamic-btn:hover {{ background: #fff3e0; }}
         .content-area {{ display: flex; flex-direction: column; overflow: hidden; }}
         .content-header {{ background: #f8f9fa; padding: 30px 40px; border-bottom: 2px solid #e9ecef; }}
         .content-title {{ font-size: 2em; color: #212529; margin-bottom: 10px; }}
@@ -264,6 +268,22 @@ def generate_html_viewer(json_data: list) -> str:
         .unified-question-item {{ counter-increment: question-counter; padding: 12px 15px; margin-bottom: 10px; background: white; border-radius: 8px; border-left: 4px solid #667eea; font-size: 1em; line-height: 1.6; color: #212529; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
         .unified-answer-header {{ font-size: 1.3em; font-weight: 700; color: #28a745; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border-top: 2px solid #dee2e6; padding-top: 20px; }}
         .unified-answer-content {{ background: white; padding: 20px; border-radius: 10px; line-height: 1.8; color: #212529; font-size: 1.05em; border-left: 4px solid #28a745; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .bucketed-qa-container {{ display: flex; flex-direction: column; gap: 25px; }}
+        .bucket-box {{ background: linear-gradient(135deg, #fff3e0 0%, #ffe8cc 100%); border: 3px solid #fd7e14; border-radius: 15px; padding: 25px; box-shadow: 0 8px 20px rgba(253, 126, 20, 0.15); }}
+        .bucket-header {{ font-size: 1.4em; font-weight: 700; color: #fd7e14; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #fd7e14; padding-bottom: 10px; }}
+        .bucket-questions-header {{ font-size: 1.2em; font-weight: 700; color: #e8590c; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }}
+        .bucket-questions-list {{ list-style: none; counter-reset: bucket-question-counter; padding-left: 0; margin-bottom: 25px; }}
+        .bucket-question-item {{ counter-increment: bucket-question-counter; padding: 12px 15px; margin-bottom: 10px; background: white; border-radius: 8px; border-left: 4px solid #fd7e14; font-size: 1em; line-height: 1.6; color: #212529; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .bucket-answer-header {{ font-size: 1.2em; font-weight: 700; color: #28a745; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; border-top: 2px solid #dee2e6; padding-top: 15px; }}
+        .bucket-answer-content {{ background: white; padding: 20px; border-radius: 10px; line-height: 1.8; color: #212529; font-size: 1.05em; border-left: 4px solid #28a745; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .unified-answer-header-reversed {{ font-size: 1.3em; font-weight: 700; color: #28a745; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(40, 167, 69, 0.1); border-radius: 8px; transition: background 0.3s ease; }}
+        .unified-answer-header-reversed:hover {{ background: rgba(40, 167, 69, 0.2); }}
+        .unified-questions-dropdown {{ margin-top: 20px; padding-top: 20px; border-top: 2px solid #dee2e6; animation: slideDown 0.3s ease; }}
+        .bucket-answer-header-reversed {{ font-size: 1.2em; font-weight: 700; color: #28a745; margin-bottom: 15px; margin-top: 15px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(40, 167, 69, 0.1); border-radius: 8px; transition: background 0.3s ease; }}
+        .bucket-answer-header-reversed:hover {{ background: rgba(40, 167, 69, 0.2); }}
+        .bucket-questions-dropdown {{ margin-top: 20px; padding-top: 20px; border-top: 2px solid #dee2e6; animation: slideDown 0.3s ease; }}
+        .toggle-icon {{ font-size: 0.8em; color: #667eea; font-weight: bold; margin-left: 10px; }}
+        @keyframes slideDown {{ from {{ opacity: 0; transform: translateY(-10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
     </style>
 </head>
 <body>
@@ -304,8 +324,14 @@ def generate_html_viewer(json_data: list) -> str:
                 <div class="topic-item" id="topic-${{index}}">
                     <div class="topic-name" onclick="selectTopic(${{index}})">${{escapeHtml(item.topic)}}</div>
                     <div class="topic-status">Status: ${{item.status || 'unknown'}}</div>
+                    <button class="topic-modify-btn" onclick="event.stopPropagation(); showModifyPanel(${{index}})">
+                        ✏️ Modify This Topic
+                    </button>
                     <button class="topic-simplify-btn" onclick="event.stopPropagation(); simplifyTopic(${{index}})">
                         ✨ Simplify All Q&A
+                    </button>
+                    <button class="topic-dynamic-btn" onclick="event.stopPropagation(); dynamicAdjustTopic(${{index}})">
+                        🎯 Dynamic Adjustment
                     </button>
                 </div>
             `).join('');
@@ -321,7 +347,10 @@ def generate_html_viewer(json_data: list) -> str:
 
             // Check for unified Q&A pairs
             const unifiedSection = hasQA ? detectUnifiedQA(item.qa_pairs) : null;
-            // Filter out unified pairs from regular display
+            // Check for bucketed Q&A pairs
+            const bucketedSection = hasQA ? detectBucketedQA(item.qa_pairs) : null;
+
+            // Filter out unified/bucketed pairs from regular display
             let originalQA = item.qa_pairs || [];
             if (unifiedSection) {{
                 // If unified section detected by flag, filter out flagged pairs
@@ -332,6 +361,10 @@ def generate_html_viewer(json_data: list) -> str:
                     // Old data: remove last 10 pairs
                     originalQA = originalQA.slice(0, -10);
                 }}
+            }}
+            if (bucketedSection) {{
+                // If bucketed pairs detected, don't show them as regular Q&A
+                originalQA = [];
             }}
 
             document.getElementById('contentDisplay').innerHTML = `
@@ -346,6 +379,7 @@ def generate_html_viewer(json_data: list) -> str:
                 </div>
                 <div class="content-body">
                     <div id="modifyPanelContainer"></div>
+                    ${{bucketedSection ? renderBucketedQA(bucketedSection) : ''}}
                     ${{hasQA && originalQA.length > 0 ? `<div class="content-section"><div class="section-label">❓ Questions & Answers</div>${{renderQA(originalQA, index)}}</div>` : ''}}
                     ${{unifiedSection ? renderUnifiedQA(unifiedSection) : ''}}
                     <div class="content-section">
@@ -396,12 +430,76 @@ def generate_html_viewer(json_data: list) -> str:
                 <div class="content-section">
                     <div class="section-label">✨ Comprehensive Q&A (Generated)</div>
                     <div class="unified-qa-box">
-                        <div class="unified-questions-header">📋 Questions:</div>
-                        <ol class="unified-questions-list">
-                            ${{questionsList}}
-                        </ol>
-                        <div class="unified-answer-header">💡 Comprehensive Answer:</div>
+                        <div class="unified-answer-header-reversed" onclick="toggleUnifiedQuestions()">
+                            💡 Comprehensive Answer (click to see questions)
+                            <span class="toggle-icon" id="unified-toggle">▼</span>
+                        </div>
                         <div class="unified-answer-content">${{escapeHtml(unifiedData.answer)}}</div>
+
+                        <div class="unified-questions-dropdown" id="unified-questions-dropdown" style="display: none;">
+                            <div class="unified-questions-header">📋 Questions answered:</div>
+                            <ol class="unified-questions-list">
+                                ${{questionsList}}
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }}
+
+        function detectBucketedQA(qaPairs) {{
+            // Check if Q&A pairs have bucket_id field
+            const bucketedPairs = qaPairs.filter(qa => qa.is_bucketed === true && qa.bucket_id);
+            if (bucketedPairs.length === 0) {{
+                return null;
+            }}
+
+            // Group by bucket_id
+            const buckets = {{}};
+            bucketedPairs.forEach(qa => {{
+                if (!buckets[qa.bucket_id]) {{
+                    buckets[qa.bucket_id] = {{
+                        questions: [],
+                        answer: qa.answer
+                    }};
+                }}
+                buckets[qa.bucket_id].questions.push(qa.question);
+            }});
+
+            return buckets;
+        }}
+
+        function renderBucketedQA(buckets) {{
+            const bucketsList = Object.entries(buckets).map(([bucketId, data], index) => {{
+                const questionsList = data.questions.map((q, i) =>
+                    `<li class="bucket-question-item">${{i + 1}}. ${{escapeHtml(q)}}</li>`
+                ).join('');
+
+                return `
+                    <div class="bucket-box">
+                        <div class="bucket-header">📦 Bucket ${{index + 1}} (${{data.questions.length}} questions)</div>
+
+                        <div class="bucket-answer-header-reversed" onclick="toggleBucketQuestions(${{index}})">
+                            💡 Optimized Answer (click to see questions)
+                            <span class="toggle-icon" id="bucket-toggle-${{index}}">▼</span>
+                        </div>
+                        <div class="bucket-answer-content">${{escapeHtml(data.answer)}}</div>
+
+                        <div class="bucket-questions-dropdown" id="bucket-questions-${{index}}" style="display: none;">
+                            <div class="bucket-questions-header">❓ Questions answered:</div>
+                            <ol class="bucket-questions-list">
+                                ${{questionsList}}
+                            </ol>
+                        </div>
+                    </div>
+                `;
+            }}).join('');
+
+            return `
+                <div class="content-section">
+                    <div class="section-label">🎯 Dynamic Adjustment (Intelligent Grouping)</div>
+                    <div class="bucketed-qa-container">
+                        ${{bucketsList}}
                     </div>
                 </div>
             `;
@@ -434,6 +532,34 @@ def generate_html_viewer(json_data: list) -> str:
         }}
 
         function escapeHtml(text) {{ const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }}
+
+        // Toggle function for Simplify Q&A unified questions
+        function toggleUnifiedQuestions() {{
+            const dropdown = document.getElementById('unified-questions-dropdown');
+            const toggleIcon = document.getElementById('unified-toggle');
+
+            if (dropdown.style.display === 'none') {{
+                dropdown.style.display = 'block';
+                toggleIcon.textContent = '▲';
+            }} else {{
+                dropdown.style.display = 'none';
+                toggleIcon.textContent = '▼';
+            }}
+        }}
+
+        // Toggle function for Dynamic Adjustment bucket questions
+        function toggleBucketQuestions(bucketIndex) {{
+            const dropdown = document.getElementById(`bucket-questions-${{bucketIndex}}`);
+            const toggleIcon = document.getElementById(`bucket-toggle-${{bucketIndex}}`);
+
+            if (dropdown.style.display === 'none') {{
+                dropdown.style.display = 'block';
+                toggleIcon.textContent = '▲';
+            }} else {{
+                dropdown.style.display = 'none';
+                toggleIcon.textContent = '▼';
+            }}
+        }}
 
         function filterTopics(searchTerm) {{
             const filtered = DATA.filter(item => {{
@@ -555,20 +681,51 @@ def generate_html_viewer(json_data: list) -> str:
             }}
         }}
 
+        async function dynamicAdjustTopic(topicIndex) {{
+            if (!confirm(`Apply Dynamic Adjustment to intelligently group similar Q&A pairs into optimized buckets?`)) {{
+                return;
+            }}
+
+            const statusDiv = document.getElementById('modifyStatus');
+            showStatus('Analyzing and grouping Q&A pairs with AI...', 'loading');
+
+            try {{
+                const response = await fetch('/api/dynamic-adjust', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ topic_index: topicIndex }})
+                }});
+
+                const result = await response.json();
+
+                if (result.error) {{
+                    showStatus(`Error: ${{result.error}}`, 'error');
+                }} else {{
+                    showStatus(`✅ ${{result.message}}. Reloading page...`, 'success');
+                    // Save current topic index before reload
+                    localStorage.setItem('lastModifiedTopic', topicIndex);
+                    // Reload page after 2 seconds to show updated data
+                    setTimeout(() => location.reload(), 2000);
+                }}
+            }} catch (error) {{
+                showStatus(`Failed: ${{error.message}}`, 'error');
+            }}
+        }}
+
         // Selective modification functions
         function showModifyPanel(topicIndex) {{
             selectTopic(topicIndex);
 
             const modifyPanel = `
                 <div class="modify-panel active" id="selectiveModifyPanel">
-                    <h3>✏️ Modify Selected Q&A Pairs</h3>
+                    <h3>🔗 Merge Q&A Pairs</h3>
                     <div class="selection-info" id="selectionInfo">
-                        No questions selected. Select checkboxes below to modify specific Q&A pairs.
+                        No questions selected. Select 2 or more checkboxes below to merge them into 1 Q&A pair.
                     </div>
-                    <input type="text" id="selectiveModifyInput" placeholder="Enter modification request (e.g., 'Simplify to 5th grade level')" />
+                    <input type="text" id="selectiveModifyInput" placeholder="Optional: Describe how to merge (e.g., 'Focus on key points')" />
                     <div class="modify-panel-buttons">
                         <button class="modify-cancel-btn" onclick="hideModifyPanel()">Cancel</button>
-                        <button class="merge-btn" id="mergeBtn" onclick="sendMergeRequest()" disabled title="Select 2 or more Q&A pairs to merge (originals kept)">
+                        <button class="merge-btn" id="mergeBtn" onclick="sendSelectiveModifyRequest()" disabled title="Merge selected Q&A pairs into 1 (originals kept)">
                             🔗 Merge Q&A Pairs
                         </button>
                     </div>
@@ -600,33 +757,37 @@ def generate_html_viewer(json_data: list) -> str:
             const submitBtn = document.getElementById('selectiveSubmitBtn');
             const mergeBtn = document.getElementById('mergeBtn');
 
-            if (!infoDiv || !submitBtn) return;
+            if (!infoDiv) return;
 
             const count = selectedQAIndices.size;
             if (count === 0) {{
-                infoDiv.textContent = 'No questions selected. Select checkboxes below to modify specific Q&A pairs.';
+                infoDiv.textContent = 'No questions selected. Select 2 or more checkboxes below to merge them into 1 Q&A pair.';
                 infoDiv.style.background = '#d1ecf1';
                 infoDiv.style.color = '#0c5460';
-                submitBtn.disabled = true;
+                if (submitBtn) submitBtn.disabled = true;
                 if (mergeBtn) mergeBtn.disabled = true;
             }} else if (count === 1) {{
-                infoDiv.textContent = '1 question selected for modification. (Select 2+ to enable merge)';
+                infoDiv.textContent = '1 question selected. (Select 2+ to enable merge)';
                 infoDiv.style.background = '#d4edda';
                 infoDiv.style.color = '#155724';
-                submitBtn.disabled = false;
+                if (submitBtn) submitBtn.disabled = false;
                 if (mergeBtn) mergeBtn.disabled = true;
             }} else {{
-                infoDiv.textContent = `${{count}} questions selected. You can modify them or merge them into 1 Q&A pair (originals kept).`;
+                infoDiv.textContent = `${{count}} questions selected. Click "Merge Q&A Pairs" to combine them into 1 Q&A pair (originals kept).`;
                 infoDiv.style.background = '#d1ecf1';
                 infoDiv.style.color = '#0c5460';
-                submitBtn.disabled = false;
+                if (submitBtn) submitBtn.disabled = false;
                 if (mergeBtn) mergeBtn.disabled = false;
             }}
         }}
 
         async function sendSelectiveModifyRequest() {{
-            const userRequest = document.getElementById('selectiveModifyInput').value.trim();
+            let userRequest = document.getElementById('selectiveModifyInput').value.trim();
 
+            // Provide default request if empty
+            if (!userRequest) {{
+                userRequest = "Merge these Q&A pairs into one comprehensive answer";
+            }}
 
             // Validate at least 2 indices
             if (selectedQAIndices.size < 2) {{
@@ -651,9 +812,11 @@ def generate_html_viewer(json_data: list) -> str:
             // Show loading state
             const mergeBtn = document.getElementById('mergeBtn');
             const submitBtn = document.getElementById('selectiveSubmitBtn');
-            mergeBtn.disabled = true;
-            submitBtn.disabled = true;
-            mergeBtn.textContent = 'Merging...';
+            if (mergeBtn) {{
+                mergeBtn.disabled = true;
+                mergeBtn.textContent = 'Merging...';
+            }}
+            if (submitBtn) submitBtn.disabled = true;
 
             try {{
                 const response = await fetch('/api/merge-qa', {{
@@ -670,9 +833,11 @@ def generate_html_viewer(json_data: list) -> str:
 
                 if (result.error) {{
                     alert(`Merge Error: ${{result.error}}`);
-                    mergeBtn.disabled = false;
-                    submitBtn.disabled = false;
-                    mergeBtn.textContent = '🔗 Merge Q&A Pairs';
+                    if (mergeBtn) {{
+                        mergeBtn.disabled = false;
+                        mergeBtn.textContent = '🔗 Merge Q&A Pairs';
+                    }}
+                    if (submitBtn) submitBtn.disabled = false;
                 }} else {{
                     alert(`✅ ${{result.agent_response}}`);
                     // Save current topic index before reload
@@ -682,9 +847,11 @@ def generate_html_viewer(json_data: list) -> str:
                 }}
             }} catch (error) {{
                 alert(`Merge Failed: ${{error.message}}`);
-                mergeBtn.disabled = false;
-                submitBtn.disabled = false;
-                mergeBtn.textContent = '🔗 Merge Q&A Pairs';
+                if (mergeBtn) {{
+                    mergeBtn.disabled = false;
+                    mergeBtn.textContent = '🔗 Merge Q&A Pairs';
+                }}
+                if (submitBtn) submitBtn.disabled = false;
             }}
         }}
     </script>
@@ -919,6 +1086,96 @@ async def simplify_topic_endpoint(simplify_request: SimplifyTopicRequest, reques
         raise
     except Exception as e:
         logger.error(f"Simplify topic endpoint error: {e}")
+        return SimplifyTopicResponse(
+            message=f"Failed: {str(e)}",
+            simplified_count=0,
+            error=str(e),
+            timestamp=datetime.now().isoformat()
+        )
+
+
+@app.post("/api/dynamic-adjust", response_model=SimplifyTopicResponse)
+async def dynamic_adjust_endpoint(simplify_request: SimplifyTopicRequest, request: Request) -> SimplifyTopicResponse:
+    """
+    Apply dynamic adjustment to intelligently group similar Q&A pairs into optimized buckets
+    """
+    try:
+        logger.info("="*60)
+        logger.info(f"🎯 DYNAMIC ADJUST ENDPOINT: Request received")
+        logger.info(f"   Topic Index: {simplify_request.topic_index}")
+        logger.info("="*60)
+
+        # Step 1: Load current data using QADataset class
+        JSON_FILE_PATH = request.app.state.json_file_path
+        logger.info(f"📂 STEP 1: Loading data from JSON file")
+        logger.info(f"   File path: {JSON_FILE_PATH}")
+
+        dataset = QADataset.from_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.from_json() SUCCESS")
+        logger.info(f"   Dataset type: {type(dataset)}")
+        logger.info(f"   Total topics loaded: {dataset.total_topics()}")
+        logger.info(f"   Total Q&A pairs: {dataset.total_qa_pairs()}")
+
+        # Step 2: Validate topic index
+        if simplify_request.topic_index < 0 or simplify_request.topic_index >= dataset.total_topics():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid topic index: {simplify_request.topic_index}"
+            )
+
+        # Step 3: Get all data as dict
+        logger.info(f"📦 STEP 2: Converting QADataset to dict for processing")
+        all_data = dataset.to_dict()
+        logger.info(f"✅ dataset.to_dict() SUCCESS")
+        logger.info(f"   Data type: {type(all_data)}")
+        logger.info(f"   Topics in dict: {len(all_data)}")
+
+        topic = all_data[simplify_request.topic_index]
+        qa_pairs = topic.get('qa_pairs', [])
+        logger.info(f"✓ Topic '{topic['topic']}' extracted")
+        logger.info(f"   Q&A pairs before dynamic adjust: {len(qa_pairs)}")
+
+        if len(qa_pairs) == 0:
+            raise HTTPException(status_code=400, detail="Topic has no Q&A pairs")
+
+        # Step 4: Call SimplifyAgent.dynamic_adjust() to bucket Q&A pairs
+        logger.info(f"🤖 STEP 3: Calling SimplifyAgent.dynamic_adjust()")
+        logger.info(f"   Input: {len(qa_pairs)} Q&A pairs")
+        bucketed_qa_pairs = await SimplifyAgent.dynamic_adjust(qa_pairs)
+        logger.info(f"✅ SimplifyAgent.dynamic_adjust() SUCCESS")
+        logger.info(f"   Output: {len(bucketed_qa_pairs)} Q&A pairs")
+
+        # Step 5: Update the topic with bucketed Q&A pairs
+        logger.info(f"📝 STEP 4: Updating topic in dict")
+        all_data[simplify_request.topic_index]['qa_pairs'] = bucketed_qa_pairs
+        all_data[simplify_request.topic_index]['qa_count'] = len(bucketed_qa_pairs)
+        logger.info(f"✅ Topic updated in dict")
+
+        # Step 6: Save back to JSON file using QADataset class
+        logger.info(f"💾 STEP 5: Converting dict back to QADataset and saving")
+        logger.info(f"   Creating QADataset from modified dict...")
+        modified_dataset = QADataset.from_dict(all_data)
+        logger.info(f"✅ QADataset.from_dict() SUCCESS")
+        logger.info(f"   Dataset type: {type(modified_dataset)}")
+        logger.info(f"   Saving to JSON file...")
+        modified_dataset.save_to_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.save_to_json() SUCCESS")
+        logger.info(f"   File saved: {JSON_FILE_PATH}")
+        logger.info("="*60)
+        logger.info("✅ DYNAMIC ADJUST ENDPOINT: Complete data flow through QADataset")
+        logger.info("="*60)
+
+        return SimplifyTopicResponse(
+            message=f"Successfully applied dynamic adjustment to {len(bucketed_qa_pairs)} Q&A pairs in topic '{topic['topic']}'",
+            simplified_count=len(bucketed_qa_pairs),
+            error=None,
+            timestamp=datetime.now().isoformat()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Dynamic adjust endpoint error: {e}")
         return SimplifyTopicResponse(
             message=f"Failed: {str(e)}",
             simplified_count=0,

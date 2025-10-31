@@ -11,97 +11,183 @@
     "qa_pairs": [
       {
         "question": "What is One Plan?",
-        "answer": "One Plan is a branding term used by Managed Health Services (MHS) for their Indiana health insurance plans and programs, aiming to transform community health one individual at a time."
-      },
-      {
-        "question": "What health insurance plans are offered under One Plan?",
-        "answer": "MHS offers multiple plans under One Plan, including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information about these plans can be found at https://managedhealthservices.com/members/hip.html, https://managedhealthservices.com/members/care-connect.html, https://managedhealthservices.com/members/medicaid.html, https://managedhealthservices.com/members/ambetter.html, https://managedhealthservices.com/members/medicare-advantage.html, and https://managedhealthservices.com/members/wellcare-complete.html."
-      },
-      {
-        "question": "How can I find a doctor in the MHS network?",
-        "answer": "You can find doctors in the MHS network through their 'Find a Provider' tool available at https://managedhealthservices.com/find-a-doctor/find-a-provider-home.html."
-      },
-      {
-        "question": "What is Community Connect and how can I use it?",
-        "answer": "Community Connect is a feature that helps find assistance programs for food, education, housing, jobs, and more. You can access it at https://communityconnect.mhsindiana.com."
-      },
-      {
-        "question": "Why should I take the Health Needs Screening (HNS)?",
-        "answer": "Taking the Health Needs Screening (HNS) allows members to earn rewards through the 'My Health Pays' program."
-      },
-      {
-        "question": "When will the Healthy Indiana Plan (HIP) cost-sharing resume?",
-        "answer": "Healthy Indiana Plan (HIP) cost-sharing is currently paused, while CHIP and MEDWorks cost-sharing resumed as of July 1, 2024."
-      },
-      {
-        "question": "Where can I find more information about the different plans offered by MHS?",
-        "answer": "You can find detailed information about the various plans on the MHS website: Healthy Indiana Plan (https://managedhealthservices.com/members/hip.html), Hoosier Care Connect (https://managedhealthservices.com/members/care-connect.html), Hoosier Healthwise (https://managedhealthservices.com/members/medicaid.html), Ambetter Health (https://managedhealthservices.com/members/ambetter.html), Wellcare by Allwell (https://managedhealthservices.com/members/medicare-advantage.html), and Wellcare Complete (https://managedhealthservices.com/members/wellcare-complete.html)."
-      },
-      {
-        "question": "Who should I contact for assistance with my health insurance?",
-        "answer": "For assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333)."
-      },
-      {
-        "question": "How can I keep my Medicaid coverage?",
-        "answer": "To keep your Medicaid coverage, follow the steps outlined on the Redetermination Page at https://managedhealthservices.com/members/Redetermination.html."
-      },
-      {
-        "question": "How can I access language assistance services?",
-        "answer": "MHS provides information in different languages and formats at no cost. You can find more details at https://managedhealthservices.com/language-assistance.html."
+        "answer": "One Plan is a branding term used by Managed Health Services (MHS) for their Indiana health insurance plans and programs, aiming to transform community health one individual at a time.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_1"
       },
       {
         "question": "What is the main goal of One Plan by Managed Health Services?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
+        "answer": "One Plan is a branding term used by Managed Health Services (MHS) for their Indiana health insurance plans and programs, aiming to transform community health one individual at a time.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_1"
       },
       {
-        "question": "How can I learn more about the various health insurance plans offered by MHS?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
+        "question": "What health insurance plans are offered under One Plan?",
+        "answer": "MHS offers multiple plans under One Plan, including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information can be found at https://managedhealthservices.com/members.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
-        "question": "Can I find a list of in-network doctors on the MHS website?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "What types of assistance programs can I find through Community Connect?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "Are there any rewards for completing the Health Needs Screening?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "When can I expect cost-sharing to resume for the Healthy Indiana Plan?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
+        "question": "Where can I find more information about the different plans offered by MHS?",
+        "answer": "MHS offers multiple plans under One Plan, including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information can be found at https://managedhealthservices.com/members.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
         "question": "Where can I find detailed information about MHS health insurance plans?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "Who can I contact for help with my MHS health insurance plan?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "How can I ensure I keep my Medicaid coverage with MHS?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "Are language assistance services available for MHS members?",
-        "answer": "For information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, visit https://managedhealthservices.com. You can also call 1-877-647-4848 for assistance or access language services at https://managedhealthservices.com/language-assistance.html."
-      },
-      {
-        "question": "How can I find resources and providers within the MHS network?",
-        "answer": "MHS offers several tools to help you find the resources you need. To find doctors within the MHS network, you can use their 'Find a Provider' tool available at https://managedhealthservices.com/find-a-doctor/find-a-provider-home.html. Additionally, you can access Community Connect, a feature that helps you find assistance programs for food, education, housing, jobs, and more, at https://communityconnect.mhsindiana.com. These resources are designed to support your overall well-being by connecting you with healthcare providers and community assistance programs."
+        "answer": "MHS offers multiple plans under One Plan, including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information can be found at https://managedhealthservices.com/members.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
         "question": "Where can I find detailed information about MHS health insurance plans, and who can I contact for help?",
-        "answer": "For comprehensive information on One Plan, MHS health insurance plans, finding doctors, Community Connect, Health Needs Screening rewards, cost-sharing, and Medicaid coverage, you can visit https://managedhealthservices.com or call 1-877-647-4848 for assistance. Additionally, language services are available at https://managedhealthservices.com/language-assistance.html."
+        "answer": "MHS offers multiple plans under One Plan, including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information can be found at https://managedhealthservices.com/members.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
+      },
+      {
+        "question": "How can I find a doctor in the MHS network?",
+        "answer": "You can find doctors in the MHS network through their 'Find a Provider' tool available at https://managedhealthservices.com/find-a-doctor/find-a-provider-home.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
+      },
+      {
+        "question": "Can I find a list of in-network doctors on the MHS website?",
+        "answer": "You can find doctors in the MHS network through their 'Find a Provider' tool available at https://managedhealthservices.com/find-a-doctor/find-a-provider-home.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
+      },
+      {
+        "question": "How can I find resources and providers within the MHS network?",
+        "answer": "You can find doctors in the MHS network through their 'Find a Provider' tool available at https://managedhealthservices.com/find-a-doctor/find-a-provider-home.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
+      },
+      {
+        "question": "What is Community Connect and how can I use it?",
+        "answer": "Community Connect is a feature that helps find assistance programs for food, education, housing, jobs, and more. You can access it at https://communityconnect.mhsindiana.com.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_4"
+      },
+      {
+        "question": "What types of assistance programs can I find through Community Connect?",
+        "answer": "Community Connect is a feature that helps find assistance programs for food, education, housing, jobs, and more. You can access it at https://communityconnect.mhsindiana.com.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_4"
+      },
+      {
+        "question": "Why should I take the Health Needs Screening (HNS)?",
+        "answer": "Taking the Health Needs Screening (HNS) allows members to earn rewards through the 'My Health Pays' program.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_5"
+      },
+      {
+        "question": "Are there any rewards for completing the Health Needs Screening?",
+        "answer": "Taking the Health Needs Screening (HNS) allows members to earn rewards through the 'My Health Pays' program.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_5"
+      },
+      {
+        "question": "When will the Healthy Indiana Plan (HIP) cost-sharing resume?",
+        "answer": "Healthy Indiana Plan (HIP) cost-sharing is currently paused, while CHIP and MEDWorks cost-sharing resumed as of July 1, 2024.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_6"
+      },
+      {
+        "question": "When can I expect cost-sharing to resume for the Healthy Indiana Plan?",
+        "answer": "Healthy Indiana Plan (HIP) cost-sharing is currently paused, while CHIP and MEDWorks cost-sharing resumed as of July 1, 2024.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_6"
+      },
+      {
+        "question": "What is the status of cost-sharing for the Healthy Indiana Plan?",
+        "answer": "Healthy Indiana Plan (HIP) cost-sharing is currently paused, while CHIP and MEDWorks cost-sharing resumed as of July 1, 2024.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_6"
+      },
+      {
+        "question": "Who should I contact for assistance with my health insurance?",
+        "answer": "For assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333) or visit https://managedhealthservices.com for more information on Medicaid coverage and language services.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_7"
+      },
+      {
+        "question": "Who can I contact for help with my MHS health insurance plan?",
+        "answer": "For assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333) or visit https://managedhealthservices.com for more information on Medicaid coverage and language services.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_7"
+      },
+      {
+        "question": "How can I ensure I keep my Medicaid coverage with MHS?",
+        "answer": "For assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333) or visit https://managedhealthservices.com for more information on Medicaid coverage and language services.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_7"
+      },
+      {
+        "question": "Are language assistance services available for MHS members?",
+        "answer": "For assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333) or visit https://managedhealthservices.com for more information on Medicaid coverage and language services.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_7"
+      },
+      {
+        "question": "How can I ensure I maintain my Medicaid coverage with MHS?",
+        "answer": "For assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333) or visit https://managedhealthservices.com for more information on Medicaid coverage and language services.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_7"
+      },
+      {
+        "question": "What is the purpose of One Plan by Managed Health Services?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "How can I learn more about MHS health insurance plans?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "Where can I find a list of in-network providers for MHS?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "What is Community Connect and how can I access it?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "Can I earn rewards for completing the Health Needs Screening?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "What types of assistance programs are available through Community Connect?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "How can I get help with my MHS health insurance plan?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
+      },
+      {
+        "question": "Are language services available for MHS members?",
+        "answer": "For information on MHS plans, providers, and programs, visit https://managedhealthservices.com. Community Connect is available at https://communityconnect.mhsindiana.com. Assistance is available at 1-877-647-4848. Language services and Medicaid coverage information are also available on the website.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_8"
       }
     ],
     "qa_generation_status": "completed",
     "qa_generation_time": 1.33,
     "qa_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "qa_count": 22
+    "qa_count": 29
   },
   {
     "topic": "Always Covered.",
@@ -255,43 +341,11 @@
     "qa_pairs": [
       {
         "question": "How can I keep my Medicaid coverage?",
-        "answer": "We'll guide you through the steps to keep your coverage."
-      },
-      {
-        "question": "Where can I find information on renewing my Medicaid?",
-        "answer": "Check the Redetermination page on our website for details."
+        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
       },
       {
         "question": "How do I keep my Medicaid benefits?",
-        "answer": "Visit the Redetermination page for instructions on how to maintain them."
-      },
-      {
-        "question": "Is cost-sharing currently required for the Healthy Indiana Plan?",
-        "answer": "No, cost-sharing for the Healthy Indiana Plan is currently paused."
-      },
-      {
-        "question": "When did cost-sharing start again for CHIP and MEDWorks?",
-        "answer": "Cost-sharing for CHIP and MEDWorks resumed on July 1, 2024."
-      },
-      {
-        "question": "Who can I call for help with my Medicaid coverage?",
-        "answer": "Call 1-877-647-4848 for assistance, and we can help in different languages."
-      },
-      {
-        "question": "Why is it important to take action for my Medicaid coverage?",
-        "answer": "Taking action helps you keep your benefits and stay up-to-date on any changes."
-      },
-      {
-        "question": "Where can I find more resources about Medicaid?",
-        "answer": "You can find additional resources like 'Find a Provider' on the MHS Indiana website."
-      },
-      {
-        "question": "How do I complete my Health Needs Screening?",
-        "answer": "You can complete it by visiting the 'Complete Your HNS' link on our website."
-      },
-      {
-        "question": "What if I need help understanding my Medicaid information?",
-        "answer": "Call us at 1-877-647-4848, and we'll be happy to assist you in your language."
+        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
       },
       {
         "question": "How can I ensure continuous Medicaid benefits?",
@@ -306,36 +360,68 @@
         "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
       },
       {
-        "question": "Are there any current changes to the Healthy Indiana Plan?",
+        "question": "Where can I find information on renewing my Medicaid?",
         "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
+      },
+      {
+        "question": "How do I complete my Health Needs Screening?",
+        "answer": "Check the Redetermination page on our website for details on renewing and complete your Health Needs Screening through the 'Complete Your HNS' link."
+      },
+      {
+        "question": "Where can I find information on renewing my Medicaid?",
+        "answer": "Check the Redetermination page on our website for details on renewing and complete your Health Needs Screening through the 'Complete Your HNS' link."
+      },
+      {
+        "question": "Is cost-sharing currently required for the Healthy Indiana Plan?",
+        "answer": "Cost-sharing for the Healthy Indiana Plan is currently paused. For CHIP and MEDWorks, cost-sharing resumed on July 1, 2024. For any questions or concerns about your Medicaid coverage, including CHIP and MEDWorks, you can call 1-877-647-4848 for assistance."
+      },
+      {
+        "question": "When did cost-sharing start again for CHIP and MEDWorks?",
+        "answer": "Cost-sharing for the Healthy Indiana Plan is currently paused. For CHIP and MEDWorks, cost-sharing resumed on July 1, 2024. For any questions or concerns about your Medicaid coverage, including CHIP and MEDWorks, you can call 1-877-647-4848 for assistance."
       },
       {
         "question": "What's the status of cost-sharing for CHIP and MEDWorks?",
-        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
+        "answer": "Cost-sharing for the Healthy Indiana Plan is currently paused. For CHIP and MEDWorks, cost-sharing resumed on July 1, 2024. For any questions or concerns about your Medicaid coverage, including CHIP and MEDWorks, you can call 1-877-647-4848 for assistance."
+      },
+      {
+        "question": "Are there any current changes to the Healthy Indiana Plan?",
+        "answer": "Cost-sharing for the Healthy Indiana Plan is currently paused. For CHIP and MEDWorks, cost-sharing resumed on July 1, 2024. For any questions or concerns about your Medicaid coverage, including CHIP and MEDWorks, you can call 1-877-647-4848 for assistance."
+      },
+      {
+        "question": "Who can I call for help with my Medicaid coverage?",
+        "answer": "Call 1-877-647-4848 for assistance, and we can help in different languages."
+      },
+      {
+        "question": "What if I need help understanding my Medicaid information?",
+        "answer": "Call 1-877-647-4848 for assistance, and we can help in different languages."
       },
       {
         "question": "Who can assist me with Medicaid-related inquiries?",
-        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
-      },
-      {
-        "question": "Why is it crucial to stay updated on Medicaid changes?",
-        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
-      },
-      {
-        "question": "How can I access additional Medicaid resources?",
-        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
+        "answer": "Call 1-877-647-4848 for assistance, and we can help in different languages."
       },
       {
         "question": "What support is available for understanding Medicaid information?",
-        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
+        "answer": "Call 1-877-647-4848 for assistance, and we can help in different languages."
       },
       {
-        "question": "How do I complete required Medicaid screenings?",
-        "answer": "We're here to help. Visit our website for details on renewing and maintaining your Medicaid coverage, including the Redetermination page and additional resources like 'Find a Provider'. Call 1-877-647-4848 for assistance with any questions or concerns, and complete your Health Needs Screening through our website."
+        "question": "Why is it important to take action for my Medicaid coverage?",
+        "answer": "Taking action helps you keep your benefits and stay up-to-date on any changes, ensuring you maintain your Medicaid coverage."
+      },
+      {
+        "question": "Why is it crucial to stay updated on Medicaid changes?",
+        "answer": "Taking action helps you keep your benefits and stay up-to-date on any changes, ensuring you maintain your Medicaid coverage."
+      },
+      {
+        "question": "Where can I find more resources about Medicaid?",
+        "answer": "You can find additional resources like 'Find a Provider' on the MHS Indiana website."
+      },
+      {
+        "question": "How can I access additional Medicaid resources?",
+        "answer": "You can find additional resources like 'Find a Provider' on the MHS Indiana website."
       },
       {
         "question": "What do I need to know about my Medicaid and CHIP coverage, including cost-sharing and where to get help?",
-        "answer": "If you're enrolled in CHIP or MEDWorks, note that cost-sharing resumed on July 1, 2024. For any questions or concerns about your Medicaid coverage, including CHIP and MEDWorks, you can call 1-877-647-4848 for assistance. The helpline is available to help in different languages."
+        "answer": "For any questions or concerns about your Medicaid coverage, including CHIP and MEDWorks, you can call 1-877-647-4848 for assistance. Note that cost-sharing for CHIP and MEDWorks resumed on July 1, 2024."
       }
     ],
     "qa_generation_status": "completed",
@@ -355,49 +441,75 @@
     "qa_pairs": [
       {
         "question": "What is the current status of Healthy Indiana Plan (HIP) cost-sharing?",
-        "answer": "The Healthy Indiana Plan (HIP) cost-sharing, including copayments and POWER Account contributions, is currently paused."
+        "answer": "The Healthy Indiana Plan (HIP) cost-sharing is currently paused, while cost-sharing for CHIP and MEDWorks resumed as of July 1, 2024.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_1"
       },
       {
         "question": "When did cost-sharing resume for CHIP and MEDWorks?",
-        "answer": "Cost-sharing for CHIP and MEDWorks resumed as of July 1, 2024."
+        "answer": "The Healthy Indiana Plan (HIP) cost-sharing is currently paused, while cost-sharing for CHIP and MEDWorks resumed as of July 1, 2024.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_1"
       },
       {
         "question": "How do I find a doctor or provider?",
-        "answer": "You can search for a provider on the Find a Provider page: [/find-a-doctor/find-a-provider-home.html](/find-a-doctor/find-a-provider-home.html)"
-      },
-      {
-        "question": "What should I do to keep my Medicaid coverage?",
-        "answer": "To keep your Medicaid coverage, visit the Redetermination page: [/members/Redetermination.html](/members/Redetermination.html)"
-      },
-      {
-        "question": "Where can I find assistance through Community Connect?",
-        "answer": "You can find assistance on the Community Connect page: [https://communityconnect.mhsindiana.com](https://communityconnect.mhsindiana.com)"
-      },
-      {
-        "question": "How do I complete my Health Needs Screening (HNS)?",
-        "answer": "You can take the Health Needs Screening on the HNS page: [/test-for-copies.html](/test-for-copies.html)"
-      },
-      {
-        "question": "What phone numbers are available for contacting MHS Indiana?",
-        "answer": "You can contact MHS Indiana at 1-877-647-4848 or TTY: 1-800-743-3333"
+        "answer": "You can find a provider on the Find a Provider page, information about HIP on the HIP page, and the Member Handbook at the handbook page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
         "question": "Where can I find information about Healthy Indiana Plan (HIP)?",
-        "answer": "Information about the Healthy Indiana Plan is available on the HIP page: [/members/hip.html](/members/hip.html)"
-      },
-      {
-        "question": "What health insurance plans are offered by MHS Indiana?",
-        "answer": "MHS Indiana offers several health insurance plans including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information is available on their respective pages: [/members/hip.html](/members/hip.html), [/members/care-connect.html](/members/care-connect.html), [/members/medicaid.html](/members/medicaid.html), [/members/ambetter.html](/members/ambetter.html), [/members/medicare-advantage.html](/members/medicare-advantage.html), [/members/wellcare-complete.html](/members/wellcare-complete.html)"
+        "answer": "You can find a provider on the Find a Provider page, information about HIP on the HIP page, and the Member Handbook at the handbook page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
         "question": "Where can I find the Member Handbook?",
-        "answer": "The Member Handbook is available at: [/campaign/mobile/handbook.html](/campaign/mobile/handbook.html)"
+        "answer": "You can find a provider on the Find a Provider page, information about HIP on the HIP page, and the Member Handbook at the handbook page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
+      },
+      {
+        "question": "What should I do to keep my Medicaid coverage?",
+        "answer": "To keep or maintain your Medicaid coverage, visit the Redetermination page, and for additional assistance, visit the Community Connect page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
+      },
+      {
+        "question": "How can I maintain my Medicaid coverage and find additional assistance through Community Connect?",
+        "answer": "To keep or maintain your Medicaid coverage, visit the Redetermination page, and for additional assistance, visit the Community Connect page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
+      },
+      {
+        "question": "Where can I find assistance through Community Connect?",
+        "answer": "You can find assistance on the Community Connect page, and complete your Health Needs Screening on the HNS page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_4"
+      },
+      {
+        "question": "How can I complete my Health Needs Screening (HNS)?",
+        "answer": "You can find assistance on the Community Connect page, and complete your Health Needs Screening on the HNS page.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_4"
+      },
+      {
+        "question": "What phone numbers are available for contacting MHS Indiana?",
+        "answer": "You can contact MHS Indiana at 1-877-647-4848 or TTY: 1-800-743-3333, and they offer several health insurance plans, including Healthy Indiana Plan, Hoosier Care Connect, and more.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_5"
+      },
+      {
+        "question": "What health insurance plans are offered by MHS Indiana?",
+        "answer": "You can contact MHS Indiana at 1-877-647-4848 or TTY: 1-800-743-3333, and they offer several health insurance plans, including Healthy Indiana Plan, Hoosier Care Connect, and more.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_5"
       }
     ],
     "qa_generation_status": "completed",
     "qa_generation_time": 1.47,
     "qa_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "qa_count": 10
+    "qa_count": 11
   },
   {
     "topic": "Find a Provider",
@@ -563,43 +675,43 @@
     "qa_pairs": [
       {
         "question": "What is 'Complete Your HNS'?",
-        "answer": "'Complete Your HNS' is a call to action for individuals to take the Health Needs Screening (HNS) to earn My Health Pays rewards. It's likely a requirement or recommendation associated with health insurance plans offered by MHS."
+        "answer": "'Complete Your HNS' is a call to action to take the Health Needs Screening (HNS) to earn My Health Pays rewards, associated with health insurance plans offered by MHS, encouraging individuals to undergo a health needs screening to earn rewards or benefits."
       },
       {
         "question": "What is the purpose of 'Complete Your HNS'?",
-        "answer": "The purpose is to encourage individuals to undergo a health needs screening to earn rewards or benefits associated with their health insurance plan."
+        "answer": "'Complete Your HNS' is a call to action to take the Health Needs Screening (HNS) to earn My Health Pays rewards, associated with health insurance plans offered by MHS, encouraging individuals to undergo a health needs screening to earn rewards or benefits."
       },
       {
         "question": "How do I complete the Health Needs Screening (HNS)?",
-        "answer": "Detailed instructions are not directly available on the main page, but you can find related resources in the 'For Members' and 'For Providers' sections of the webpage. You can also contact MHS at 1-877-647-4848 (TTY: 1-800-743-3333) for general inquiries."
-      },
-      {
-        "question": "Why should I complete the Health Needs Screening (HNS)?",
-        "answer": "Completing the HNS allows you to earn My Health Pays rewards, which are likely associated with your health insurance plan benefits."
-      },
-      {
-        "question": "When is 'Complete Your HNS' available?",
-        "answer": "The availability of 'Complete Your HNS' is not explicitly stated, but it's an ongoing call to action. You should check the MHS website (https://www.mhsindiana.com/) for the most up-to-date information."
+        "answer": "Detailed instructions for completing the HNS can be found on the MHS website, particularly in the 'For Members' and 'For Providers' sections, or by contacting MHS at 1-877-647-4848 for general inquiries."
       },
       {
         "question": "Where can I find more information about 'Complete Your HNS'?",
-        "answer": "You can find more information on the MHS website (https://www.mhsindiana.com/), particularly in the 'For Members' and 'For Providers' sections. There's also a link related to the HNS process: /test-for-copies.html (Note: This link resulted in a '403 Forbidden' error during access)."
+        "answer": "Detailed instructions for completing the HNS can be found on the MHS website, particularly in the 'For Members' and 'For Providers' sections, or by contacting MHS at 1-877-647-4848 for general inquiries."
       },
       {
-        "question": "Who should I contact about 'Complete Your HNS'?",
-        "answer": "You can contact MHS at 1-877-647-4848 (TTY: 1-800-743-3333) for general inquiries related to 'Complete Your HNS' and other health insurance plans."
-      },
-      {
-        "question": "What health insurance plans are associated with 'Complete Your HNS'?",
-        "answer": "Various health insurance plans offered by MHS are associated with 'Complete Your HNS', including Healthy Indiana Plan, Hoosier Care Connect, Hoosier Healthwise, Ambetter Health, Wellcare by Allwell, and Wellcare Complete."
+        "question": "Why should I complete the Health Needs Screening (HNS)?",
+        "answer": "Completing the HNS allows you to earn My Health Pays rewards, while not completing it might impact your Medicaid coverage or benefits, emphasizing the importance of staying updated with the requirements."
       },
       {
         "question": "What happens if I don't complete the Health Needs Screening (HNS)?",
-        "answer": "The webpage emphasizes taking action to keep Medicaid coverage, suggesting that not completing the HNS might impact your coverage or benefits. It's recommended to stay updated with the requirements."
+        "answer": "Completing the HNS allows you to earn My Health Pays rewards, while not completing it might impact your Medicaid coverage or benefits, emphasizing the importance of staying updated with the requirements."
+      },
+      {
+        "question": "When is 'Complete Your HNS' available?",
+        "answer": "'Complete Your HNS' is an ongoing call to action, and while cost-sharing resumed for certain plans, it's essential to stay informed about your plan details and associated costs by checking the MHS website or contacting them directly."
       },
       {
         "question": "Are there any cost implications for completing the Health Needs Screening (HNS)?",
-        "answer": "As of July 1, 2024, cost-sharing resumed for certain plans like CHIP and MEDWorks. It's essential to stay informed about your plan details and any associated costs by checking the MHS website or contacting them directly."
+        "answer": "'Complete Your HNS' is an ongoing call to action, and while cost-sharing resumed for certain plans, it's essential to stay informed about your plan details and associated costs by checking the MHS website or contacting them directly."
+      },
+      {
+        "question": "Who should I contact about 'Complete Your HNS'?",
+        "answer": "You can contact MHS at 1-877-647-4848 for inquiries about 'Complete Your HNS', which is associated with various health insurance plans, including Healthy Indiana Plan, Hoosier Care Connect, and others offered by MHS."
+      },
+      {
+        "question": "What health insurance plans are associated with 'Complete Your HNS'?",
+        "answer": "You can contact MHS at 1-877-647-4848 for inquiries about 'Complete Your HNS', which is associated with various health insurance plans, including Healthy Indiana Plan, Hoosier Care Connect, and others offered by MHS."
       }
     ],
     "qa_generation_status": "completed",
@@ -619,49 +731,85 @@
     "qa_pairs": [
       {
         "question": "What is 'Skip to Main Content'?",
-        "answer": "'Skip to Main Content' is an accessibility feature on the MHS Indiana website that allows users to bypass the navigation menu and directly access the main content of the page. This is particularly useful for users who rely on screen readers or other assistive technologies."
+        "answer": "'Skip to Main Content' is an accessibility feature that allows users to bypass navigation menus and access main content directly, useful for all users, especially those with disabilities."
+      },
+      {
+        "question": "What is the purpose of the 'Skip to Main Content' feature on websites?",
+        "answer": "'Skip to Main Content' is an accessibility feature that allows users to bypass navigation menus and access main content directly, useful for all users, especially those with disabilities."
       },
       {
         "question": "How do I use 'Skip to Main Content'?",
-        "answer": "To use 'Skip to Main Content', simply click on the 'Skip to Main Content' link on the MHS Indiana website. This will allow you to bypass the navigation menu and directly access the main content of the page."
+        "answer": "To use 'Skip to Main Content', click on the link on the MHS Indiana website, allowing you to bypass the navigation menu and directly access the main content."
+      },
+      {
+        "question": "How can I access the main content quickly on the MHS Indiana website?",
+        "answer": "To use 'Skip to Main Content', click on the link on the MHS Indiana website, allowing you to bypass the navigation menu and directly access the main content."
       },
       {
         "question": "Why should I use 'Skip to Main Content'?",
-        "answer": "You should use 'Skip to Main Content' if you rely on screen readers or other assistive technologies, as it allows you to bypass the navigation menu and directly access the main content of the page, improving your browsing experience."
-      },
-      {
-        "question": "When is 'Skip to Main Content' available?",
-        "answer": "'Skip to Main Content' is available on the MHS Indiana website whenever you need it. It is a standard feature on their webpage, designed to enhance accessibility."
-      },
-      {
-        "question": "Where can I find 'Skip to Main Content'?",
-        "answer": "You can find 'Skip to Main Content' on the MHS Indiana website. It is typically located at the top of the page, allowing you to bypass the navigation menu and directly access the main content."
-      },
-      {
-        "question": "Who should I contact about 'Skip to Main Content'?",
-        "answer": "If you have any questions or need assistance with 'Skip to Main Content', you can contact MHS Indiana using their main phone number: 1-877-647-4848 or TTY: 1-800-743-3333."
+        "answer": "'Skip to Main Content' improves browsing experience by allowing users to bypass navigation menus, saving time and reducing complexity, benefiting users with disabilities and all users alike."
       },
       {
         "question": "What are the benefits of using 'Skip to Main Content'?",
-        "answer": "The benefits of using 'Skip to Main Content' include improved accessibility for users with disabilities, easier navigation, and a more streamlined browsing experience on the MHS Indiana website."
-      },
-      {
-        "question": "Can I find 'Skip to Main Content' on other websites?",
-        "answer": "While the specific implementation may vary, 'Skip to Main Content' is a common accessibility feature found on many websites. However, its availability depends on the website's design and accessibility features."
-      },
-      {
-        "question": "Is 'Skip to Main Content' available for mobile users?",
-        "answer": "Yes, 'Skip to Main Content' is available on the MHS Indiana website, which is accessible from both desktop and mobile devices. The feature is designed to be responsive and work across different platforms."
+        "answer": "'Skip to Main Content' improves browsing experience by allowing users to bypass navigation menus, saving time and reducing complexity, benefiting users with disabilities and all users alike."
       },
       {
         "question": "How does 'Skip to Main Content' improve my browsing experience?",
-        "answer": "'Skip to Main Content' improves your browsing experience by allowing you to bypass the navigation menu and directly access the main content of the page, saving time and reducing the complexity of navigating through the website."
+        "answer": "'Skip to Main Content' improves browsing experience by allowing users to bypass navigation menus, saving time and reducing complexity, benefiting users with disabilities and all users alike."
+      },
+      {
+        "question": "When is 'Skip to Main Content' available?",
+        "answer": "'Skip to Main Content' is available on the MHS Indiana website, typically located at the top of the page, allowing easy access to main content."
+      },
+      {
+        "question": "Where can I find 'Skip to Main Content'?",
+        "answer": "'Skip to Main Content' is available on the MHS Indiana website, typically located at the top of the page, allowing easy access to main content."
+      },
+      {
+        "question": "Where is 'Skip to Main Content' typically located on a webpage?",
+        "answer": "'Skip to Main Content' is available on the MHS Indiana website, typically located at the top of the page, allowing easy access to main content."
+      },
+      {
+        "question": "Is 'Skip to Main Content' available for mobile users?",
+        "answer": "Yes, 'Skip to Main Content' is available on the MHS Indiana website, accessible from both desktop and mobile devices, designed to be responsive and work across different platforms."
+      },
+      {
+        "question": "Can I use 'Skip to Main Content' on any device?",
+        "answer": "Yes, 'Skip to Main Content' is available on the MHS Indiana website, accessible from both desktop and mobile devices, designed to be responsive and work across different platforms."
+      },
+      {
+        "question": "Who should I contact about 'Skip to Main Content'?",
+        "answer": "For questions or assistance with 'Skip to Main Content', contact MHS Indiana using their main phone number: 1-877-647-4848 or TTY: 1-800-743-3333."
+      },
+      {
+        "question": "Is 'Skip to Main Content' useful for all users or just those with disabilities?",
+        "answer": "'Skip to Main Content' is useful for all users, especially those with disabilities, enhancing user experience by saving time and reducing navigation complexity, though customization and availability may vary."
+      },
+      {
+        "question": "What are the advantages of using 'Skip to Main Content' for navigation?",
+        "answer": "'Skip to Main Content' is useful for all users, especially those with disabilities, enhancing user experience by saving time and reducing navigation complexity, though customization and availability may vary."
+      },
+      {
+        "question": "How does 'Skip to Main Content' enhance the user experience for screen reader users?",
+        "answer": "'Skip to Main Content' is useful for all users, especially those with disabilities, enhancing user experience by saving time and reducing navigation complexity, though customization and availability may vary."
+      },
+      {
+        "question": "Why is 'Skip to Main Content' an important accessibility feature?",
+        "answer": "'Skip to Main Content' is useful for all users, especially those with disabilities, enhancing user experience by saving time and reducing navigation complexity, though customization and availability may vary."
+      },
+      {
+        "question": "Can I customize the 'Skip to Main Content' feature on the MHS Indiana website?",
+        "answer": "'Skip to Main Content' is useful for all users, especially those with disabilities, enhancing user experience by saving time and reducing navigation complexity, though customization and availability may vary."
+      },
+      {
+        "question": "Do all websites have a 'Skip to Main Content' feature?",
+        "answer": "'Skip to Main Content' is useful for all users, especially those with disabilities, enhancing user experience by saving time and reducing navigation complexity, though customization and availability may vary."
       }
     ],
     "qa_generation_status": "completed",
     "qa_generation_time": 1.73,
     "qa_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "qa_count": 10
+    "qa_count": 19
   },
   {
     "topic": "Login",
@@ -1147,43 +1295,63 @@
     "qa_pairs": [
       {
         "question": "What is Hoosier Care Connect?",
-        "answer": "Hoosier Care Connect is a health care program for individuals aged 59 years and younger, blind or disabled, and who are also not eligible for Medicare. Its purpose is to provide health care coverage to eligible individuals."
+        "answer": "Hoosier Care Connect is a health care program for individuals aged 59 years and younger, blind or disabled, and who are also not eligible for Medicare. Eligible individuals include those aged 59 years and younger, blind individuals, disabled individuals, individuals receiving Supplemental Security Income (SSI), and some foster care children.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_1"
       },
       {
         "question": "Who is eligible for Hoosier Care Connect?",
-        "answer": "The eligibility criteria for Hoosier Care Connect include individuals aged 59 years and younger, blind individuals, disabled individuals, individuals receiving Supplemental Security Income (SSI), individuals enrolled through M.E.D. Works, and some foster care children."
+        "answer": "Hoosier Care Connect is a health care program for individuals aged 59 years and younger, blind or disabled, and who are also not eligible for Medicare. Eligible individuals include those aged 59 years and younger, blind individuals, disabled individuals, individuals receiving Supplemental Security Income (SSI), and some foster care children.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_1"
       },
       {
         "question": "What benefits are covered under Hoosier Care Connect?",
-        "answer": "Hoosier Care Connect members will receive all Indiana Medicaid-covered benefits, including care coordination services, behavioral health, dental care, flu shots, health needs screening, immunizations and preventive care, pharmacy services, pregnancy-related services, rewards program, smoking cessation, telehealth, transportation, and vision care."
-      },
-      {
-        "question": "How do I enroll in Hoosier Care Connect?",
-        "answer": "You can find information on how to enroll in Hoosier Care Connect by visiting the link: /members/care-connect/how-to-enroll.html"
-      },
-      {
-        "question": "Where can I find more information about the benefits and services offered by Hoosier Care Connect?",
-        "answer": "You can find more information about the benefits and services offered by Hoosier Care Connect by visiting the link: /members/care-connect/benefits-services.html"
+        "answer": "Hoosier Care Connect members receive comprehensive health care coverage, including care coordination services, behavioral health, dental care, flu shots, health needs screening, immunizations, pharmacy services, pregnancy-related services, rewards program, smoking cessation, telehealth, transportation, and vision care, making it a valuable option for eligible individuals.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
         "question": "Why should I use Hoosier Care Connect?",
-        "answer": "You should use Hoosier Care Connect because it provides comprehensive health care coverage to eligible individuals, including various benefits such as care coordination services, behavioral health, and vision care."
+        "answer": "Hoosier Care Connect members receive comprehensive health care coverage, including care coordination services, behavioral health, dental care, flu shots, health needs screening, immunizations, pharmacy services, pregnancy-related services, rewards program, smoking cessation, telehealth, transportation, and vision care, making it a valuable option for eligible individuals.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_2"
       },
       {
-        "question": "When should I complete a Health Needs Screening?",
-        "answer": "You can complete a Health Needs Screening by visiting the link: /members/care-connect/benefits-services/health-needs-screening.html"
+        "question": "How do I enroll in Hoosier Care Connect?",
+        "answer": "For information on enrolling, benefits, services, the Member Handbook, and resources, visit the respective links: /members/care-connect/how-to-enroll.html, /members/care-connect/benefits-services.html, /members/care-connect/member-handbook.html, and /members/care-connect/resources.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
       },
       {
-        "question": "How can I access my claims and ID card information?",
-        "answer": "You can access your claims and ID card information by logging in at: /login.html"
+        "question": "Where can I find more information about the benefits and services offered by Hoosier Care Connect?",
+        "answer": "For information on enrolling, benefits, services, the Member Handbook, and resources, visit the respective links: /members/care-connect/how-to-enroll.html, /members/care-connect/benefits-services.html, /members/care-connect/member-handbook.html, and /members/care-connect/resources.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
       },
       {
         "question": "Where can I find the Member Handbook for Hoosier Care Connect?",
-        "answer": "You can find the Member Handbook for Hoosier Care Connect by visiting the link: /members/care-connect/member-handbook.html"
+        "answer": "For information on enrolling, benefits, services, the Member Handbook, and resources, visit the respective links: /members/care-connect/how-to-enroll.html, /members/care-connect/benefits-services.html, /members/care-connect/member-handbook.html, and /members/care-connect/resources.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
       },
       {
         "question": "What resources are available to me as a Hoosier Care Connect member?",
-        "answer": "You can find member resources by visiting the link: /members/care-connect/resources.html"
+        "answer": "For information on enrolling, benefits, services, the Member Handbook, and resources, visit the respective links: /members/care-connect/how-to-enroll.html, /members/care-connect/benefits-services.html, /members/care-connect/member-handbook.html, and /members/care-connect/resources.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_3"
+      },
+      {
+        "question": "When should I complete a Health Needs Screening?",
+        "answer": "You can complete a Health Needs Screening by visiting /members/care-connect/benefits-services/health-needs-screening.html. To access claims and ID card information, log in at /login.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_4"
+      },
+      {
+        "question": "How can I access my claims and ID card information?",
+        "answer": "You can complete a Health Needs Screening by visiting /members/care-connect/benefits-services/health-needs-screening.html. To access claims and ID card information, log in at /login.html.",
+        "is_bucketed": true,
+        "bucket_id": "BUCKET_4"
       }
     ],
     "qa_generation_status": "completed",
@@ -1355,43 +1523,43 @@
     "qa_pairs": [
       {
         "question": "What is Foster Care Resources?",
-        "answer": "Foster Care Resources is a webpage provided by MHS and the state of Indiana that offers various resources, links, phone numbers, and instructions to assist foster parents and families in need."
-      },
-      {
-        "question": "How do I access foster care training programs?",
-        "answer": "You can access foster care training programs through the Adult & Child Health website at https://adultandchild.org/ or through CBH Training at http://www.centenefostercare.com."
+        "answer": "Foster Care Resources is a webpage provided by MHS and the state of Indiana, offering comprehensive support and resources for foster children and families, including helpful links, phone numbers, and instructions for immediate support."
       },
       {
         "question": "Why should I use Foster Care Resources?",
-        "answer": "You should use Foster Care Resources because it provides comprehensive support and resources for foster children and families, including helpful links, phone numbers, and instructions for immediate support."
+        "answer": "Foster Care Resources is a webpage provided by MHS and the state of Indiana, offering comprehensive support and resources for foster children and families, including helpful links, phone numbers, and instructions for immediate support."
       },
       {
-        "question": "When is the Foster Care Helpline available?",
-        "answer": "The Foster Care Helpline is available at 888-631-9510. While the specific hours are not mentioned, other support services like 2-1-1 are available 24/7."
-      },
-      {
-        "question": "Where can I find information on Indiana's children in foster care waiting for adoption?",
-        "answer": "You can find information on Indiana's children in foster care waiting for adoption on the Indiana's Waiting Children website at https://www.adoptuskids.org/states/in/browse.aspx."
-      },
-      {
-        "question": "Who should I contact for foster care support?",
-        "answer": "You can contact the MHS Dedicated Foster Care Team at 1-877-647-4848 (ask for Foster Care Team) or the Foster Care Helpline at 888-631-9510 for support."
+        "question": "How do I access foster care training programs?",
+        "answer": "You can access foster care training programs through the Adult & Child Health website or CBH Training, and assistance for youth transitioning out is available through Foster Success, providing resources and support."
       },
       {
         "question": "What kind of assistance is available for youth transitioning out of the foster care system?",
-        "answer": "Foster Success at https://fostersuccess.org/ provides assistance and resources for youth transitioning out of the foster care system."
+        "answer": "You can access foster care training programs through the Adult & Child Health website or CBH Training, and assistance for youth transitioning out is available through Foster Success, providing resources and support."
       },
       {
-        "question": "How can I get immediate support for basic needs like food and shelter?",
-        "answer": "You can dial 2-1-1 for free, confidential services 24/7 for food, shelter, housing assistance, employment services, counseling resources, and crisis support."
+        "question": "When is the Foster Care Helpline available?",
+        "answer": "The Foster Care Helpline is available at 888-631-9510, and for support, you can also contact the MHS Dedicated Foster Care Team at 1-877-647-4848 or utilize the helpline for immediate assistance."
       },
       {
-        "question": "Can I access Foster Care Resources information in languages other than English?",
-        "answer": "Yes, the webpage is available in English and Spanish. For information in different languages or formats, you can call 1-877-647-4848 (TTY: 1-800-743-3333)."
+        "question": "Who should I contact for foster care support?",
+        "answer": "The Foster Care Helpline is available at 888-631-9510, and for support, you can also contact the MHS Dedicated Foster Care Team at 1-877-647-4848 or utilize the helpline for immediate assistance."
+      },
+      {
+        "question": "Where can I find information on Indiana's children in foster care waiting for adoption?",
+        "answer": "Information on Indiana's children in foster care waiting for adoption can be found on the Indiana's Waiting Children website, and the Indiana Association of Resources and Child Advocacy promotes cooperation among organizations providing services to children and families."
       },
       {
         "question": "What organization promotes cooperation among organizations providing services to children and their families?",
-        "answer": "The Indiana Association of Resources and Child Advocacy (IARCA) at http://www.iarca.org/ promotes cooperation among organizations providing services to children and their families."
+        "answer": "Information on Indiana's children in foster care waiting for adoption can be found on the Indiana's Waiting Children website, and the Indiana Association of Resources and Child Advocacy promotes cooperation among organizations providing services to children and families."
+      },
+      {
+        "question": "How can I get immediate support for basic needs like food and shelter?",
+        "answer": "For immediate support, dial 2-1-1 for free, confidential services 24/7, and Foster Care Resources information is available in English and Spanish, with additional language support available by calling 1-877-647-4848."
+      },
+      {
+        "question": "Can I access Foster Care Resources information in languages other than English?",
+        "answer": "For immediate support, dial 2-1-1 for free, confidential services 24/7, and Foster Care Resources information is available in English and Spanish, with additional language support available by calling 1-877-647-4848."
       }
     ],
     "qa_generation_status": "completed",
@@ -1504,12 +1672,52 @@
       {
         "question": "Can I get a printed copy of the Member Handbook?",
         "answer": "While the provided links are for digital versions, you can contact MHS Indiana at 1-877-647-4848 (TTY: 1-800-743-3333) to inquire about obtaining a printed copy or alternative formats."
+      },
+      {
+        "question": "What information does the Member Handbook typically cover?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "How can I access the Member Handbook for my specific health plan?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "Why is it essential to read the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "Are there any restrictions on when I can access the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "Where can I find the most up-to-date version of the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "What if I need the Member Handbook in a language other than English or Spanish?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "Which health insurance plans are included in the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "What software do I need to open the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "Can I request a hard copy or alternative format of the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
+      },
+      {
+        "question": "How do I contact MHS Indiana for assistance with the Member Handbook?",
+        "answer": "The Member Handbook provides detailed information about health insurance plans, including benefits and services. It's available on the MHS Indiana website and covers HIP, Hoosier Care Connect, and Hoosier Healthwise plans. You can access it at any time and request alternative formats or languages by calling 1-877-647-4848."
       }
     ],
     "qa_generation_status": "completed",
     "qa_generation_time": 1.3,
     "qa_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "qa_count": 10
+    "qa_count": 20
   },
   {
     "topic": "Member News",
@@ -1523,43 +1731,43 @@
     "qa_pairs": [
       {
         "question": "What is the 'Member News' section on the MHS Indiana website?",
-        "answer": "The 'Member News' section provides updates and information relevant to members, including articles on various health programs, member advisory councils, and other related topics."
-      },
-      {
-        "question": "How often is the 'Member News' section updated?",
-        "answer": "The 'Member News' page includes articles from different months, indicating regular updates. There are also navigation buttons for multiple pages, suggesting extensive content."
-      },
-      {
-        "question": "Why should I check the 'Member News' section?",
-        "answer": "You should check the 'Member News' section to stay informed about health initiatives, member benefits, and important announcements. It provides timely updates on health programs and initiatives, including information on member benefits like the YMCA partnership."
-      },
-      {
-        "question": "When can I find the latest news in the 'Member News' section?",
-        "answer": "The 'Member News' section is regularly updated with articles from different months. You can visit the MHS Indiana website to find the latest news and updates."
-      },
-      {
-        "question": "Where can I find more information about the articles in 'Member News'?",
-        "answer": "You can find more information about the articles by visiting the relevant links provided for each article. For example, you can visit /newsroom/men-s-health-month.html for more information on Men's Health Month."
-      },
-      {
-        "question": "Who should I contact if I have questions about the 'Member News' section?",
-        "answer": "If you have questions about the 'Member News' section, you can contact MHS at 1-877-647-4848 (TTY: 1-800-743-3333) for additional assistance."
+        "answer": "The 'Member News' section provides updates and information relevant to members, including articles on various health programs, member benefits, and important announcements, such as Men's Health Month and the YMCA partnership."
       },
       {
         "question": "What kind of information is available in the 'Member News' section?",
-        "answer": "The 'Member News' section includes information on various health programs, member benefits, and important announcements. Examples include articles on Men's Health Month, Maternal Oral Health, and the YMCA partnership."
+        "answer": "The 'Member News' section provides updates and information relevant to members, including articles on various health programs, member benefits, and important announcements, such as Men's Health Month and the YMCA partnership."
       },
       {
-        "question": "How do I access the 'Member News' section on the MHS Indiana website?",
-        "answer": "You can access the 'Member News' section by visiting the MHS Indiana website and navigating to the 'Member News' or 'Newsroom' section. The exact navigation steps may vary depending on the website's layout."
+        "question": "How often is the 'Member News' section updated?",
+        "answer": "The 'Member News' section is regularly updated with articles from different months, indicating frequent updates, and you can visit the MHS Indiana website to find the latest news and updates."
       },
       {
-        "question": "What is the purpose of the 'MHS Serves' program mentioned in 'Member News'?",
-        "answer": "The 'MHS Serves' program is a $12 million health equity fund that supports key community-based programs and resources across Indiana, focusing on reducing and eliminating health disparities."
+        "question": "When can I find the latest news in the 'Member News' section?",
+        "answer": "The 'Member News' section is regularly updated with articles from different months, indicating frequent updates, and you can visit the MHS Indiana website to find the latest news and updates."
+      },
+      {
+        "question": "Why should I check the 'Member News' section?",
+        "answer": "You should check the 'Member News' section to stay informed about health initiatives and member benefits, such as the YMCA partnership, which offers a free 6-month YMCA membership for MHS members' children."
       },
       {
         "question": "Can I get a free YMCA membership as an MHS member?",
-        "answer": "Yes, as an MHS member, your child can get a FREE 6-month YMCA Membership. You can find more information about this benefit in the 'Member News' section under the article titled 'YMCA Partnership' (/newsroom/YMCA-2.html)."
+        "answer": "You should check the 'Member News' section to stay informed about health initiatives and member benefits, such as the YMCA partnership, which offers a free 6-month YMCA membership for MHS members' children."
+      },
+      {
+        "question": "Where can I find more information about the articles in 'Member News'?",
+        "answer": "You can find more information about the articles by visiting the relevant links provided, and access the 'Member News' section by visiting the MHS Indiana website and navigating to the 'Member News' or 'Newsroom' section."
+      },
+      {
+        "question": "How do I access the 'Member News' section on the MHS Indiana website?",
+        "answer": "You can find more information about the articles by visiting the relevant links provided, and access the 'Member News' section by visiting the MHS Indiana website and navigating to the 'Member News' or 'Newsroom' section."
+      },
+      {
+        "question": "Who should I contact if I have questions about the 'Member News' section?",
+        "answer": "For questions about the 'Member News' section, contact MHS at 1-877-647-4848, and the 'MHS Serves' program is a $12 million health equity fund supporting community-based programs to reduce health disparities, as mentioned in the 'Member News' section."
+      },
+      {
+        "question": "What is the purpose of the 'MHS Serves' program mentioned in 'Member News'?",
+        "answer": "For questions about the 'Member News' section, contact MHS at 1-877-647-4848, and the 'MHS Serves' program is a $12 million health equity fund supporting community-based programs to reduce health disparities, as mentioned in the 'Member News' section."
       }
     ],
     "qa_generation_status": "completed",
@@ -1971,43 +2179,43 @@
     "qa_pairs": [
       {
         "question": "What is the contact information for providers?",
-        "answer": "The contact information for providers is phone: 1-877-647-4848 and TTY: 1-800-743-3333."
-      },
-      {
-        "question": "How do I log in to the Provider Portal?",
-        "answer": "You can log in or register for the Provider Portal at https://provider.mhsindiana.com."
-      },
-      {
-        "question": "What programs are offered by MHS for providers?",
-        "answer": "MHS offers several programs for providers, including Healthy Indiana Plan (HIP), Hoosier Care Connect, Hoosier Healthwise (HHW), Ambetter Health, Wellcare by Allwell, and Wellcare Complete. More information about these programs can be found on their respective pages: [Healthy Indiana Plan](/members/hip.html), [Hoosier Care Connect](/members/care-connect.html), [Hoosier Healthwise](/members/medicaid.html), [Ambetter Health](/members/ambetter.html), [Wellcare by Allwell](/members/medicare-advantage.html), and [Wellcare Complete](/members/wellcare-complete.html)."
-      },
-      {
-        "question": "Where can I find information about prior authorization for providers?",
-        "answer": "Information about prior authorization can be found on the [Prior Authorization](/providers/prior-authorization.html) page, which includes links for Medicaid, Medicare, and Ambetter pre-authorization."
-      },
-      {
-        "question": "Why should I use the Demographic Update Tool?",
-        "answer": "The Demographic Update Tool allows providers to update their demographic information. It can be accessed at [Demographic Update Tool](/providers/become-a-provider/demographic-update-tool.html)."
-      },
-      {
-        "question": "When can I check the status of a claim?",
-        "answer": "You can check the status of a claim by logging into the Provider Portal at [SUBMIT CLAIM/CHECK CLAIM STATUS](/providers/login.html)."
+        "answer": "For contact information, call 1-877-647-4848 (TTY: 1-800-743-3333) for general inquiries or language assistance."
       },
       {
         "question": "Who should I contact for language assistance?",
-        "answer": "For language assistance, you can call 1-877-647-4848 (TTY: 1-800-743-3333) to request information in different languages or formats."
+        "answer": "For contact information, call 1-877-647-4848 (TTY: 1-800-743-3333) for general inquiries or language assistance."
+      },
+      {
+        "question": "How do I log in to the Provider Portal?",
+        "answer": "Log in to the Provider Portal at https://provider.mhsindiana.com to access various tools, including claim status checks."
+      },
+      {
+        "question": "When can I check the status of a claim?",
+        "answer": "Log in to the Provider Portal at https://provider.mhsindiana.com to access various tools, including claim status checks."
+      },
+      {
+        "question": "What programs are offered by MHS for providers?",
+        "answer": "MHS offers several programs, including HIP and Hoosier Healthwise. Prior authorization info is on the Prior Authorization page. Resources and news are available under Provider Resources and Provider News pages."
+      },
+      {
+        "question": "Where can I find information about prior authorization for providers?",
+        "answer": "MHS offers several programs, including HIP and Hoosier Healthwise. Prior authorization info is on the Prior Authorization page. Resources and news are available under Provider Resources and Provider News pages."
       },
       {
         "question": "What resources are available for providers?",
-        "answer": "Various resources are available for providers, including the Health Library, FAQs, Grievance Process, and more, which can be found under [Provider Resources](/providers/resources.html)."
-      },
-      {
-        "question": "How do I sign up for Pay for Performance (P4P)?",
-        "answer": "You can sign up for Pay for Performance (P4P) at [Pay for Performance (P4P) Sign Up](/Redirect/p4p-sign-up.html)."
+        "answer": "MHS offers several programs, including HIP and Hoosier Healthwise. Prior authorization info is on the Prior Authorization page. Resources and news are available under Provider Resources and Provider News pages."
       },
       {
         "question": "Where can I find the latest news and updates for providers?",
-        "answer": "The latest news and updates for providers are available on the [Provider News](/newsroom.html) page."
+        "answer": "MHS offers several programs, including HIP and Hoosier Healthwise. Prior authorization info is on the Prior Authorization page. Resources and news are available under Provider Resources and Provider News pages."
+      },
+      {
+        "question": "Why should I use the Demographic Update Tool?",
+        "answer": "Use the Demographic Update Tool to update demographic info. Sign up for Pay for Performance (P4P) at the designated sign-up page for each program."
+      },
+      {
+        "question": "How do I sign up for Pay for Performance (P4P)?",
+        "answer": "Use the Demographic Update Tool to update demographic info. Sign up for Pay for Performance (P4P) at the designated sign-up page for each program."
       }
     ],
     "qa_generation_status": "completed",
@@ -2195,49 +2403,53 @@
     "qa_pairs": [
       {
         "question": "What are Clinical Payment Policies?",
-        "answer": "Clinical Payment Policies are guidelines used to administer health plan benefits through prior authorization or payment rules. They cover evolving medical technologies, procedures, and pharmacy policies to determine medical necessity."
-      },
-      {
-        "question": "Where can I find the list of Clinical Payment Policies?",
-        "answer": "The list of Clinical Payment Policies is available on the MHS Indiana website at https://www.mhsindiana.com/providers/clinical-payment-policies.html. The policies are categorized alphabetically and include links to PDF documents detailing each policy."
-      },
-      {
-        "question": "How do I access the Medicaid Clinical Policies?",
-        "answer": "Medicaid Clinical Policies are available on the MHS Indiana website. You can access them by visiting https://www.mhsindiana.com/providers/clinical-payment-policies.html and navigating to the Medicaid Clinical Policies section, which includes policies from A-H and I-Q."
-      },
-      {
-        "question": "What is the purpose of Payment Policies?",
-        "answer": "Payment Policies are guidelines used to assist in administering payment rules based on generally accepted principles of correct coding. They help in determining how healthcare claims are processed and paid."
-      },
-      {
-        "question": "Who should I contact for questions regarding Clinical Payment Policies?",
-        "answer": "For questions regarding Clinical Payment Policies, you should contact Member Services and ask to be directed to the Medical Management department. You can reach Member Services by calling 1-877-647-4848 (TTY: 1-800-743-3333)."
-      },
-      {
-        "question": "Are there any related resources available for Clinical Payment Policies?",
-        "answer": "Yes, there are several related resources available, including the Medicaid Preferred Drug Lists (https://inm.pharmacy.optum.com/inm/prelogin), Medicare Prior Authorization website (https://www.wellcareca.com/medicare-pa-clinical-policies.html), and the Ambetter website (https://ambetter.mhsindiana.com/provider-resources/clinical-payment-policies.html)."
+        "answer": "Clinical Payment Policies are guidelines used to administer health plan benefits, determining medical necessity and ensuring healthcare services follow accepted standards. They are important as they help ensure services are provided according to evidence-based guidelines and peer-reviewed literature."
       },
       {
         "question": "Why are Clinical Payment Policies important?",
-        "answer": "Clinical Payment Policies are important because they help determine medical necessity and ensure that healthcare services are provided according to generally accepted standards of medical practice, peer-reviewed literature, and evidence-based guidelines."
+        "answer": "Clinical Payment Policies are guidelines used to administer health plan benefits, determining medical necessity and ensuring healthcare services follow accepted standards. They are important as they help ensure services are provided according to evidence-based guidelines and peer-reviewed literature."
       },
       {
-        "question": "When are Clinical Payment Policies updated?",
-        "answer": "The frequency of updates to Clinical Payment Policies is not specified, but it is recommended to regularly check the MHS Indiana website for the most current policies and updates."
+        "question": "Where can I find the list of Clinical Payment Policies?",
+        "answer": "The list of Clinical Payment Policies and Medicaid Clinical Policies can be found on the MHS Indiana website at https://www.mhsindiana.com/providers/clinical-payment-policies.html. You can browse the alphabetical list or use your browser's search function to locate specific policies."
       },
       {
-        "question": "Can I download the Clinical Payment Policies?",
-        "answer": "Yes, the Clinical Payment Policies are available for download in PDF format from the MHS Indiana website. You may need to use Adobe Reader to view these documents, which can be downloaded for free from https://get.adobe.com/reader/."
+        "question": "How do I access the Medicaid Clinical Policies?",
+        "answer": "The list of Clinical Payment Policies and Medicaid Clinical Policies can be found on the MHS Indiana website at https://www.mhsindiana.com/providers/clinical-payment-policies.html. You can browse the alphabetical list or use your browser's search function to locate specific policies."
       },
       {
         "question": "How do I find a specific Clinical Payment Policy?",
-        "answer": "To find a specific Clinical Payment Policy, you can visit the MHS Indiana website at https://www.mhsindiana.com/providers/clinical-payment-policies.html and browse through the alphabetical list of policies. You can also use your browser's search function to locate specific policies."
+        "answer": "The list of Clinical Payment Policies and Medicaid Clinical Policies can be found on the MHS Indiana website at https://www.mhsindiana.com/providers/clinical-payment-policies.html. You can browse the alphabetical list or use your browser's search function to locate specific policies."
+      },
+      {
+        "question": "What is the purpose of Payment Policies?",
+        "answer": "Payment Policies and Clinical Payment Policies serve similar purposes, guiding the administration of health plan benefits and payment rules. They help determine medical necessity and ensure healthcare claims are processed according to accepted principles of correct coding."
+      },
+      {
+        "question": "What are Clinical Payment Policies?",
+        "answer": "Payment Policies and Clinical Payment Policies serve similar purposes, guiding the administration of health plan benefits and payment rules. They help determine medical necessity and ensure healthcare claims are processed according to accepted principles of correct coding."
+      },
+      {
+        "question": "Who should I contact for questions regarding Clinical Payment Policies?",
+        "answer": "For questions, contact Member Services at 1-877-647-4848 (TTY: 1-800-743-3333) and ask for the Medical Management department. Related resources include the Medicaid Preferred Drug Lists, Medicare Prior Authorization website, and the Ambetter website, which can be accessed through the MHS Indiana website."
+      },
+      {
+        "question": "Are there any related resources available for Clinical Payment Policies?",
+        "answer": "For questions, contact Member Services at 1-877-647-4848 (TTY: 1-800-743-3333) and ask for the Medical Management department. Related resources include the Medicaid Preferred Drug Lists, Medicare Prior Authorization website, and the Ambetter website, which can be accessed through the MHS Indiana website."
+      },
+      {
+        "question": "When are Clinical Payment Policies updated?",
+        "answer": "Clinical Payment Policies are updated periodically, but the frequency is not specified. You can download them in PDF format from the MHS Indiana website, and it is recommended to check the website regularly for the most current policies and updates."
+      },
+      {
+        "question": "Can I download the Clinical Payment Policies?",
+        "answer": "Clinical Payment Policies are updated periodically, but the frequency is not specified. You can download them in PDF format from the MHS Indiana website, and it is recommended to check the website regularly for the most current policies and updates."
       }
     ],
     "qa_generation_status": "completed",
     "qa_generation_time": 3.87,
     "qa_model": "meta-llama/llama-4-maverick-17b-128e-instruct",
-    "qa_count": 10
+    "qa_count": 11
   },
   {
     "topic": "Dental Providers",
