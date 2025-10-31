@@ -36,7 +36,7 @@ ENV PORT=8000
 
 # Healthcheck to ensure server is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health').read()"
+    CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/api/health').read()"
 
 # Run the langgraph server application
 CMD uvicorn langgraph_server:app --host 0.0.0.0 --port ${PORT:-8000}
