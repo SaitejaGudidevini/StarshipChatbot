@@ -166,6 +166,21 @@ class ModifyResponse(BaseModel):
     timestamp: str
 
 
+class DeleteQARequest(BaseModel):
+    """Request model for deleting Q&A pairs"""
+    topic_index: int  # Which topic to delete from
+    qa_indices: List[int]  # Which Q&A pairs to delete (empty list = delete entire topic)
+
+
+class DeleteQAResponse(BaseModel):
+    """Response model for delete Q&A endpoint"""
+    message: str  # Success message
+    deleted_count: int  # Number of Q&A pairs deleted
+    topic_deleted: bool  # True if entire topic was deleted
+    error: Optional[str] = None
+    timestamp: str
+
+
 
 
 # ============================================================================
@@ -224,6 +239,13 @@ def generate_html_viewer(json_data: list) -> str:
         .topic-dynamic-btn:hover {{ background: #e8590c; }}
         .topic-item.active .topic-dynamic-btn {{ background: #fff; color: #fd7e14; }}
         .topic-item.active .topic-dynamic-btn:hover {{ background: #fff3e0; }}
+        .topic-delete-btn {{ margin-top: 8px; padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: 600; width: 100%; transition: background 0.3s ease; }}
+        .topic-delete-btn:hover {{ background: #c82333; }}
+        .topic-item.active .topic-delete-btn {{ background: #fff; color: #dc3545; }}
+        .topic-item.active .topic-delete-btn:hover {{ background: #ffe0e0; }}
+        .delete-qa-btn {{ margin-top: 15px; padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; transition: background 0.3s ease; }}
+        .delete-qa-btn:hover {{ background: #c82333; }}
+        .delete-qa-btn:disabled {{ background: #ccc; cursor: not-allowed; }}
         .content-area {{ display: flex; flex-direction: column; overflow: hidden; }}
         .content-header {{ background: #f8f9fa; padding: 30px 40px; border-bottom: 2px solid #e9ecef; }}
         .content-title {{ font-size: 2em; color: #212529; margin-bottom: 10px; }}
@@ -332,6 +354,9 @@ def generate_html_viewer(json_data: list) -> str:
                     </button>
                     <button class="topic-dynamic-btn" onclick="event.stopPropagation(); dynamicAdjustTopic(${{index}})">
                         🎯 Dynamic Adjustment
+                    </button>
+                    <button class="topic-delete-btn" onclick="event.stopPropagation(); showDeletePanel(${{index}})">
+                        🗑️ Delete Q&A Pairs
                     </button>
                 </div>
             `).join('');
@@ -449,21 +474,31 @@ def generate_html_viewer(json_data: list) -> str:
 
         function detectBucketedQA(qaPairs) {{
             // Check if Q&A pairs have bucket_id field
-            const bucketedPairs = qaPairs.filter(qa => qa.is_bucketed === true && qa.bucket_id);
+            const bucketedPairs = [];
+            qaPairs.forEach((qa, originalIndex) => {{
+                if (qa.is_bucketed === true && qa.bucket_id) {{
+                    bucketedPairs.push({{ ...qa, originalIndex }});
+                }}
+            }});
+
             if (bucketedPairs.length === 0) {{
                 return null;
             }}
 
-            // Group by bucket_id
+            // Group by bucket_id, store full Q&A objects with original indices
             const buckets = {{}};
             bucketedPairs.forEach(qa => {{
                 if (!buckets[qa.bucket_id]) {{
                     buckets[qa.bucket_id] = {{
-                        questions: [],
+                        qaItems: [],  // Store full Q&A objects with original indices
                         answer: qa.answer
                     }};
                 }}
-                buckets[qa.bucket_id].questions.push(qa.question);
+                buckets[qa.bucket_id].qaItems.push({{
+                    question: qa.question,
+                    answer: qa.answer,
+                    originalIndex: qa.originalIndex
+                }});
             }});
 
             return buckets;
@@ -471,13 +506,16 @@ def generate_html_viewer(json_data: list) -> str:
 
         function renderBucketedQA(buckets) {{
             const bucketsList = Object.entries(buckets).map(([bucketId, data], index) => {{
-                const questionsList = data.questions.map((q, i) =>
-                    `<li class="bucket-question-item">${{i + 1}}. ${{escapeHtml(q)}}</li>`
+                const questionsList = data.qaItems.map((qaItem, i) =>
+                    `<li class="bucket-question-item" style="display: flex; align-items: center; gap: 10px; padding: 8px 0;">
+                        <input type="checkbox" class="qa-checkbox" id="qa-check-${{qaItem.originalIndex}}" onchange="toggleQASelection(${{qaItem.originalIndex}})" />
+                        <span>${{i + 1}}. ${{escapeHtml(qaItem.question)}}</span>
+                    </li>`
                 ).join('');
 
                 return `
                     <div class="bucket-box">
-                        <div class="bucket-header">📦 Bucket ${{index + 1}} (${{data.questions.length}} questions)</div>
+                        <div class="bucket-header">📦 Bucket ${{index + 1}} (${{data.qaItems.length}} questions)</div>
 
                         <div class="bucket-answer-header-reversed" onclick="toggleBucketQuestions(${{index}})">
                             💡 Optimized Answer (click to see questions)
@@ -486,8 +524,8 @@ def generate_html_viewer(json_data: list) -> str:
                         <div class="bucket-answer-content">${{escapeHtml(data.answer)}}</div>
 
                         <div class="bucket-questions-dropdown" id="bucket-questions-${{index}}" style="display: none;">
-                            <div class="bucket-questions-header">❓ Questions answered:</div>
-                            <ol class="bucket-questions-list">
+                            <div class="bucket-questions-header">❓ Questions answered (select to delete):</div>
+                            <ol class="bucket-questions-list" style="list-style: none; padding-left: 0;">
                                 ${{questionsList}}
                             </ol>
                         </div>
@@ -712,6 +750,75 @@ def generate_html_viewer(json_data: list) -> str:
             }}
         }}
 
+        // Delete panel - shows checkboxes to select Q&A pairs to delete
+        function showDeletePanel(topicIndex) {{
+            selectTopic(topicIndex);
+
+            const deletePanel = `
+                <div class="modify-panel active" id="deletePanelContainer">
+                    <h3>🗑️ Delete Q&A Pairs</h3>
+                    <div class="selection-info" id="selectionInfo">
+                        No questions selected. Select 1 or more checkboxes below to delete them.
+                    </div>
+                    <div class="modify-panel-buttons">
+                        <button class="modify-cancel-btn" onclick="hideModifyPanel()">Cancel</button>
+                        <button class="delete-qa-btn" id="deleteQABtn" onclick="deleteSelectedQA()" disabled title="Delete selected Q&A pairs">
+                            🗑️ Delete Selected
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modifyPanelContainer').innerHTML = deletePanel;
+        }}
+
+        async function deleteSelectedQA() {{
+            if (selectedQAIndices.size === 0) {{
+                alert('Please select at least one Q&A pair to delete.');
+                return;
+            }}
+
+            const count = selectedQAIndices.size;
+            const topic = DATA[currentTopicIndex];
+            const topicName = topic.topic || 'Unknown Topic';
+
+            if (!confirm(`⚠️ Are you sure you want to delete ${{count}} Q&A pair${{count > 1 ? 's' : ''}} from "${{topicName}}"?\\n\\nThis action cannot be undone!`)) {{
+                return;
+            }}
+
+            showStatus(`Deleting ${{count}} Q&A pair${{count > 1 ? 's' : ''}}...`, 'loading');
+
+            try {{
+                const response = await fetch('/api/delete-qa', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{
+                        topic_index: currentTopicIndex,
+                        qa_indices: Array.from(selectedQAIndices)
+                    }})
+                }});
+
+                const result = await response.json();
+
+                if (response.ok && !result.error) {{
+                    showStatus(result.message, 'success');
+                    hideModifyPanel();
+                    await loadData();  // Reload data from server
+
+                    // If topic still exists, reselect it
+                    if (currentTopicIndex < DATA.length) {{
+                        selectTopic(currentTopicIndex);
+                    }} else if (DATA.length > 0) {{
+                        selectTopic(0);
+                    }}
+                }} else {{
+                    showStatus(result.error || 'Delete failed', 'error');
+                }}
+            }} catch (error) {{
+                showStatus(`Failed: ${{error.message}}`, 'error');
+            }}
+        }}
+
         // Selective modification functions
         function showModifyPanel(topicIndex) {{
             selectTopic(topicIndex);
@@ -727,6 +834,9 @@ def generate_html_viewer(json_data: list) -> str:
                         <button class="modify-cancel-btn" onclick="hideModifyPanel()">Cancel</button>
                         <button class="merge-btn" id="mergeBtn" onclick="sendSelectiveModifyRequest()" disabled title="Merge selected Q&A pairs into 1 (originals kept)">
                             🔗 Merge Q&A Pairs
+                        </button>
+                        <button class="delete-qa-btn" id="deleteQABtn" onclick="deleteSelectedQA()" disabled title="Delete selected Q&A pairs">
+                            🗑️ Delete Selected
                         </button>
                     </div>
                 </div>
@@ -756,28 +866,32 @@ def generate_html_viewer(json_data: list) -> str:
             const infoDiv = document.getElementById('selectionInfo');
             const submitBtn = document.getElementById('selectiveSubmitBtn');
             const mergeBtn = document.getElementById('mergeBtn');
+            const deleteBtn = document.getElementById('deleteQABtn');
 
             if (!infoDiv) return;
 
             const count = selectedQAIndices.size;
             if (count === 0) {{
-                infoDiv.textContent = 'No questions selected. Select 2 or more checkboxes below to merge them into 1 Q&A pair.';
+                infoDiv.textContent = 'No questions selected. Select 2+ to merge or 1+ to delete.';
                 infoDiv.style.background = '#d1ecf1';
                 infoDiv.style.color = '#0c5460';
                 if (submitBtn) submitBtn.disabled = true;
                 if (mergeBtn) mergeBtn.disabled = true;
+                if (deleteBtn) deleteBtn.disabled = true;
             }} else if (count === 1) {{
-                infoDiv.textContent = '1 question selected. (Select 2+ to enable merge)';
+                infoDiv.textContent = '1 question selected. (Select 2+ to enable merge, or delete this one)';
                 infoDiv.style.background = '#d4edda';
                 infoDiv.style.color = '#155724';
                 if (submitBtn) submitBtn.disabled = false;
                 if (mergeBtn) mergeBtn.disabled = true;
+                if (deleteBtn) deleteBtn.disabled = false;
             }} else {{
-                infoDiv.textContent = `${{count}} questions selected. Click "Merge Q&A Pairs" to combine them into 1 Q&A pair (originals kept).`;
+                infoDiv.textContent = `${{count}} questions selected. Merge into 1 or delete all selected.`;
                 infoDiv.style.background = '#d1ecf1';
                 infoDiv.style.color = '#0c5460';
                 if (submitBtn) submitBtn.disabled = false;
                 if (mergeBtn) mergeBtn.disabled = false;
+                if (deleteBtn) deleteBtn.disabled = false;
             }}
         }}
 
@@ -1179,6 +1293,146 @@ async def dynamic_adjust_endpoint(simplify_request: SimplifyTopicRequest, reques
         return SimplifyTopicResponse(
             message=f"Failed: {str(e)}",
             simplified_count=0,
+            error=str(e),
+            timestamp=datetime.now().isoformat()
+        )
+
+
+@app.post("/api/delete-qa", response_model=DeleteQAResponse)
+async def delete_qa_endpoint(delete_request: DeleteQARequest, request: Request) -> DeleteQAResponse:
+    """
+    Delete Q&A pairs or entire topic from the dataset
+
+    Flow: QADataset.from_json() → Delete data → QADataset.from_dict() → QADataset.save_to_json()
+
+    Args:
+        delete_request: Contains topic_index and qa_indices
+            - If qa_indices is empty: delete entire topic
+            - If qa_indices has values: delete only those Q&A pairs
+    """
+    try:
+        logger.info("="*60)
+        logger.info(f"🗑️  DELETE Q&A ENDPOINT: Request received")
+        logger.info(f"   Topic Index: {delete_request.topic_index}")
+        logger.info(f"   Q&A Indices to delete: {delete_request.qa_indices}")
+        logger.info("="*60)
+
+        # Step 1: Load current data using QADataset class
+        JSON_FILE_PATH = request.app.state.json_file_path
+        logger.info(f"📂 STEP 1: Loading data from JSON file")
+        logger.info(f"   File path: {JSON_FILE_PATH}")
+
+        dataset = QADataset.from_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.from_json() SUCCESS")
+        logger.info(f"   Dataset type: {type(dataset)}")
+        logger.info(f"   Total topics loaded: {dataset.total_topics()}")
+        logger.info(f"   Total Q&A pairs: {dataset.total_qa_pairs()}")
+
+        # Step 2: Validate topic index
+        if delete_request.topic_index < 0 or delete_request.topic_index >= dataset.total_topics():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid topic index: {delete_request.topic_index}"
+            )
+
+        # Step 3: Convert to dict for processing
+        logger.info(f"📦 STEP 2: Converting QADataset to dict for processing")
+        all_data = dataset.to_dict()
+        logger.info(f"✅ dataset.to_dict() SUCCESS")
+        logger.info(f"   Data type: {type(all_data)}")
+        logger.info(f"   Topics in dict: {len(all_data)}")
+
+        topic = all_data[delete_request.topic_index]
+        topic_name = topic.get('topic', 'Unknown')
+        qa_pairs = topic.get('qa_pairs', [])
+
+        logger.info(f"✓ Topic '{topic_name}' extracted")
+        logger.info(f"   Q&A pairs before deletion: {len(qa_pairs)}")
+
+        deleted_count = 0
+        topic_deleted = False
+
+        # Step 4: Perform deletion
+        if len(delete_request.qa_indices) == 0:
+            # Delete entire topic
+            logger.info(f"🗑️  STEP 3: Deleting entire topic (index {delete_request.topic_index})")
+            deleted_count = len(qa_pairs)
+            all_data.pop(delete_request.topic_index)
+            topic_deleted = True
+            logger.info(f"✅ Topic '{topic_name}' deleted completely")
+            logger.info(f"   Deleted {deleted_count} Q&A pairs")
+            logger.info(f"   Remaining topics: {len(all_data)}")
+        else:
+            # Delete specific Q&A pairs
+            logger.info(f"🗑️  STEP 3: Deleting {len(delete_request.qa_indices)} Q&A pairs from topic")
+
+            # Validate Q&A indices
+            invalid_indices = [idx for idx in delete_request.qa_indices if idx < 0 or idx >= len(qa_pairs)]
+            if invalid_indices:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid Q&A indices: {invalid_indices}"
+                )
+
+            # Sort indices in descending order to delete from end to beginning
+            # This prevents index shifting issues
+            sorted_indices = sorted(delete_request.qa_indices, reverse=True)
+
+            for idx in sorted_indices:
+                logger.info(f"   Deleting Q&A pair {idx}: {qa_pairs[idx]['question'][:50]}...")
+                qa_pairs.pop(idx)
+                deleted_count += 1
+
+            # Update topic with remaining Q&A pairs
+            all_data[delete_request.topic_index]['qa_pairs'] = qa_pairs
+            all_data[delete_request.topic_index]['qa_count'] = len(qa_pairs)
+
+            logger.info(f"✅ Deleted {deleted_count} Q&A pairs")
+            logger.info(f"   Remaining Q&A pairs in topic: {len(qa_pairs)}")
+
+            # If all Q&A pairs were deleted, optionally delete the topic
+            if len(qa_pairs) == 0:
+                logger.info(f"⚠️  Topic has no remaining Q&A pairs - deleting topic")
+                all_data.pop(delete_request.topic_index)
+                topic_deleted = True
+                logger.info(f"✅ Empty topic deleted")
+
+        # Step 5: Save back to JSON file using QADataset class
+        logger.info(f"💾 STEP 4: Converting dict back to QADataset and saving")
+        logger.info(f"   Creating QADataset from modified dict...")
+        modified_dataset = QADataset.from_dict(all_data)
+        logger.info(f"✅ QADataset.from_dict() SUCCESS")
+        logger.info(f"   Dataset type: {type(modified_dataset)}")
+        logger.info(f"   Saving to JSON file...")
+        modified_dataset.save_to_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.save_to_json() SUCCESS")
+        logger.info(f"   File saved: {JSON_FILE_PATH}")
+        logger.info("="*60)
+        logger.info("✅ DELETE ENDPOINT: Complete data flow through QADataset")
+        logger.info("="*60)
+
+        # Create success message
+        if topic_deleted:
+            message = f"Successfully deleted topic '{topic_name}' with {deleted_count} Q&A pairs"
+        else:
+            message = f"Successfully deleted {deleted_count} Q&A pairs from topic '{topic_name}'"
+
+        return DeleteQAResponse(
+            message=message,
+            deleted_count=deleted_count,
+            topic_deleted=topic_deleted,
+            error=None,
+            timestamp=datetime.now().isoformat()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Delete Q&A endpoint error: {e}")
+        return DeleteQAResponse(
+            message=f"Failed: {str(e)}",
+            deleted_count=0,
+            topic_deleted=False,
             error=str(e),
             timestamp=datetime.now().isoformat()
         )
