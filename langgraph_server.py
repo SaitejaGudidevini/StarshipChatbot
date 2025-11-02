@@ -181,6 +181,21 @@ class DeleteQAResponse(BaseModel):
     timestamp: str
 
 
+class EditQARequest(BaseModel):
+    """Request model for editing a Q&A pair"""
+    topic_index: int  # Which topic to edit
+    qa_index: int  # Which Q&A pair to edit (only one at a time)
+    new_question: str  # Updated question text
+    new_answer: str  # Updated answer text
+
+
+class EditQAResponse(BaseModel):
+    """Response model for edit Q&A endpoint"""
+    message: str  # Success message
+    error: Optional[str] = None
+    timestamp: str
+
+
 
 
 # ============================================================================
@@ -243,9 +258,21 @@ def generate_html_viewer(json_data: list) -> str:
         .topic-delete-btn:hover {{ background: #c82333; }}
         .topic-item.active .topic-delete-btn {{ background: #fff; color: #dc3545; }}
         .topic-item.active .topic-delete-btn:hover {{ background: #ffe0e0; }}
+        .topic-edit-btn {{ margin-top: 8px; padding: 6px 12px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85em; font-weight: 600; width: 100%; transition: background 0.3s ease; }}
+        .topic-edit-btn:hover {{ background: #5a6268; }}
+        .topic-item.active .topic-edit-btn {{ background: #fff; color: #6c757d; }}
+        .topic-item.active .topic-edit-btn:hover {{ background: #e2e6ea; }}
         .delete-qa-btn {{ margin-top: 15px; padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; transition: background 0.3s ease; }}
         .delete-qa-btn:hover {{ background: #c82333; }}
         .delete-qa-btn:disabled {{ background: #ccc; cursor: not-allowed; }}
+        .edit-form-group {{ margin-bottom: 15px; }}
+        .edit-form-label {{ display: block; font-weight: 600; margin-bottom: 5px; color: #495057; }}
+        .edit-form-input {{ width: 100%; padding: 10px; border: 2px solid #ced4da; border-radius: 6px; font-size: 1em; font-family: inherit; }}
+        .edit-form-textarea {{ width: 100%; padding: 10px; border: 2px solid #ced4da; border-radius: 6px; font-size: 1em; font-family: inherit; min-height: 120px; resize: vertical; }}
+        .edit-form-input:focus, .edit-form-textarea:focus {{ outline: none; border-color: #6c757d; }}
+        .edit-qa-btn {{ margin-top: 15px; padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; transition: background 0.3s ease; }}
+        .edit-qa-btn:hover {{ background: #5a6268; }}
+        .edit-qa-btn:disabled {{ background: #ccc; cursor: not-allowed; }}
         .content-area {{ display: flex; flex-direction: column; overflow: hidden; }}
         .content-header {{ background: #f8f9fa; padding: 30px 40px; border-bottom: 2px solid #e9ecef; }}
         .content-title {{ font-size: 2em; color: #212529; margin-bottom: 10px; }}
@@ -357,6 +384,9 @@ def generate_html_viewer(json_data: list) -> str:
                     </button>
                     <button class="topic-delete-btn" onclick="event.stopPropagation(); showDeletePanel(${{index}})">
                         🗑️ Delete Q&A Pairs
+                    </button>
+                    <button class="topic-edit-btn" onclick="event.stopPropagation(); showEditPanel(${{index}})">
+                        ✏️ Edit Q&A Pair
                     </button>
                 </div>
             `).join('');
@@ -772,6 +802,86 @@ def generate_html_viewer(json_data: list) -> str:
             document.getElementById('modifyPanelContainer').innerHTML = deletePanel;
         }}
 
+        // Edit panel - shows checkboxes and edit form for single Q&A pair
+        function showEditPanel(topicIndex) {{
+            selectTopic(topicIndex);
+
+            const editPanel = `
+                <div class="modify-panel active" id="editPanelContainer">
+                    <h3>✏️ Edit Q&A Pair</h3>
+                    <div class="selection-info" id="selectionInfo">
+                        No question selected. Select ONE checkbox below to edit it.
+                    </div>
+                    <div id="editFormContainer" style="display: none;">
+                        <div class="edit-form-group">
+                            <label class="edit-form-label">Question:</label>
+                            <input type="text" id="editQuestionInput" class="edit-form-input" placeholder="Enter question..." />
+                        </div>
+                        <div class="edit-form-group">
+                            <label class="edit-form-label">Answer:</label>
+                            <textarea id="editAnswerInput" class="edit-form-textarea" placeholder="Enter answer..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modify-panel-buttons">
+                        <button class="modify-cancel-btn" onclick="hideModifyPanel()">Cancel</button>
+                        <button class="edit-qa-btn" id="editQABtn" onclick="saveEditedQA()" disabled title="Save changes to selected Q&A pair">
+                            💾 Save Changes
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('modifyPanelContainer').innerHTML = editPanel;
+        }}
+
+        async function saveEditedQA() {{
+            if (selectedQAIndices.size !== 1) {{
+                alert('Please select exactly one Q&A pair to edit.');
+                return;
+            }}
+
+            const qaIndex = Array.from(selectedQAIndices)[0];
+            const newQuestion = document.getElementById('editQuestionInput').value.trim();
+            const newAnswer = document.getElementById('editAnswerInput').value.trim();
+
+            if (!newQuestion || !newAnswer) {{
+                alert('Both question and answer are required.');
+                return;
+            }}
+
+            showStatus('Saving changes...', 'loading');
+
+            try {{
+                const response = await fetch('/api/edit-qa', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{
+                        topic_index: currentTopicIndex,
+                        qa_index: qaIndex,
+                        new_question: newQuestion,
+                        new_answer: newAnswer
+                    }})
+                }});
+
+                const result = await response.json();
+
+                if (response.ok && !result.error) {{
+                    showStatus(result.message, 'success');
+                    hideModifyPanel();
+                    await loadData();  // Reload data from server
+
+                    // Reselect the topic
+                    if (currentTopicIndex < DATA.length) {{
+                        selectTopic(currentTopicIndex);
+                    }}
+                }} else {{
+                    showStatus(result.error || 'Edit failed', 'error');
+                }}
+            }} catch (error) {{
+                showStatus(`Failed: ${{error.message}}`, 'error');
+            }}
+        }}
+
         async function deleteSelectedQA() {{
             if (selectedQAIndices.size === 0) {{
                 alert('Please select at least one Q&A pair to delete.');
@@ -867,10 +977,46 @@ def generate_html_viewer(json_data: list) -> str:
             const submitBtn = document.getElementById('selectiveSubmitBtn');
             const mergeBtn = document.getElementById('mergeBtn');
             const deleteBtn = document.getElementById('deleteQABtn');
+            const editBtn = document.getElementById('editQABtn');
+            const editFormContainer = document.getElementById('editFormContainer');
 
             if (!infoDiv) return;
 
             const count = selectedQAIndices.size;
+
+            // Edit mode handling
+            if (editBtn && editFormContainer) {{
+                if (count === 0) {{
+                    infoDiv.textContent = 'No question selected. Select ONE checkbox below to edit it.';
+                    infoDiv.style.background = '#d1ecf1';
+                    infoDiv.style.color = '#0c5460';
+                    editBtn.disabled = true;
+                    editFormContainer.style.display = 'none';
+                }} else if (count === 1) {{
+                    const qaIndex = Array.from(selectedQAIndices)[0];
+                    const topic = DATA[currentTopicIndex];
+                    const qa = topic.qa_pairs[qaIndex];
+
+                    infoDiv.textContent = '1 question selected. Edit below and click Save Changes.';
+                    infoDiv.style.background = '#d4edda';
+                    infoDiv.style.color = '#155724';
+                    editBtn.disabled = false;
+                    editFormContainer.style.display = 'block';
+
+                    // Pre-fill form
+                    document.getElementById('editQuestionInput').value = qa.question;
+                    document.getElementById('editAnswerInput').value = qa.answer;
+                }} else {{
+                    infoDiv.textContent = `${{count}} questions selected. Please select only ONE to edit.`;
+                    infoDiv.style.background = '#fff3cd';
+                    infoDiv.style.color = '#856404';
+                    editBtn.disabled = true;
+                    editFormContainer.style.display = 'none';
+                }}
+                return;
+            }}
+
+            // Delete/Merge mode handling
             if (count === 0) {{
                 infoDiv.textContent = 'No questions selected. Select 2+ to merge or 1+ to delete.';
                 infoDiv.style.background = '#d1ecf1';
@@ -1433,6 +1579,113 @@ async def delete_qa_endpoint(delete_request: DeleteQARequest, request: Request) 
             message=f"Failed: {str(e)}",
             deleted_count=0,
             topic_deleted=False,
+            error=str(e),
+            timestamp=datetime.now().isoformat()
+        )
+
+
+@app.post("/api/edit-qa", response_model=EditQAResponse)
+async def edit_qa_endpoint(edit_request: EditQARequest, request: Request) -> EditQAResponse:
+    """
+    Edit a single Q&A pair (question and/or answer)
+
+    Flow: QADataset.from_json() → Update Q&A pair → QADataset.from_dict() → QADataset.save_to_json()
+
+    Args:
+        edit_request: Contains topic_index, qa_index, new_question, new_answer
+
+    Note: Preserves all metadata (is_bucketed, bucket_id, etc.)
+    """
+    try:
+        logger.info("="*60)
+        logger.info(f"✏️  EDIT Q&A ENDPOINT: Request received")
+        logger.info(f"   Topic Index: {edit_request.topic_index}")
+        logger.info(f"   Q&A Index: {edit_request.qa_index}")
+        logger.info(f"   New Question: {edit_request.new_question[:50]}...")
+        logger.info(f"   New Answer: {edit_request.new_answer[:50]}...")
+        logger.info("="*60)
+
+        # Step 1: Load current data using QADataset class
+        JSON_FILE_PATH = request.app.state.json_file_path
+        logger.info(f"📂 STEP 1: Loading data from JSON file")
+        logger.info(f"   File path: {JSON_FILE_PATH}")
+
+        dataset = QADataset.from_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.from_json() SUCCESS")
+        logger.info(f"   Dataset type: {type(dataset)}")
+        logger.info(f"   Total topics loaded: {dataset.total_topics()}")
+        logger.info(f"   Total Q&A pairs: {dataset.total_qa_pairs()}")
+
+        # Step 2: Validate topic index
+        if edit_request.topic_index < 0 or edit_request.topic_index >= dataset.total_topics():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid topic index: {edit_request.topic_index}"
+            )
+
+        # Step 3: Convert to dict for processing
+        logger.info(f"📦 STEP 2: Converting QADataset to dict for processing")
+        all_data = dataset.to_dict()
+        logger.info(f"✅ dataset.to_dict() SUCCESS")
+        logger.info(f"   Data type: {type(all_data)}")
+        logger.info(f"   Topics in dict: {len(all_data)}")
+
+        topic = all_data[edit_request.topic_index]
+        topic_name = topic.get('topic', 'Unknown')
+        qa_pairs = topic.get('qa_pairs', [])
+
+        logger.info(f"✓ Topic '{topic_name}' extracted")
+        logger.info(f"   Q&A pairs in topic: {len(qa_pairs)}")
+
+        # Step 4: Validate Q&A index
+        if edit_request.qa_index < 0 or edit_request.qa_index >= len(qa_pairs):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid Q&A index: {edit_request.qa_index}"
+            )
+
+        # Step 5: Update the Q&A pair (preserve all metadata)
+        logger.info(f"✏️  STEP 3: Updating Q&A pair at index {edit_request.qa_index}")
+        old_qa = qa_pairs[edit_request.qa_index]
+        logger.info(f"   Old Question: {old_qa['question'][:50]}...")
+        logger.info(f"   Old Answer: {old_qa['answer'][:50]}...")
+
+        # Update question and answer, keep all other fields
+        qa_pairs[edit_request.qa_index]['question'] = edit_request.new_question
+        qa_pairs[edit_request.qa_index]['answer'] = edit_request.new_answer
+
+        logger.info(f"✅ Q&A pair updated")
+        logger.info(f"   Preserved metadata: is_bucketed={old_qa.get('is_bucketed')}, bucket_id={old_qa.get('bucket_id')}")
+
+        # Step 6: Update topic in dict
+        all_data[edit_request.topic_index]['qa_pairs'] = qa_pairs
+
+        # Step 7: Save back to JSON file using QADataset class
+        logger.info(f"💾 STEP 4: Converting dict back to QADataset and saving")
+        logger.info(f"   Creating QADataset from modified dict...")
+        modified_dataset = QADataset.from_dict(all_data)
+        logger.info(f"✅ QADataset.from_dict() SUCCESS")
+        logger.info(f"   Dataset type: {type(modified_dataset)}")
+        logger.info(f"   Saving to JSON file...")
+        modified_dataset.save_to_json(str(JSON_FILE_PATH))
+        logger.info(f"✅ QADataset.save_to_json() SUCCESS")
+        logger.info(f"   File saved: {JSON_FILE_PATH}")
+        logger.info("="*60)
+        logger.info("✅ EDIT ENDPOINT: Complete data flow through QADataset")
+        logger.info("="*60)
+
+        return EditQAResponse(
+            message=f"Successfully updated Q&A pair in topic '{topic_name}'",
+            error=None,
+            timestamp=datetime.now().isoformat()
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Edit Q&A endpoint error: {e}")
+        return EditQAResponse(
+            message=f"Failed: {str(e)}",
             error=str(e),
             timestamp=datetime.now().isoformat()
         )
