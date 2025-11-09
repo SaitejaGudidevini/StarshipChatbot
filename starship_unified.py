@@ -58,12 +58,34 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ============================================================================
+# PERSISTENT STORAGE CONFIGURATION
+# ============================================================================
+
+# Data directory for persistent storage (Railway volume)
+# Local: uses current directory
+# Railway: uses /app/data (mounted volume)
+DATA_DIR = os.getenv('DATA_DIR', '.')
+os.makedirs(DATA_DIR, exist_ok=True)
+
+logger.info(f"📁 Data directory: {DATA_DIR}")
+
+# Helper function to get data file path
+def get_data_path(filename: str) -> str:
+    """Get full path to file in data directory"""
+    return os.path.join(DATA_DIR, filename)
+
 # Global state
 chatbot_engine: Optional[JSONChatbotEngine] = None
 qa_modifier: Optional[Any] = None
 browser_runner: Optional[Any] = None
 generation_task: Optional[asyncio.Task] = None
-current_json_file: str = os.getenv('JSON_DATA_PATH', 'CSU_Progress.json')
+
+# Current JSON file (stored in data directory)
+default_json_name = os.getenv('JSON_DATA_PATH', 'CSU_Progress.json')
+# Strip directory if provided, we'll use DATA_DIR
+default_json_name = os.path.basename(default_json_name)
+current_json_file: str = get_data_path(default_json_name)
 
 
 # ============================================================================
@@ -127,8 +149,25 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 STARSHIP CHATBOT - UNIFIED SERVER STARTUP")
     logger.info("="*60)
 
+    # Copy initial JSON files to data directory if they don't exist (first deploy)
+    initial_files = ['CSU_Progress.json', 'browser_agent_test_output.json']
+    for filename in initial_files:
+        data_file = get_data_path(filename)
+        if not os.path.exists(data_file):
+            # Check if file exists in app directory (from Docker COPY)
+            if os.path.exists(filename):
+                import shutil
+                shutil.copy(filename, data_file)
+                logger.info(f"📋 Copied {filename} to data directory")
+            else:
+                logger.warning(f"⚠️  Initial file {filename} not found")
+
     json_path = current_json_file
 
+    # Ensure json_path exists
+    if not os.path.exists(json_path):
+        logger.error(f"❌ JSON file not found: {json_path}")
+        logger.info(f"Available files in DATA_DIR: {os.listdir(DATA_DIR)}")
 
     # Initialize chatbot engine
     try:
@@ -166,7 +205,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"   ✏️  Editor: {'Ready' if qa_modifier else 'Not available'}")
     logger.info(f"   🤖 Generator: Ready (on-demand)")
     logger.info("="*60)
-    logger.info("🌐 Open: http://localhost:8000")
+    port = os.getenv('PORT', '8000')
+    logger.info(f"🌐 Open: http://localhost:{port}")
     logger.info("="*60)
 
     yield
@@ -1883,12 +1923,16 @@ async def edit_qa_pair(request: EditRequest):
 
 @app.get("/api/json-files/list")
 async def list_json_files():
-    """List all available JSON files in the project directory"""
+    """List all available JSON files in the data directory"""
     try:
         import glob
 
-        # Get all JSON files in the project root
-        json_files = glob.glob("*.json")
+        # Get all JSON files in DATA_DIR (persistent storage)
+        search_pattern = os.path.join(DATA_DIR, "*.json")
+        json_files = glob.glob(search_pattern)
+
+        # Get just filenames (not full paths)
+        json_files = [os.path.basename(f) for f in json_files]
 
         # Filter out system/config files
         excluded_files = ['package.json', 'package-lock.json', 'tsconfig.json', 'checkpoint_progress.json']
@@ -1901,7 +1945,9 @@ async def list_json_files():
         file_info = []
         for filename in json_files:
             try:
-                with open(filename, 'r', encoding='utf-8') as f:
+                # Use full path to read from DATA_DIR
+                filepath = get_data_path(filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
                     data = json.load(f)
 
                 # Count topics and Q&A pairs
@@ -1912,11 +1958,12 @@ async def list_json_files():
                     topics_count = 0
                     qa_count = 0
 
+                # Compare basename for is_active
                 file_info.append({
                     'filename': filename,
                     'topics': topics_count,
                     'qa_pairs': qa_count,
-                    'is_active': filename == current_json_file
+                    'is_active': get_data_path(filename) == current_json_file
                 })
             except Exception as e:
                 logger.warning(f"Could not read {filename}: {e}")
@@ -1924,7 +1971,7 @@ async def list_json_files():
 
         return {
             'files': file_info,
-            'current': current_json_file
+            'current': os.path.basename(current_json_file)
         }
     except Exception as e:
         logger.error(f"Error listing JSON files: {e}")
@@ -1939,25 +1986,28 @@ async def switch_json_file(request: SwitchFileRequest):
     try:
         filename = request.filename
 
+        # Get full path in DATA_DIR
+        filepath = get_data_path(filename)
+
         # Validate file exists
-        if not os.path.exists(filename):
-            raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail=f"File '{filename}' not found in data directory")
 
         # Validate it's a valid JSON file with Q&A data
-        with open(filename, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
         if not isinstance(data, list):
             raise HTTPException(status_code=400, detail="Invalid JSON format: expected array of topics")
 
-        logger.info(f"Switching from '{current_json_file}' to '{filename}'")
+        logger.info(f"Switching from '{os.path.basename(current_json_file)}' to '{filename}'")
 
-        # Update current file
-        current_json_file = filename
+        # Update current file (store full path)
+        current_json_file = filepath
 
         # Reload chatbot engine with new file (this will rebuild the pickle cache)
         chatbot_engine = JSONChatbotEngine(
-            json_path=filename,
+            json_path=filepath,
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
@@ -2001,8 +2051,11 @@ async def upload_json_file(file: UploadFile = File(...)):
         # Security: prevent path traversal
         filename = os.path.basename(filename)
 
+        # Get full path in DATA_DIR
+        filepath = get_data_path(filename)
+
         # Check if file already exists
-        if os.path.exists(filename):
+        if os.path.exists(filepath):
             raise HTTPException(status_code=409, detail=f"File '{filename}' already exists. Please rename and try again.")
 
         # Read and validate JSON content
@@ -2030,15 +2083,15 @@ async def upload_json_file(file: UploadFile = File(...)):
             if not isinstance(topic['qa_pairs'], list):
                 raise HTTPException(status_code=400, detail=f"Topic at index {idx}: 'qa_pairs' must be an array")
 
-        # Save the file
-        with open(filename, 'w', encoding='utf-8') as f:
+        # Save the file to DATA_DIR
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
         # Count stats
         topics_count = len(data)
         qa_count = sum(len(topic.get('qa_pairs', [])) for topic in data if isinstance(topic, dict))
 
-        logger.info(f"✅ Uploaded new file '{filename}' - {topics_count} topics, {qa_count} Q&A pairs")
+        logger.info(f"✅ Uploaded new file '{filename}' to data directory - {topics_count} topics, {qa_count} Q&A pairs")
 
         return {
             'message': f'Successfully uploaded {filename}',
