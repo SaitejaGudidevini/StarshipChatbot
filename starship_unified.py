@@ -1,0 +1,2095 @@
+"""
+StarshipChatbot - Unified Control Center
+=========================================
+
+Single FastAPI server integrating all 3 systems:
+1. Data Generation (browser_agent.py via browser_agent_runner.py)
+2. Data Editor (langgraph_chatbot.py)
+3. Production Chatbot (json_chatbot_engine.py)
+
+Features:
+- Unified web UI with tabbed interface
+- Real-time SSE updates for data generation
+- All endpoints in one server
+- Integrated state management
+
+Port: 8000
+
+Usage:
+    python starship_unified.py
+
+    Open: http://localhost:8000
+"""
+
+import logging
+import os
+import json
+import asyncio
+from typing import Optional, List, Dict, Any
+from contextlib import asynccontextmanager
+from datetime import datetime
+
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel
+from dotenv import load_dotenv
+from sse_starlette.sse import EventSourceResponse
+
+# Import our systems
+from json_chatbot_engine import JSONChatbotEngine
+from browser_agent_runner import create_runner
+
+# Try to import LangGraph editor
+try:
+    from langgraph_chatbot import QAWorkflowManager, build_merge_qa_graph, SimplifyAgent
+    LANGGRAPH_AVAILABLE = True
+except ImportError:
+    LANGGRAPH_AVAILABLE = False
+    logging.warning("⚠️  LangGraph editor not available")
+
+# Load environment
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Global state
+chatbot_engine: Optional[JSONChatbotEngine] = None
+qa_modifier: Optional[Any] = None
+browser_runner: Optional[Any] = None
+generation_task: Optional[asyncio.Task] = None
+current_json_file: str = os.getenv('JSON_DATA_PATH', 'CSU_Progress.json')
+
+
+# ============================================================================
+# PYDANTIC MODELS
+# ============================================================================
+
+class GenerateRequest(BaseModel):
+    """Start data generation"""
+    url: str
+    max_pages: int = 10
+    use_crawler: bool = False
+
+
+class ChatRequest(BaseModel):
+    """Chat question"""
+    question: str
+    session_id: str = "default"
+
+
+class SimplifyRequest(BaseModel):
+    """Simplify topic"""
+    topic_index: int
+
+
+class MergeRequest(BaseModel):
+    """Merge Q&A pairs"""
+    topic_index: int
+    qa_indices: List[int]
+    user_request: str = "Merge these Q&A pairs"
+
+
+class DeleteRequest(BaseModel):
+    """Delete Q&A pairs"""
+    topic_index: int
+    qa_indices: List[int]
+
+
+class EditRequest(BaseModel):
+    """Edit Q&A pair"""
+    topic_index: int
+    qa_index: int
+    new_question: str
+    new_answer: str
+
+
+class SwitchFileRequest(BaseModel):
+    """Switch JSON file"""
+    filename: str
+
+
+# ============================================================================
+# LIFESPAN MANAGEMENT
+# ============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize all systems on startup"""
+    global chatbot_engine, qa_modifier, current_json_file
+
+    logger.info("="*60)
+    logger.info("🚀 STARSHIP CHATBOT - UNIFIED SERVER STARTUP")
+    logger.info("="*60)
+
+    json_path = current_json_file
+
+
+    # Initialize chatbot engine
+    try:
+        logger.info("Initializing chatbot engine...")
+        chatbot_engine = JSONChatbotEngine(
+            json_path=json_path,
+            enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
+        )
+        logger.info("✅ Chatbot engine ready")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize chatbot: {e}")
+
+    # Initialize LangGraph editor
+    if LANGGRAPH_AVAILABLE:
+        try:
+            logger.info("Initializing LangGraph editor...")
+            from langgraph_chatbot import build_selective_modifier_graph
+
+            # Build all required graphs
+            merge_graph = build_merge_qa_graph()
+            selective_graph = build_selective_modifier_graph()
+
+            # Initialize workflow manager with both graphs
+            qa_modifier = QAWorkflowManager(
+                merge_graph=merge_graph,
+                selective_graph=selective_graph
+            )
+            logger.info("✅ LangGraph editor ready (merge + selective workflows)")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize editor: {e}")
+
+    logger.info("="*60)
+    logger.info("✅ STARSHIP UNIFIED SERVER READY")
+    logger.info(f"   📊 Chatbot: {'Ready' if chatbot_engine else 'Failed'}")
+    logger.info(f"   ✏️  Editor: {'Ready' if qa_modifier else 'Not available'}")
+    logger.info(f"   🤖 Generator: Ready (on-demand)")
+    logger.info("="*60)
+    logger.info("🌐 Open: http://localhost:8000")
+    logger.info("="*60)
+
+    yield
+
+    logger.info("Shutting down...")
+
+
+# ============================================================================
+# FASTAPI APP
+# ============================================================================
+
+app = FastAPI(
+    title="StarshipChatbot - Unified Control Center",
+    description="Complete Q&A system: Generate, Edit, Chat",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================================
+# MAIN UI
+# ============================================================================
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """Serve unified web UI"""
+
+    # Get stats for UI
+    total_topics = len(chatbot_engine.dataset.topics) if chatbot_engine else 0
+    total_qa = len(chatbot_engine.dataset.all_qa_pairs) if chatbot_engine else 0
+
+    html_content = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarshipChatbot - Control Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        .header h1 { font-size: 1.8em; font-weight: 600; }
+        .header .stats {
+            display: flex;
+            gap: 30px;
+            font-size: 0.9em;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.85em;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0 40px;
+            gap: 5px;
+        }
+        .tab {
+            padding: 15px 30px;
+            background: transparent;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .tab.active {
+            background: white;
+            color: #1e3c72;
+            border-bottom-color: #4CAF50;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            min-height: 600px;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .dashboard-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .dashboard-card h3 {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            opacity: 0.95;
+        }
+        .dashboard-card .value {
+            font-size: 2.8em;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        .dashboard-card .label {
+            opacity: 0.85;
+            font-size: 0.95em;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #45a049;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 30px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        /* Generation Progress */
+        .progress-box {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+        .progress-box.active {
+            display: block;
+        }
+        .progress-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .progress-stat {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .progress-stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .progress-stat-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Chat */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            max-width: 75%;
+            line-height: 1.6;
+        }
+        .message.user {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        .message.bot {
+            background: white;
+            border: 1px solid #e0e0e0;
+        }
+        .message .confidence {
+            font-size: 0.85em;
+            margin-top: 8px;
+            opacity: 0.8;
+            font-style: italic;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input-area input {
+            flex: 1;
+        }
+
+        /* Topics List */
+        .topics-grid {
+            display: grid;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .topic-card {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        .topic-card:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+        .topic-card h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.2em;
+        }
+        .topic-card .meta {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        .topic-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+        .status-message.active {
+            display: block;
+        }
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.8em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.05em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div>
+            <h1>🚀 StarshipChatbot Control Center</h1>
+            <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                <label style="font-size: 0.9em; opacity: 0.9;">Active JSON File:</label>
+                <select id="jsonFileSelector" onchange="switchJsonFile()" style="padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; cursor: pointer; font-size: 0.9em;">
+                    <option>Loading...</option>
+                </select>
+                <button onclick="document.getElementById('jsonUploadInput').click()" style="padding: 5px 15px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.3); background: rgba(76, 175, 80, 0.2); color: white; cursor: pointer; font-size: 0.9em; font-weight: 600;">
+                    ➕ Upload JSON
+                </button>
+                <input type="file" id="jsonUploadInput" accept=".json" style="display: none;" onchange="uploadJsonFile(event)">
+            </div>
+        </div>
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="headerTopics">""" + str(total_topics) + """</div>
+                <div class="stat-label">Topics</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="headerQA">""" + str(total_qa) + """</div>
+                <div class="stat-label">Q&A Pairs</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #4CAF50;">●</div>
+                <div class="stat-label">Online</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+        <button class="tab" onclick="showTab('generate')">🤖 Generate Data</button>
+        <button class="tab" onclick="showTab('edit')">✏️ Edit Data</button>
+        <button class="tab" onclick="showTab('chat')">💬 Chat</button>
+        <button class="tab" onclick="showTab('settings')">⚙️ Settings</button>
+    </div>
+
+    <!-- Container -->
+    <div class="container">
+
+        <!-- TAB 1: DASHBOARD -->
+        <div id="dashboard" class="tab-content active">
+            <h2>System Dashboard</h2>
+            <p class="subtitle">Overview of your StarshipChatbot system</p>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h3>📚 Q&A Database</h3>
+                    <div class="value" id="dashQA">""" + str(total_qa) + """</div>
+                    <div class="label">Question-answer pairs</div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>📑 Topics</h3>
+                    <div class="value" id="dashTopics">""" + str(total_topics) + """</div>
+                    <div class="label">Organized topics</div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>🎯 Chatbot</h3>
+                    <div class="value">Ready</div>
+                    <div class="label">Semantic search active</div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>🤖 Generator</h3>
+                    <div class="value">Ready</div>
+                    <div class="label">On-demand scraping</div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <button class="btn btn-primary" onclick="showTab('chat')">💬 Start Chatting</button>
+                <button class="btn btn-success" onclick="showTab('edit')">✏️ Edit Q&A Data</button>
+                <button class="btn btn-primary" onclick="showTab('generate')">🤖 Generate New Data</button>
+            </div>
+        </div>
+
+        <!-- TAB 2: GENERATE DATA -->
+        <div id="generate" class="tab-content">
+            <h2>🤖 Generate Q&A Data from Website</h2>
+            <p class="subtitle">Automatically scrape websites and generate Q&A pairs using AI</p>
+
+            <div class="form-group">
+                <label class="form-label">Website URL</label>
+                <input type="text" id="generateUrl" class="form-input" placeholder="https://example.com" value="https://example.com" />
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Maximum Pages to Scrape</label>
+                <input type="number" id="generateMaxPages" class="form-input" value="5" min="1" max="50" />
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <button class="btn btn-primary" onclick="startGeneration()" id="startBtn">
+                    <span id="startBtnText">Start Generation</span>
+                </button>
+                <button class="btn btn-danger" onclick="cancelGeneration()" id="cancelBtn" style="display:none;">
+                    Cancel
+                </button>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+
+            <div id="progressBox" class="progress-box">
+                <h3>Generation Progress</h3>
+
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar">0%</div>
+                </div>
+
+                <div class="progress-stats">
+                    <div class="progress-stat">
+                        <div class="progress-stat-label">Status</div>
+                        <div class="progress-stat-value" id="progStatus">Idle</div>
+                    </div>
+                    <div class="progress-stat">
+                        <div class="progress-stat-label">Progress</div>
+                        <div class="progress-stat-value" id="progProgress">0 / 0</div>
+                    </div>
+                    <div class="progress-stat">
+                        <div class="progress-stat-label">Q&A Generated</div>
+                        <div class="progress-stat-value" id="progQA">0</div>
+                    </div>
+                    <div class="progress-stat">
+                        <div class="progress-stat-label">Elapsed Time</div>
+                        <div class="progress-stat-value" id="progTime">0s</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px;">
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Current URL:</div>
+                    <div style="font-weight: 600; color: #333; word-break: break-all;" id="progUrl">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: EDIT DATA -->
+        <div id="edit" class="tab-content">
+            <h2>✏️ Edit Q&A Database</h2>
+            <p class="subtitle">Browse and edit your Q&A database with AI assistance</p>
+
+            <div id="topicsList" class="topics-grid">
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <div class="spinner" style="border-color: #667eea; border-top-color: transparent; width: 40px; height: 40px;"></div>
+                    <p style="margin-top: 15px;">Loading topics...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: CHAT -->
+        <div id="chat" class="tab-content">
+            <h2>💬 Interactive Chat</h2>
+            <p class="subtitle">Test your chatbot with real questions</p>
+
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot">
+                        <strong>StarshipBot</strong>
+                        <p>Hello! I'm ready to answer questions from the Q&A database. Ask me anything!</p>
+                    </div>
+                </div>
+
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" class="form-input" placeholder="Type your question here..." />
+                    <button class="btn btn-primary" onclick="sendChat()" id="chatSendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: SETTINGS -->
+        <div id="settings" class="tab-content">
+            <h2>⚙️ System Settings</h2>
+            <p class="subtitle">Configure your StarshipChatbot system</p>
+
+            <div class="form-group">
+                <label class="form-label">Active JSON Data File</label>
+                <input type="text" id="settingsJsonPath" class="form-input" value="Loading..." readonly />
+                <p style="margin-top: 5px; font-size: 0.85em; color: #666;">Use the dropdown in the header to switch between JSON files</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Groq API Key Status</label>
+                <input type="text" class="form-input" value="Configured ✓" readonly />
+            </div>
+
+            <div style="margin-top: 40px;">
+                <h3 style="margin-bottom: 20px;">System Information</h3>
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 12px;">
+                    <p style="margin-bottom: 15px;"><strong>Chatbot Engine:</strong> <span style="color: #4CAF50;">✓ Active</span></p>
+                    <p style="margin-bottom: 15px;"><strong>Data Editor:</strong> <span style="color: #4CAF50;">✓ Active</span></p>
+                    <p style="margin-bottom: 15px;"><strong>Data Generator:</strong> <span style="color: #4CAF50;">✓ Ready</span></p>
+                    <p><strong>Real-time Updates:</strong> <span style="color: #4CAF50;">✓ SSE Enabled</span></p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Global state
+        let currentEventSource = null;
+
+        // Tab switching
+        function showTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            // Load data if needed
+            if (tabName === 'edit') {
+                loadTopics();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // DATA GENERATION
+        // ═══════════════════════════════════════════════════════════
+
+        async function startGeneration() {
+            const url = document.getElementById('generateUrl').value.trim();
+            const maxPages = parseInt(document.getElementById('generateMaxPages').value);
+
+            if (!url) {
+                showStatus('Please enter a URL', 'error');
+                return;
+            }
+
+            // Start generation
+            try {
+                const response = await fetch('/api/generate/start', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url, max_pages: maxPages, use_crawler: false})
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to start generation');
+                }
+
+                // Show progress box
+                document.getElementById('progressBox').classList.add('active');
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('cancelBtn').style.display = 'inline-block';
+
+                showStatus('Generation started! Connecting to live updates...', 'info');
+
+                // Connect to SSE stream
+                connectToGenerationStream();
+
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        function connectToGenerationStream() {
+            // Close existing connection
+            if (currentEventSource) {
+                currentEventSource.close();
+            }
+
+            // Create new SSE connection
+            currentEventSource = new EventSource('/api/generate/stream');
+
+            currentEventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                // Update UI
+                updateGenerationProgress(data);
+
+                // Handle completion
+                if (data.status === 'completed') {
+                    showStatus('✅ Generation completed! Reloading data...', 'success');
+                    currentEventSource.close();
+                    document.getElementById('startBtn').style.display = 'inline-block';
+                    document.getElementById('cancelBtn').style.display = 'none';
+
+                    // Reload page after 2 seconds
+                    setTimeout(() => location.reload(), 2000);
+                } else if (data.status === 'error') {
+                    showStatus('❌ Error: ' + data.error, 'error');
+                    currentEventSource.close();
+                    document.getElementById('startBtn').style.display = 'inline-block';
+                    document.getElementById('cancelBtn').style.display = 'none';
+                }
+            };
+
+            currentEventSource.onerror = () => {
+                showStatus('Connection lost. Retrying...', 'error');
+            };
+        }
+
+        function updateGenerationProgress(data) {
+            // Update progress bar
+            const percent = data.total > 0 ? (data.current / data.total) * 100 : 0;
+            const bar = document.getElementById('progressBar');
+            bar.style.width = percent + '%';
+            bar.textContent = Math.round(percent) + '%';
+
+            // Update stats
+            document.getElementById('progStatus').textContent = data.status;
+            document.getElementById('progProgress').textContent = `${data.current} / ${data.total}`;
+            document.getElementById('progQA').textContent = data.qa_generated;
+            document.getElementById('progTime').textContent = data.elapsed_seconds + 's';
+            document.getElementById('progUrl').textContent = data.current_url || '-';
+        }
+
+        async function cancelGeneration() {
+            if (!confirm('Cancel generation?')) return;
+
+            try {
+                await fetch('/api/generate/cancel', {method: 'POST'});
+                showStatus('Generation cancelled', 'info');
+
+                if (currentEventSource) {
+                    currentEventSource.close();
+                }
+
+                document.getElementById('startBtn').style.display = 'inline-block';
+                document.getElementById('cancelBtn').style.display = 'none';
+            } catch (error) {
+                showStatus('Error cancelling: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = `status-message ${type} active`;
+            statusDiv.textContent = message;
+
+            if (type === 'success') {
+                setTimeout(() => statusDiv.classList.remove('active'), 5000);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // EDITOR
+        // ═══════════════════════════════════════════════════════════
+
+        async function loadTopics() {
+            const container = document.getElementById('topicsList');
+
+            try {
+                const response = await fetch('/api/editor/topics');
+                const topics = await response.json();
+
+                if (topics.length === 0) {
+                    container.innerHTML = '<div style="text-align:center;padding:40px;color:#666;">No topics found. Generate some data first!</div>';
+                    return;
+                }
+
+                container.innerHTML = topics.map((topic, idx) => `
+                    <div class="topic-card">
+                        <h3>${topic.name}</h3>
+                        <div class="meta">${topic.qa_count} Q&A pairs</div>
+                        <div class="topic-actions">
+                            <button class="btn btn-primary" onclick="viewTopic(${idx})">👁️ View Details</button>
+                            <button class="btn btn-success" onclick="simplifyTopicQuick(${idx}, '${topic.name.replace(/'/g, "\\'")}')">✨ Simplify</button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                container.innerHTML = '<div style="color:red;padding:40px;text-align:center;">Error loading topics</div>';
+            }
+        }
+
+        async function simplifyTopicQuick(topicIndex, topicName) {
+            if (!confirm(`Simplify topic "${topicName}"? This will create intelligent buckets with grouped questions.`)) return;
+
+            try {
+                showStatus('Simplifying topic... This may take a moment.', 'info');
+
+                const response = await fetch('/api/editor/simplify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({topic_index: topicIndex})
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ ${result.message} - Created ${result.buckets_created} buckets with ${result.new_count} Q&A pairs`, 'success');
+                    loadTopics(); // Reload topic list
+                } else {
+                    showStatus(`❌ Error: ${result.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function viewTopic(idx) {
+            try {
+                const response = await fetch(`/api/editor/topics/${idx}`);
+                const topicData = await response.json();
+
+                // Create modal HTML
+                const modalHtml = `
+                    <div id="topicModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                        <div style="background: white; border-radius: 15px; max-width: 900px; max-height: 90vh; width: 90%; overflow: hidden; display: flex; flex-direction: column;">
+                            <!-- Header -->
+                            <div style="padding: 25px; border-bottom: 2px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h2 style="margin: 0; color: #333;">${topicData.topic}</h2>
+                                    <p style="margin: 5px 0 0 0; color: #666; font-size: 0.9em;">${topicData.qa_count} Q&A pairs</p>
+                                </div>
+                                <button onclick="closeTopicModal()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666;">&times;</button>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div style="padding: 15px 25px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="btn btn-success" onclick="simplifyCurrentTopic(${idx})" style="font-size: 0.9em; padding: 8px 16px;">✨ Simplify All</button>
+                                <button class="btn btn-primary" onclick="mergeSelectedQA(${idx})" style="font-size: 0.9em; padding: 8px 16px;">🔀 Merge Selected</button>
+                                <button class="btn btn-danger" onclick="deleteSelectedQA(${idx})" style="font-size: 0.9em; padding: 8px 16px;">🗑️ Delete Selected</button>
+                                <div style="flex: 1;"></div>
+                                <span id="selectionCount" style="align-self: center; color: #666; font-size: 0.9em;">0 selected</span>
+                            </div>
+
+                            <!-- Q&A List -->
+                            <div style="flex: 1; overflow-y: auto; padding: 25px;">
+                                <div id="qaList">
+                                    ${topicData.qa_pairs.map((qa, qaIdx) => `
+                                        <div class="qa-item" style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid #667eea;">
+                                            <div style="display: flex; gap: 15px;">
+                                                <input type="checkbox" class="qa-checkbox" data-qa-index="${qaIdx}" style="width: 20px; height: 20px; cursor: pointer;" onchange="updateSelectionCount()">
+                                                <div style="flex: 1;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                                        <strong style="color: #333; font-size: 1.05em;">Q${qaIdx + 1}: ${qa.question}</strong>
+                                                        <button class="btn btn-primary" onclick="editQAPair(${idx}, ${qaIdx}, \`${qa.question.replace(/`/g, '\\`')}\`, \`${qa.answer.replace(/`/g, '\\`')}\`, event)" style="font-size: 0.8em; padding: 5px 12px;">✏️ Edit</button>
+                                                    </div>
+                                                    <p style="color: #555; margin: 10px 0 0 0; line-height: 1.6;">${qa.answer}</p>
+                                                    ${qa.is_bucketed ? `<div style="margin-top: 8px; font-size: 0.85em; color: #667eea;">🗂️ ${qa.bucket_id}</div>` : ''}
+                                                    ${qa.is_unified ? `<div style="margin-top: 8px; font-size: 0.85em; color: #4CAF50;">✨ Unified Answer</div>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Insert modal
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            } catch (error) {
+                alert('Error loading topic details: ' + error.message);
+            }
+        }
+
+        function closeTopicModal() {
+            const modal = document.getElementById('topicModal');
+            if (modal) modal.remove();
+        }
+
+        function updateSelectionCount() {
+            const checkboxes = document.querySelectorAll('.qa-checkbox:checked');
+            const count = checkboxes.length;
+            const countSpan = document.getElementById('selectionCount');
+            if (countSpan) {
+                countSpan.textContent = `${count} selected`;
+                countSpan.style.color = count > 0 ? '#667eea' : '#666';
+                countSpan.style.fontWeight = count > 0 ? 'bold' : 'normal';
+            }
+        }
+
+        async function simplifyCurrentTopic(topicIndex) {
+            if (!confirm('Simplify all Q&A pairs in this topic? This will create intelligent buckets with grouped questions.')) return;
+
+            try {
+                showStatus('Simplifying topic... This may take a moment.', 'info');
+
+                const response = await fetch('/api/editor/simplify', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({topic_index: topicIndex})
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ ${result.message} - Created ${result.buckets_created} buckets with ${result.new_count} Q&A pairs`, 'success');
+                    closeTopicModal();
+                    loadTopics(); // Reload topic list
+                } else {
+                    showStatus(`❌ Error: ${result.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function mergeSelectedQA(topicIndex) {
+            const checkboxes = document.querySelectorAll('.qa-checkbox:checked');
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.qaIndex));
+
+            if (selectedIndices.length < 2) {
+                alert('Please select at least 2 Q&A pairs to merge');
+                return;
+            }
+
+            if (!confirm(`Merge ${selectedIndices.length} Q&A pairs into one? The originals will be kept and a merged version will be added.`)) return;
+
+            try {
+                showStatus('Merging Q&A pairs... This may take a moment.', 'info');
+
+                const response = await fetch('/api/editor/merge', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        topic_index: topicIndex,
+                        qa_indices: selectedIndices,
+                        user_request: 'Merge these Q&A pairs intelligently'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ ${result.message}`, 'success');
+                    closeTopicModal();
+                    loadTopics(); // Reload topic list
+                } else {
+                    showStatus(`❌ Error: ${result.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function deleteSelectedQA(topicIndex) {
+            const checkboxes = document.querySelectorAll('.qa-checkbox:checked');
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.qaIndex));
+
+            if (selectedIndices.length === 0) {
+                alert('Please select Q&A pairs to delete');
+                return;
+            }
+
+            if (!confirm(`Delete ${selectedIndices.length} Q&A pair(s)? This cannot be undone.`)) return;
+
+            try {
+                const response = await fetch('/api/editor/delete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        topic_index: topicIndex,
+                        qa_indices: selectedIndices
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ ${result.message}`, 'success');
+                    closeTopicModal();
+                    loadTopics(); // Reload topic list
+                } else {
+                    showStatus(`❌ Error: ${result.detail}`, 'error');
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function editQAPair(topicIndex, qaIndex, currentQuestion, currentAnswer, event) {
+            event.stopPropagation();
+
+            // Create edit modal
+            const editModalHtml = `
+                <div id="editModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1100; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; border-radius: 15px; max-width: 600px; width: 90%; padding: 30px;">
+                        <h3 style="margin: 0 0 20px 0;">Edit Q&A Pair</h3>
+
+                        <div class="form-group">
+                            <label class="form-label">Question:</label>
+                            <textarea id="editQuestion" class="form-textarea" style="min-height: 80px;">${currentQuestion}</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Answer:</label>
+                            <textarea id="editAnswer" class="form-textarea" style="min-height: 120px;">${currentAnswer}</textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                            <button class="btn" onclick="closeEditModal()" style="background: #ccc;">Cancel</button>
+                            <button class="btn btn-primary" onclick="saveQAEdit(${topicIndex}, ${qaIndex})">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.insertAdjacentHTML('beforeend', editModalHtml);
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) modal.remove();
+        }
+
+        async function saveQAEdit(topicIndex, qaIndex) {
+            const newQuestion = document.getElementById('editQuestion').value.trim();
+            const newAnswer = document.getElementById('editAnswer').value.trim();
+
+            if (!newQuestion || !newAnswer) {
+                alert('Question and answer cannot be empty');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/editor/edit', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        topic_index: topicIndex,
+                        qa_index: qaIndex,
+                        new_question: newQuestion,
+                        new_answer: newAnswer
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus('✅ Q&A pair updated successfully', 'success');
+                    closeEditModal();
+                    closeTopicModal();
+                    loadTopics();
+                } else {
+                    alert('Error: ' + result.detail);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        // CHAT
+        // ═══════════════════════════════════════════════════════════
+
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const question = input.value.trim();
+
+            if (!question) return;
+
+            // Add user message
+            addMessage(question, 'user');
+            input.value = '';
+
+            // Disable send button
+            const sendBtn = document.getElementById('chatSendBtn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({question})
+                });
+
+                const result = await response.json();
+
+                // Add bot response
+                const botHTML = `
+                    <strong>StarshipBot</strong>
+                    <p>${result.answer}</p>
+                    <div class="confidence">
+                        Confidence: ${(result.confidence * 100).toFixed(1)}% |
+                        Matched by: ${result.matched_by}
+                        ${result.source_topic ? ' | Topic: ' + result.source_topic : ''}
+                    </div>
+                `;
+                addMessage(botHTML, 'bot', true);
+
+            } catch (error) {
+                addMessage('Sorry, an error occurred: ' + error.message, 'bot');
+            }
+
+            // Re-enable send button
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+        }
+
+        function addMessage(content, type, isHTML = false) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            if (isHTML) {
+                messageDiv.innerHTML = content;
+            } else {
+                if (type === 'user') {
+                    messageDiv.innerHTML = `<strong>You</strong><p>${content}</p>`;
+                } else {
+                    messageDiv.textContent = content;
+                }
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Enter key to send chat
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChat();
+        });
+
+        // ═══════════════════════════════════════════════════════════
+        // JSON FILE MANAGEMENT
+        // ═══════════════════════════════════════════════════════════
+
+        async function loadJsonFiles() {
+            try {
+                const response = await fetch('/api/json-files/list');
+                const data = await response.json();
+
+                const selector = document.getElementById('jsonFileSelector');
+                selector.innerHTML = '';
+
+                // Populate dropdown
+                data.files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file.filename;
+                    option.textContent = `${file.filename} (${file.topics} topics, ${file.qa_pairs} Q&A)`;
+                    option.selected = file.is_active;
+                    selector.appendChild(option);
+                });
+
+                // Update settings display
+                const settingsInput = document.getElementById('settingsJsonPath');
+                if (settingsInput) {
+                    settingsInput.value = data.current;
+                }
+            } catch (error) {
+                console.error('Error loading JSON files:', error);
+            }
+        }
+
+        async function switchJsonFile() {
+            const selector = document.getElementById('jsonFileSelector');
+            const selectedFile = selector.value;
+
+            if (!selectedFile) return;
+
+            try {
+                showStatus(`Switching to ${selectedFile}... This will reload the chatbot engine.`, 'info');
+
+                const response = await fetch('/api/json-files/switch', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ filename: selectedFile })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to switch JSON file');
+                }
+
+                const result = await response.json();
+                showStatus(`✅ ${result.message} - ${result.topics} topics, ${result.qa_pairs} Q&A pairs`, 'success');
+
+                // Reload the page to refresh all data
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+                // Reload file list to restore previous selection
+                loadJsonFiles();
+            }
+        }
+
+        async function uploadJsonFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.name.endsWith('.json')) {
+                showStatus('❌ Please select a .json file', 'error');
+                event.target.value = ''; // Reset input
+                return;
+            }
+
+            try {
+                showStatus(`Uploading ${file.name}... Please wait.`, 'info');
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/json-files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Upload failed');
+                }
+
+                showStatus(`✅ ${result.message} - ${result.topics} topics, ${result.qa_pairs} Q&A pairs`, 'success');
+
+                // Reload JSON file list
+                await loadJsonFiles();
+
+                // Ask user if they want to switch to the new file
+                if (confirm(`File uploaded successfully! Would you like to switch to "${result.filename}" now?`)) {
+                    // Update selector and trigger switch
+                    const selector = document.getElementById('jsonFileSelector');
+                    selector.value = result.filename;
+                    await switchJsonFile();
+                }
+
+            } catch (error) {
+                showStatus('❌ Upload error: ' + error.message, 'error');
+            } finally {
+                // Reset file input
+                event.target.value = '';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('StarshipChatbot UI loaded!');
+            loadJsonFiles(); // Load JSON file list on startup
+        });
+    </script>
+</body>
+</html>
+    """
+
+    return HTMLResponse(content=html_content)
+
+
+# ============================================================================
+# DASHBOARD ENDPOINTS
+# ============================================================================
+
+@app.get("/api/dashboard")
+async def get_dashboard():
+    """Get system dashboard statistics"""
+    if not chatbot_engine:
+        raise HTTPException(status_code=500, detail="Chatbot not initialized")
+
+    return {
+        'total_topics': len(chatbot_engine.dataset.topics),
+        'total_qa_pairs': len(chatbot_engine.dataset.all_qa_pairs),
+        'chatbot_ready': chatbot_engine is not None,
+        'editor_ready': qa_modifier is not None,
+        'generator_ready': True,
+        'generation_running': browser_runner is not None and browser_runner.is_running() if browser_runner else False,
+        'rephrasing_enabled': chatbot_engine.rephraser is not None if chatbot_engine else False,
+        'timestamp': datetime.now().isoformat()
+    }
+
+
+# ============================================================================
+# DATA GENERATION ENDPOINTS
+# ============================================================================
+
+@app.post("/api/generate/start")
+async def start_generation(request: GenerateRequest, background_tasks: BackgroundTasks):
+    """Start browser agent data generation in background"""
+    global browser_runner, generation_task
+
+    # Check if already running
+    if browser_runner and browser_runner.is_running():
+        raise HTTPException(status_code=400, detail="Generation already running")
+
+    logger.info(f"Starting generation for URL: {request.url}")
+
+    # Create runner
+    browser_runner = create_runner(use_mock=True)  # Using mock for now
+
+    # Start background task
+    async def run_generation():
+        try:
+            async for progress in browser_runner.run(
+                url=request.url,
+                max_pages=request.max_pages,
+                use_crawler=request.use_crawler
+            ):
+                logger.debug(f"Generation progress: {progress['status']} - {progress['current']}/{progress['total']}")
+        except Exception as e:
+            logger.error(f"Generation error: {e}", exc_info=True)
+
+    generation_task = asyncio.create_task(run_generation())
+
+    return {
+        'message': 'Generation started',
+        'url': request.url,
+        'max_pages': request.max_pages,
+        'use_crawler': request.use_crawler
+    }
+
+
+@app.get("/api/generate/stream")
+async def generation_stream():
+    """SSE endpoint for real-time generation progress"""
+
+    async def event_generator():
+        """Generate SSE events with progress updates"""
+        try:
+            while True:
+                if browser_runner:
+                    progress = browser_runner.get_progress()
+
+                    # Send progress update
+                    yield {
+                        "event": "progress",
+                        "data": json.dumps(progress)
+                    }
+
+                    # Stop streaming if completed or errored
+                    if progress['status'] in ['completed', 'error', 'cancelled']:
+                        logger.info(f"Generation {progress['status']}")
+                        break
+                else:
+                    # No runner yet
+                    yield {
+                        "event": "status",
+                        "data": json.dumps({'status': 'waiting'})
+                    }
+
+                await asyncio.sleep(1)  # Update every second
+
+        except asyncio.CancelledError:
+            logger.info("SSE stream cancelled by client")
+        except Exception as e:
+            logger.error(f"SSE stream error: {e}", exc_info=True)
+            yield {
+                "event": "error",
+                "data": json.dumps({'error': str(e)})
+            }
+
+    return EventSourceResponse(event_generator())
+
+
+@app.get("/api/generate/status")
+async def get_generation_status():
+    """Get current generation status (polling alternative to SSE)"""
+    if not browser_runner:
+        return {
+            'status': 'idle',
+            'message': 'No generation running'
+        }
+
+    return browser_runner.get_progress()
+
+
+@app.post("/api/generate/cancel")
+async def cancel_generation():
+    """Cancel running generation"""
+    global browser_runner, generation_task
+
+    if not browser_runner or not browser_runner.is_running():
+        raise HTTPException(status_code=400, detail="No generation running")
+
+    logger.info("Cancelling generation...")
+    browser_runner.cancel()
+
+    if generation_task:
+        generation_task.cancel()
+
+    return {'message': 'Generation cancelled'}
+
+
+# ============================================================================
+# CHATBOT ENDPOINTS
+# ============================================================================
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """Process chat question and return answer"""
+    if not chatbot_engine:
+        raise HTTPException(status_code=500, detail="Chatbot not initialized")
+
+    try:
+        result = chatbot_engine.process_question(
+            user_question=request.question,
+            session_id=request.session_id
+        )
+
+        return {
+            'answer': result['answer'],
+            'matched_by': result['matched_by'],
+            'confidence': result['confidence'],
+            'source_question': result['source_qa'].question if result['source_qa'] else None,
+            'source_topic': result['source_qa'].topic if result['source_qa'] else None,
+            'suggested_questions': result.get('suggested_questions'),
+            'pipeline_info': result['pipeline_info']
+        }
+    except Exception as e:
+        logger.error(f"Chat error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/chat/stats")
+async def get_chat_stats():
+    """Get chatbot statistics"""
+    if not chatbot_engine:
+        raise HTTPException(status_code=500, detail="Chatbot not initialized")
+
+    return {
+        'total_qa_pairs': len(chatbot_engine.dataset.all_qa_pairs),
+        'total_topics': len(chatbot_engine.dataset.topics),
+        'rephrasing_enabled': chatbot_engine.rephraser is not None,
+        'thresholds': {
+            'ideal': chatbot_engine.search_engine.SIMILARITY_THRESHOLD_IDEAL,
+            'minimal': chatbot_engine.search_engine.SIMILARITY_THRESHOLD
+        }
+    }
+
+
+# ============================================================================
+# EDITOR ENDPOINTS
+# ============================================================================
+
+@app.get("/api/editor/topics")
+async def get_editor_topics():
+    """Get all topics for editor"""
+    if not chatbot_engine:
+        raise HTTPException(status_code=500, detail="Chatbot not initialized")
+
+    return chatbot_engine.get_all_topics()
+
+
+@app.get("/api/editor/topics/{topic_index}")
+async def get_topic_details(topic_index: int):
+    """Get detailed Q&A pairs for a specific topic"""
+    if not chatbot_engine:
+        raise HTTPException(status_code=500, detail="Chatbot not initialized")
+
+    if topic_index < 0 or topic_index >= len(chatbot_engine.dataset.topics):
+        raise HTTPException(status_code=404, detail="Topic not found")
+
+    topic = chatbot_engine.dataset.topics[topic_index]
+
+    return {
+        'topic': topic.topic,
+        'url': topic.original_url,
+        'qa_count': len(topic.qa_pairs),
+        'qa_pairs': [
+            {
+                'question': qa.question,
+                'answer': qa.answer,
+                'qa_index': qa.qa_index,
+                'is_bucketed': qa.is_bucketed,
+                'bucket_id': qa.bucket_id
+            }
+            for qa in topic.qa_pairs
+        ]
+    }
+
+
+@app.post("/api/editor/simplify")
+async def simplify_topic(request: SimplifyRequest):
+    """Simplify Q&A pairs in a topic using SimplifyAgent"""
+    if not qa_modifier:
+        raise HTTPException(
+            status_code=503,
+            detail="LangGraph editor not available. Install required dependencies."
+        )
+
+    try:
+        # Load current JSON
+        json_path = current_json_file
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if request.topic_index < 0 or request.topic_index >= len(data):
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        topic = data[request.topic_index]
+        topic_name = topic.get('topic', 'Unknown Topic')
+        qa_pairs = topic.get('qa_pairs', [])
+
+        if not qa_pairs:
+            raise HTTPException(status_code=400, detail="No Q&A pairs to simplify")
+
+        logger.info(f"Simplifying topic '{topic_name}' with {len(qa_pairs)} Q&A pairs")
+
+        # Use SimplifyAgent to create bucketed Q&A pairs
+        bucketed_pairs = await SimplifyAgent.dynamic_adjust(qa_pairs)
+
+        # Update topic with bucketed pairs
+        topic['qa_pairs'] = bucketed_pairs
+        topic['qa_count'] = len(bucketed_pairs)
+
+        # Save back to JSON
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Reload chatbot engine
+        global chatbot_engine
+        chatbot_engine = JSONChatbotEngine(
+            json_path=json_path,
+            enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
+        )
+
+        # Count unique buckets
+        unique_buckets = len(set(pair.get("bucket_id", "") for pair in bucketed_pairs if pair.get("is_bucketed")))
+
+        logger.info(f"✅ Simplification complete: {len(bucketed_pairs)} Q&A pairs in {unique_buckets} buckets")
+
+        return {
+            'message': f'Successfully simplified topic "{topic_name}"',
+            'topic_index': request.topic_index,
+            'original_count': len(qa_pairs),
+            'new_count': len(bucketed_pairs),
+            'buckets_created': unique_buckets
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Simplify error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/editor/merge")
+async def merge_qa_pairs(request: MergeRequest):
+    """Merge multiple Q&A pairs into one using LangGraph workflow"""
+    if not qa_modifier:
+        raise HTTPException(status_code=503, detail="LangGraph editor not available")
+
+    if len(request.qa_indices) < 2:
+        raise HTTPException(status_code=400, detail="Need at least 2 Q&A pairs to merge")
+
+    try:
+        # Load current JSON
+        json_path = current_json_file
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            all_data = json.load(f)
+
+        if request.topic_index < 0 or request.topic_index >= len(all_data):
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        topic = all_data[request.topic_index]
+        topic_name = topic.get('topic', 'Unknown Topic')
+        qa_pairs = topic.get('qa_pairs', [])
+
+        # Validate indices
+        for idx in request.qa_indices:
+            if idx < 0 or idx >= len(qa_pairs):
+                raise HTTPException(status_code=400, detail=f"Invalid Q&A index: {idx}")
+
+        logger.info(f"Merging {len(request.qa_indices)} Q&A pairs from topic '{topic_name}'")
+
+        # Use QAWorkflowManager to merge Q&A pairs
+        result = await qa_modifier.merge_qa_pairs(
+            topic_index=request.topic_index,
+            selected_qa_indices=request.qa_indices,
+            all_data=all_data,
+            user_request=request.user_request
+        )
+
+        if result.get('error'):
+            raise HTTPException(status_code=500, detail=result['error'])
+
+        # Save the modified data
+        modified_data = result.get('modified_data', all_data)
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(modified_data, f, indent=2, ensure_ascii=False)
+
+        # Reload chatbot engine
+        global chatbot_engine
+        chatbot_engine = JSONChatbotEngine(
+            json_path=json_path,
+            enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
+        )
+
+        logger.info(f"✅ Merge complete: {result.get('agent_response')}")
+
+        return {
+            'message': result.get('agent_response', 'Merge completed'),
+            'topic_index': request.topic_index,
+            'qa_indices': request.qa_indices,
+            'merged_count': len(request.qa_indices),
+            'new_total': len(modified_data[request.topic_index].get('qa_pairs', []))
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Merge error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/editor/delete")
+async def delete_qa_pairs(request: DeleteRequest):
+    """Delete Q&A pairs from a topic"""
+    try:
+        # Load current JSON
+        json_path = current_json_file
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if request.topic_index < 0 or request.topic_index >= len(data):
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        topic = data[request.topic_index]
+
+        # Delete specified Q&A pairs
+        qa_pairs = topic.get('qa_pairs', [])
+
+        # Sort indices in reverse to delete from end first
+        for idx in sorted(request.qa_indices, reverse=True):
+            if 0 <= idx < len(qa_pairs):
+                qa_pairs.pop(idx)
+
+        # Save back
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Reload chatbot engine
+        global chatbot_engine
+        chatbot_engine = JSONChatbotEngine(
+            json_path=json_path,
+            enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
+        )
+
+        return {
+            'message': f'Deleted {len(request.qa_indices)} Q&A pairs',
+            'deleted_count': len(request.qa_indices)
+        }
+    except Exception as e:
+        logger.error(f"Delete error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/editor/edit")
+async def edit_qa_pair(request: EditRequest):
+    """Edit a single Q&A pair"""
+    try:
+        json_path = current_json_file
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if request.topic_index < 0 or request.topic_index >= len(data):
+            raise HTTPException(status_code=404, detail="Topic not found")
+
+        topic = data[request.topic_index]
+        qa_pairs = topic.get('qa_pairs', [])
+
+        if request.qa_index < 0 or request.qa_index >= len(qa_pairs):
+            raise HTTPException(status_code=404, detail="Q&A pair not found")
+
+        # Update Q&A pair
+        qa_pairs[request.qa_index]['question'] = request.new_question
+        qa_pairs[request.qa_index]['answer'] = request.new_answer
+
+        # Save
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Reload chatbot
+        global chatbot_engine
+        chatbot_engine = JSONChatbotEngine(
+            json_path=json_path,
+            enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
+        )
+
+        return {
+            'message': 'Q&A pair updated successfully',
+            'topic_index': request.topic_index,
+            'qa_index': request.qa_index
+        }
+    except Exception as e:
+        logger.error(f"Edit error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# JSON FILE MANAGEMENT
+# ============================================================================
+
+@app.get("/api/json-files/list")
+async def list_json_files():
+    """List all available JSON files in the project directory"""
+    try:
+        import glob
+
+        # Get all JSON files in the project root
+        json_files = glob.glob("*.json")
+
+        # Filter out system/config files
+        excluded_files = ['package.json', 'package-lock.json', 'tsconfig.json', 'checkpoint_progress.json']
+        json_files = [f for f in json_files if f not in excluded_files]
+
+        # Sort alphabetically
+        json_files.sort()
+
+        # Get file stats
+        file_info = []
+        for filename in json_files:
+            try:
+                with open(filename, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                # Count topics and Q&A pairs
+                if isinstance(data, list):
+                    topics_count = len(data)
+                    qa_count = sum(len(topic.get('qa_pairs', [])) for topic in data if isinstance(topic, dict))
+                else:
+                    topics_count = 0
+                    qa_count = 0
+
+                file_info.append({
+                    'filename': filename,
+                    'topics': topics_count,
+                    'qa_pairs': qa_count,
+                    'is_active': filename == current_json_file
+                })
+            except Exception as e:
+                logger.warning(f"Could not read {filename}: {e}")
+                continue
+
+        return {
+            'files': file_info,
+            'current': current_json_file
+        }
+    except Exception as e:
+        logger.error(f"Error listing JSON files: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/json-files/switch")
+async def switch_json_file(request: SwitchFileRequest):
+    """Switch to a different JSON file"""
+    global current_json_file, chatbot_engine
+
+    try:
+        filename = request.filename
+
+        # Validate file exists
+        if not os.path.exists(filename):
+            raise HTTPException(status_code=404, detail=f"File '{filename}' not found")
+
+        # Validate it's a valid JSON file with Q&A data
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if not isinstance(data, list):
+            raise HTTPException(status_code=400, detail="Invalid JSON format: expected array of topics")
+
+        logger.info(f"Switching from '{current_json_file}' to '{filename}'")
+
+        # Update current file
+        current_json_file = filename
+
+        # Reload chatbot engine with new file (this will rebuild the pickle cache)
+        chatbot_engine = JSONChatbotEngine(
+            json_path=filename,
+            enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
+        )
+
+        # Count stats
+        topics_count = len(data)
+        qa_count = sum(len(topic.get('qa_pairs', [])) for topic in data if isinstance(topic, dict))
+
+        logger.info(f"✅ Switched to '{filename}' - {topics_count} topics, {qa_count} Q&A pairs")
+
+        return {
+            'message': f'Successfully switched to {filename}',
+            'filename': filename,
+            'topics': topics_count,
+            'qa_pairs': qa_count
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error switching JSON file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/json-files/current")
+async def get_current_json_file():
+    """Get the currently active JSON file"""
+    return {
+        'filename': current_json_file,
+        'chatbot_loaded': chatbot_engine is not None
+    }
+
+
+@app.post("/api/json-files/upload")
+async def upload_json_file(file: UploadFile = File(...)):
+    """Upload a new JSON file to the project directory"""
+    try:
+        # Validate filename
+        filename = file.filename
+        if not filename or not filename.endswith('.json'):
+            raise HTTPException(status_code=400, detail="File must be a .json file")
+
+        # Security: prevent path traversal
+        filename = os.path.basename(filename)
+
+        # Check if file already exists
+        if os.path.exists(filename):
+            raise HTTPException(status_code=409, detail=f"File '{filename}' already exists. Please rename and try again.")
+
+        # Read and validate JSON content
+        content = await file.read()
+        try:
+            data = json.loads(content.decode('utf-8'))
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON format: {str(e)}")
+        except UnicodeDecodeError:
+            raise HTTPException(status_code=400, detail="File must be UTF-8 encoded")
+
+        # Validate structure (must be array of topics)
+        if not isinstance(data, list):
+            raise HTTPException(status_code=400, detail="JSON must be an array of topics")
+
+        if len(data) == 0:
+            raise HTTPException(status_code=400, detail="JSON file cannot be empty")
+
+        # Validate each topic has required fields
+        for idx, topic in enumerate(data):
+            if not isinstance(topic, dict):
+                raise HTTPException(status_code=400, detail=f"Topic at index {idx} must be an object")
+            if 'qa_pairs' not in topic:
+                raise HTTPException(status_code=400, detail=f"Topic at index {idx} missing 'qa_pairs' field")
+            if not isinstance(topic['qa_pairs'], list):
+                raise HTTPException(status_code=400, detail=f"Topic at index {idx}: 'qa_pairs' must be an array")
+
+        # Save the file
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Count stats
+        topics_count = len(data)
+        qa_count = sum(len(topic.get('qa_pairs', [])) for topic in data if isinstance(topic, dict))
+
+        logger.info(f"✅ Uploaded new file '{filename}' - {topics_count} topics, {qa_count} Q&A pairs")
+
+        return {
+            'message': f'Successfully uploaded {filename}',
+            'filename': filename,
+            'topics': topics_count,
+            'qa_pairs': qa_count
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading JSON file: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# HEALTH CHECK
+# ============================================================================
+
+@app.get("/api/health")
+async def health():
+    """System health check"""
+    return {
+        'status': 'healthy',
+        'chatbot': chatbot_engine is not None,
+        'editor': qa_modifier is not None,
+        'generator': True,
+        'generation_running': browser_runner.is_running() if browser_runner else False,
+        'current_json_file': current_json_file,
+        'timestamp': datetime.now().isoformat()
+    }
+
+
+# ============================================================================
+# RUN SERVER
+# ============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv('PORT', 8000))
+
+    print("\n" + "="*60)
+    print("🚀 Starting StarshipChatbot Unified Server")
+    print("="*60)
+    print(f"   Server will run on: http://localhost:{port}")
+    print(f"   API docs: http://localhost:{port}/docs")
+    print("="*60 + "\n")
+
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_level="info"
+    )
