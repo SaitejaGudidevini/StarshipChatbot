@@ -9,7 +9,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies
+# Install system dependencies (needed for sentence-transformers and numpy)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
@@ -19,26 +19,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files for StarshipChatbot Unified Server
+# Copy only required Python application files
 COPY starship_unified.py .
 COPY json_chatbot_engine.py .
 COPY langgraph_chatbot.py .
 COPY browser_agent_runner.py .
 
-# Copy essential JSON data files
+# Copy essential JSON data files (will be moved to /app/data on first startup)
 COPY CSU_Progress.json .
 COPY browser_agent_test_output.json .
+COPY MelindaFile.json .
 
-# Copy environment file (if exists)
-COPY .env* ./ 2>/dev/null || true
+# Copy environment file if it exists (optional - Railway/Render use dashboard env vars)
+# Using wildcard pattern makes it non-fatal if file doesn't exist
+COPY .env* ./
 
-# Create data directory for persistent storage (Railway volume will mount here)
+# Create data directory for persistent storage (Railway/Render volume will mount here)
 RUN mkdir -p /app/data
 
 # Expose port
 EXPOSE 8000
 
-# Set environment variables for Railway
+# Set environment variables for deployment
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV DATA_DIR=/app/data
