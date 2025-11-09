@@ -25,8 +25,9 @@ COPY json_chatbot_engine.py .
 COPY langgraph_chatbot.py .
 COPY browser_agent_runner.py .
 
-# Copy WorkingFiles directory (contains browser_agent.py)
-COPY WorkingFiles/ ./WorkingFiles/
+# Copy only browser_agent.py from WorkingFiles (not the whole 9GB folder!)
+RUN mkdir -p WorkingFiles
+COPY WorkingFiles/browser_agent.py ./WorkingFiles/
 
 # Copy essential JSON data files (will be moved to /app/data on first startup)
 COPY CSU_Progress.json .
