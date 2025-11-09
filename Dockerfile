@@ -34,6 +34,11 @@ COPY CSU_Progress.json .
 COPY browser_agent_test_output.json .
 COPY MelindaFile.json .
 
+# Copy pre-built pickle caches if they exist (speeds up first startup)
+# Note: If these don't exist locally, Docker build will skip them (won't fail)
+# Generate them locally first with: python -c "from json_chatbot_engine import JSONChatbotEngine; JSONChatbotEngine('CSU_Progress.json')"
+COPY *_qa_cache.pkl ./
+
 # Copy environment file if it exists (optional - Railway/Render use dashboard env vars)
 # Using wildcard pattern makes it non-fatal if file doesn't exist
 COPY .env* ./
