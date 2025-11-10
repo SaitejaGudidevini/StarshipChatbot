@@ -148,7 +148,7 @@ export function Settings() {
         <div className="space-y-3">
           <InfoRow label="Current File" value={fileList?.current || 'None'} />
           <InfoRow label="Total Files" value={fileList?.files.length.toString() || '0'} />
-          <InfoRow label="API Base URL" value="http://localhost:8000" />
+          <InfoRow label="API Base URL" value={import.meta.env.VITE_API_URL || window.location.origin} />
         </div>
       </div>
     </div>

@@ -11,7 +11,9 @@ export function Generator() {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const eventSource = new EventSource('http://localhost:8000/api/generate/stream');
+    // Use same origin for SSE connection (works in both dev and production)
+    const apiBaseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const eventSource = new EventSource(`${apiBaseUrl}/api/generate/stream`);
 
     eventSource.onopen = () => {
       setIsConnected(true);
