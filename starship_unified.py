@@ -1549,8 +1549,16 @@ async def start_generation(request: GenerateRequest, background_tasks: Backgroun
 
     logger.info(f"Starting generation for URL: {request.url}")
 
-    # Create runner
-    browser_runner = create_runner(use_mock=True)  # Using mock for now
+    # Create timestamped output filename (never overwrites previous generations)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_filename = get_data_path(f"generated_{timestamp}.json")
+    logger.info(f"Output will be saved to: {output_filename}")
+
+    # Create runner with timestamped filename
+    browser_runner = create_runner(
+        output_file=output_filename,
+        use_mock=False  # Real mode - actually scrapes websites
+    )
 
     # Start background task
     async def run_generation():

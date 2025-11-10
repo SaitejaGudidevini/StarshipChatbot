@@ -231,7 +231,7 @@ class BrowserAgentRunner:
 
         try:
             # Import browser_agent components
-            from WorkingFiles.browser_agent import build_graph
+            from WorkingFiles.browser_agent import build_browser_agent_graph
             from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
             self.progress['status'] = 'initializing'
@@ -245,65 +245,66 @@ class BrowserAgentRunner:
             self.progress['status'] = 'building_graph'
             yield self.progress
 
-            checkpointer = await AsyncSqliteSaver.from_conn_string(
-                "browser_agent_checkpoints.db"
-            )
+            # Use async context manager for checkpointer (LangGraph requirement)
+            async with AsyncSqliteSaver.from_conn_string("browser_agent_checkpoints.db") as checkpointer:
+                self._graph = build_browser_agent_graph(checkpointer, enable_crawler=use_crawler)
+                logger.info("Graph built successfully")
 
-            self._graph = await build_graph(checkpointer)
-            logger.info("Graph built successfully")
+                # Store checkpointer reference for the graph execution
+                self._checkpointer = checkpointer
 
-            # Prepare initial state
-            initial_state = {
-                "start_url": url,
-                "max_depth": 2,
-                "max_pages": max_pages,
-                "use_crawler": use_crawler,
-                "semantic_elements": [] if use_crawler else [
-                    {"text": url, "url": url, "semantic_path": url, "type": "manual"}
-                ],
-                "current_index": 0,
-                "results": [],
-                "errors": []
-            }
-
-            self.progress['total'] = max_pages
-            self.progress['status'] = 'running'
-            yield self.progress
-
-            # Run the graph
-            config = {
-                "configurable": {
-                    "thread_id": f"generation_{datetime.now().timestamp()}"
+                # Prepare initial state
+                initial_state = {
+                    "start_url": url,
+                    "max_depth": 2,
+                    "max_pages": max_pages,
+                    "use_crawler": use_crawler,
+                    "semantic_elements": [] if use_crawler else [
+                        {"text": url, "url": url, "semantic_path": url, "type": "manual"}
+                    ],
+                    "current_index": 0,
+                    "results": [],
+                    "errors": []
                 }
-            }
 
-            async for event in self._graph.astream(initial_state, config):
-                if not self._is_running:
-                    self.progress['status'] = 'cancelled'
-                    yield self.progress
-                    return
-
-                # Process event and update progress
-                await self._handle_event(event)
-
-                # Update elapsed time
-                if self._start_time:
-                    elapsed = (datetime.now() - self._start_time).total_seconds()
-                    self.progress['elapsed_seconds'] = int(elapsed)
-
-                # Yield progress
+                self.progress['total'] = max_pages
+                self.progress['status'] = 'running'
                 yield self.progress
 
-                # Small delay
-                await asyncio.sleep(0.1)
+                # Run the graph
+                config = {
+                    "configurable": {
+                        "thread_id": f"generation_{datetime.now().timestamp()}"
+                    }
+                }
 
-            # Completion
-            self.progress['status'] = 'completed'
-            self.progress['completed_at'] = datetime.now().isoformat()
-            self._is_running = False
-            yield self.progress
+                async for event in self._graph.astream(initial_state, config):
+                    if not self._is_running:
+                        self.progress['status'] = 'cancelled'
+                        yield self.progress
+                        return
 
-            logger.info(f"Browser agent completed. Generated {self.progress['qa_generated']} Q&A pairs")
+                    # Process event and update progress
+                    await self._handle_event(event)
+
+                    # Update elapsed time
+                    if self._start_time:
+                        elapsed = (datetime.now() - self._start_time).total_seconds()
+                        self.progress['elapsed_seconds'] = int(elapsed)
+
+                    # Yield progress
+                    yield self.progress
+
+                    # Small delay
+                    await asyncio.sleep(0.1)
+
+                # Completion
+                self.progress['status'] = 'completed'
+                self.progress['completed_at'] = datetime.now().isoformat()
+                self._is_running = False
+                yield self.progress
+
+                logger.info(f"Browser agent completed. Generated {self.progress['qa_generated']} Q&A pairs")
 
         except ImportError as e:
             logger.error(f"Browser agent import failed: {e}")
@@ -402,11 +403,11 @@ def create_runner(output_file: str = "browser_agent_test_output.json", use_mock:
 
     try:
         # Try to import browser_agent
-        from WorkingFiles.browser_agent import build_graph
+        from WorkingFiles.browser_agent import build_browser_agent_graph
         logger.info("Using BrowserAgentRunner (real)")
         return BrowserAgentRunner(output_file)
-    except ImportError:
-        logger.warning("browser_agent.py not available, using MockBrowserAgentRunner")
+    except ImportError as e:
+        logger.warning(f"browser_agent.py not available: {e}, using MockBrowserAgentRunner")
         return MockBrowserAgentRunner(output_file)
 
 
