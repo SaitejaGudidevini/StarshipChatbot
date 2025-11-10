@@ -2150,6 +2150,80 @@ async def upload_json_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/volume/diagnostics")
+async def volume_diagnostics():
+    """
+    Check Railway volume status and contents
+    Useful for debugging persistent storage issues
+    """
+    try:
+        import glob
+
+        # Get volume information
+        diagnostics = {
+            "data_dir": DATA_DIR,
+            "data_dir_exists": os.path.exists(DATA_DIR),
+            "data_dir_writable": os.access(DATA_DIR, os.W_OK) if os.path.exists(DATA_DIR) else False,
+            "current_json_file": current_json_file,
+            "current_json_exists": os.path.exists(current_json_file) if current_json_file else False,
+        }
+
+        # List all files in DATA_DIR
+        if os.path.exists(DATA_DIR):
+            all_files = os.listdir(DATA_DIR)
+
+            # Separate by type
+            json_files = [f for f in all_files if f.endswith('.json')]
+            db_files = [f for f in all_files if f.endswith('.db')]
+            other_files = [f for f in all_files if not (f.endswith('.json') or f.endswith('.db'))]
+
+            # Get file sizes
+            file_details = []
+            for filename in all_files:
+                filepath = os.path.join(DATA_DIR, filename)
+                try:
+                    size = os.path.getsize(filepath)
+                    modified = os.path.getmtime(filepath)
+                    from datetime import datetime
+                    modified_str = datetime.fromtimestamp(modified).strftime('%Y-%m-%d %H:%M:%S')
+
+                    file_details.append({
+                        "name": filename,
+                        "size_bytes": size,
+                        "size_kb": round(size / 1024, 2),
+                        "modified": modified_str
+                    })
+                except Exception as e:
+                    file_details.append({
+                        "name": filename,
+                        "error": str(e)
+                    })
+
+            # Calculate total size
+            total_size = sum(f.get("size_bytes", 0) for f in file_details)
+
+            diagnostics.update({
+                "total_files": len(all_files),
+                "json_files_count": len(json_files),
+                "db_files_count": len(db_files),
+                "other_files_count": len(other_files),
+                "json_files": json_files,
+                "db_files": db_files,
+                "other_files": other_files,
+                "file_details": file_details,
+                "total_size_bytes": total_size,
+                "total_size_mb": round(total_size / (1024 * 1024), 2)
+            })
+        else:
+            diagnostics["error"] = f"DATA_DIR does not exist: {DATA_DIR}"
+
+        return diagnostics
+
+    except Exception as e:
+        logger.error(f"Volume diagnostics error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================

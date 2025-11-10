@@ -54,7 +54,7 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq as LangChainChatGroq
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from hierarchical_crawler import HierarchicalWebCrawler
+from WorkingFiles.hierarchical_crawler import HierarchicalWebCrawler
 from pydantic import BaseModel, Field
 
 # Load environment variables
@@ -376,7 +376,10 @@ def load_json_node(state: AgentState) -> AgentState:
         logger.info("📂 Loading JSON data...")
 
         # Get json_path (set by crawler_node or provided directly)
-        json_path = state.get("json_path", "/Users/saiteja/Documents/Dev/StarshipChatbot/CSU.json")
+        # Use DATA_DIR environment variable or current directory
+        data_dir = os.getenv('DATA_DIR', '.')
+        default_json = os.path.join(data_dir, 'CSU.json')
+        json_path = state.get("json_path", default_json)
 
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -794,7 +797,7 @@ async def run_browser_agent(
         "error_message": "",
         "total_items": 0,
         "processed_items": [],
-        "json_path": json_path or "/Users/saiteja/Documents/Dev/StarshipChatbot/mhs_indianafiltered_data.json",
+        "json_path": json_path or os.path.join(os.getenv('DATA_DIR', '.'), 'mhs_indianafiltered_data.json'),
         "max_items": max_items
     }
 
@@ -942,7 +945,8 @@ async def main():
     else:
         json_path = input("   Enter path to JSON file (press Enter for default): ").strip()
         if not json_path:
-            json_path = "/Users/saiteja/Documents/Dev/StarshipChatbot/mhs_indianafiltered_data.json"
+            data_dir = os.getenv('DATA_DIR', '.')
+            json_path = os.path.join(data_dir, 'mhs_indianafiltered_data.json')
         print(f"   📂 Will use: {json_path}\n")
 
     # Ask about checkpointing
