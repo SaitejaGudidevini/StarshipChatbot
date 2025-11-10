@@ -31,10 +31,12 @@ from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from sse_starlette.sse import EventSourceResponse
+import shutil
 
 # Import our systems
 from json_chatbot_engine import JSONChatbotEngine
@@ -227,11 +229,25 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # For production, update to specific frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files if frontend build exists
+FRONTEND_BUILD_DIR = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+USE_BUILT_FRONTEND = False
+if os.path.exists(FRONTEND_BUILD_DIR):
+    # Mount assets directory for JS/CSS files
+    assets_dir = os.path.join(FRONTEND_BUILD_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    logger.info(f"✅ Serving frontend build from {FRONTEND_BUILD_DIR}")
+    USE_BUILT_FRONTEND = True
+else:
+    logger.info("ℹ️  No frontend build found. Using embedded HTML.")
+    USE_BUILT_FRONTEND = False
 
 
 # ============================================================================
@@ -240,8 +256,16 @@ app.add_middleware(
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """Serve unified web UI"""
+    """Serve web UI - either built frontend or embedded HTML"""
 
+    # If frontend build exists, serve index.html
+    if USE_BUILT_FRONTEND:
+        index_path = os.path.join(FRONTEND_BUILD_DIR, "index.html")
+        if os.path.exists(index_path):
+            with open(index_path, 'r', encoding='utf-8') as f:
+                return HTMLResponse(content=f.read())
+
+    # Otherwise, serve embedded HTML (backward compatible)
     # Get stats for UI
     total_topics = len(chatbot_engine.dataset.topics) if chatbot_engine else 0
     total_qa = len(chatbot_engine.dataset.all_qa_pairs) if chatbot_engine else 0
@@ -1474,6 +1498,18 @@ async def root():
     """
 
     return HTMLResponse(content=html_content)
+
+
+# Serve static files from frontend build (vite.svg, etc.)
+@app.get("/{filename}")
+async def serve_static_file(filename: str):
+    """Serve static files from frontend build root (like vite.svg)"""
+    if USE_BUILT_FRONTEND and not filename.startswith("api"):
+        file_path = os.path.join(FRONTEND_BUILD_DIR, filename)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+    # If not found or API route, let other routes handle it
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 # ============================================================================

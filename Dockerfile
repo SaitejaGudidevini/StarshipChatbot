@@ -39,6 +39,10 @@ COPY MelindaFile.json .
 # Generate them locally first with: python -c "from json_chatbot_engine import JSONChatbotEngine; JSONChatbotEngine('CSU_Progress.json')"
 COPY *_qa_cache.pkl ./
 
+# Copy frontend build (Bolt.new generated React app)
+# The backend automatically serves this from frontend/dist/
+COPY frontend/dist ./frontend/dist
+
 # Copy environment file if it exists (optional - Railway/Render use dashboard env vars)
 # Using wildcard pattern makes it non-fatal if file doesn't exist
 COPY .env* ./

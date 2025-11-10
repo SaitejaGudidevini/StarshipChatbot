@@ -44,7 +44,7 @@ browser_agent_checkpoints.db
 # Output files and test results
 output/
 Backup_output/
-WorkingFiles/
+#WorkingFiles/
 backup_*.json
 batch_results_*.json
 *_metadata.json
@@ -84,7 +84,7 @@ https:/
 logs/
 *.log
 automation.log
-browser_agent.log
+whlog
 paraphrase.log
 
 # OS
@@ -97,3 +97,14 @@ LANGGRAPH_CHECKPOINTING.md
 
 # Nested project folders
 StarshipChatbot/
+
+# Frontend Development
+frontend/node_modules/
+frontend/.vite/
+frontend/.turbo/
+frontend/coverage/
+
+# IMPORTANT: Do NOT ignore frontend/dist/ - it's needed for deployment!
+# The backend serves built frontend from frontend/dist/
+# Exception to the dist/ rule above - we NEED this for deployment
+!frontend/dist/
