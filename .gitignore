@@ -107,4 +107,4 @@ frontend/coverage/
 # IMPORTANT: Do NOT ignore frontend/dist/ - it's needed for deployment!
 # The backend serves built frontend from frontend/dist/
 # Exception to the dist/ rule above - we NEED this for deployment
-!frontend/dist/
+#frontend/dist/
