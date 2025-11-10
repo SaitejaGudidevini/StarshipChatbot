@@ -1,4 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Use same origin as frontend (works for both local dev and Railway production)
+// In production: frontend is served from Railway, so API is same origin
+// In local dev: can override with VITE_API_URL env var
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const apiClient = {
   async get<T>(path: string): Promise<T> {
