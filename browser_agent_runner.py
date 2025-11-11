@@ -214,7 +214,12 @@ class BrowserAgentRunner:
         self,
         url: str,
         max_pages: int = 10,
-        use_crawler: bool = True
+        use_crawler: bool = True,
+        max_depth: int = 2,
+        max_items: int = None,
+        thread_id: str = None,
+        enable_checkpointing: bool = True,
+        json_filename: str = None
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Run browser agent pipeline
@@ -223,6 +228,10 @@ class BrowserAgentRunner:
             url: Starting URL to scrape
             max_pages: Maximum number of pages to process
             use_crawler: Whether to use hierarchical crawler
+            max_depth: Maximum crawl depth (1-5)
+            max_items: Limit items to process (None = all)
+            thread_id: Custom thread ID for checkpointing (None = auto-generate)
+            enable_checkpointing: Enable/disable checkpointing
 
         Yields:
             Progress updates as processing occurs
@@ -253,18 +262,37 @@ class BrowserAgentRunner:
                 # Store checkpointer reference for the graph execution
                 self._checkpointer = checkpointer
 
-                # Prepare initial state
+                # Prepare initial state (matching browser_agent.py AgentState schema)
+                # If json_filename provided, get full path
+                json_path = ""
+                if json_filename:
+                    import os
+                    data_dir = os.getenv('DATA_DIR', '.')
+                    json_path = os.path.join(data_dir, json_filename)
+
                 initial_state = {
+                    # Crawler parameters
                     "start_url": url,
-                    "max_depth": 2,
+                    "max_depth": max_depth,
                     "max_pages": max_pages,
-                    "use_crawler": use_crawler,
-                    "semantic_elements": [] if use_crawler else [
-                        {"text": url, "url": url, "semantic_path": url, "type": "manual"}
-                    ],
+                    "crawler_output_path": "",
+
+                    # Processing state
+                    "semantic_paths": [],
+                    "current_item": {},
                     "current_index": 0,
-                    "results": [],
-                    "errors": []
+                    "browser_content": "",
+                    "extraction_method": "",
+                    "processing_time": 0.0,
+                    "qa_pairs": [],
+                    "qa_generation_status": "",
+                    "qa_generation_time": 0.0,
+                    "status": "pending",
+                    "error_message": "",
+                    "total_items": 0,
+                    "processed_items": [],
+                    "max_items": max_items,
+                    "json_path": json_path
                 }
 
                 self.progress['total'] = max_pages
@@ -272,10 +300,17 @@ class BrowserAgentRunner:
                 yield self.progress
 
                 # Run the graph
+                # Generate thread_id if not provided
+                if thread_id is None:
+                    thread_id = f"generation_{datetime.now().timestamp()}"
+
                 config = {
                     "configurable": {
-                        "thread_id": f"generation_{datetime.now().timestamp()}"
-                    }
+                        "thread_id": thread_id
+                    },
+                    "recursion_limit": 1000  # Allow deep recursion for loops
+                } if enable_checkpointing else {
+                    "recursion_limit": 1000
                 }
 
                 async for event in self._graph.astream(initial_state, config):
@@ -329,23 +364,34 @@ class BrowserAgentRunner:
 
             logger.debug(f"Processing node: {node_name}")
 
-            if node_name == "crawler" and 'semantic_elements' in node_data:
-                self.progress['total'] = len(node_data['semantic_elements'])
-                logger.info(f"Crawler found {self.progress['total']} elements")
+            # Handle crawler node (new schema: semantic_paths)
+            if node_name == "crawler":
+                if 'semantic_paths' in node_data:
+                    self.progress['total'] = len(node_data['semantic_paths'])
+                    logger.info(f"Crawler found {self.progress['total']} elements")
 
+            # Handle load_json node
             elif node_name == "load_json":
+                if 'total_items' in node_data:
+                    self.progress['total'] = node_data['total_items']
                 current_idx = node_data.get('current_index', 0)
                 self.progress['current'] = current_idx
 
-                if 'semantic_elements' in node_data and current_idx < len(node_data['semantic_elements']):
-                    element = node_data['semantic_elements'][current_idx]
-                    self.progress['current_url'] = element.get('url', '')
-                    self.progress['current_topic'] = element.get('text', '')[:50]
+            # Handle browser_agent node
+            elif node_name == "browser_agent":
+                current_idx = node_data.get('current_index', 0)
+                self.progress['current'] = current_idx
 
+                if 'current_item' in node_data:
+                    item = node_data['current_item']
+                    self.progress['current_url'] = item.get('original_url', '')
+                    self.progress['current_topic'] = item.get('topic', '')[:50]
+
+            # Handle qa_generator node
             elif node_name == "qa_generator":
-                if 'results' in node_data:
-                    results = node_data['results']
-                    total_qa = sum(len(r.get('qa_pairs', [])) for r in results if isinstance(r, dict))
+                if 'processed_items' in node_data:
+                    results = node_data['processed_items']
+                    total_qa = sum(r.get('qa_count', 0) for r in results if isinstance(r, dict))
                     self.progress['qa_generated'] = total_qa
                     self.progress['topics_completed'] = len(results)
 
