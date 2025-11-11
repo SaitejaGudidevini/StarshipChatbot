@@ -96,9 +96,15 @@ current_json_file: str = get_data_path(default_json_name)
 
 class GenerateRequest(BaseModel):
     """Start data generation"""
-    url: str
+    url: Optional[str] = None               # URL to crawl (required if use_crawler=True)
     max_pages: int = 10
     use_crawler: bool = False
+    max_depth: int = 2                      # Max crawl depth (1-5)
+    max_items: Optional[int] = None         # Limit items to process (None = all)
+    thread_id: Optional[str] = None         # Custom thread ID for checkpointing
+    enable_checkpointing: bool = True       # Enable/disable checkpointing
+    output_filename: Optional[str] = None   # Custom output filename (None = auto-generate)
+    json_filename: Optional[str] = None     # JSON file to use (required if use_crawler=False)
 
 
 class ChatRequest(BaseModel):
@@ -1547,14 +1553,28 @@ async def start_generation(request: GenerateRequest, background_tasks: Backgroun
     if browser_runner and browser_runner.is_running():
         raise HTTPException(status_code=400, detail="Generation already running")
 
-    logger.info(f"Starting generation for URL: {request.url}")
+    # Validate inputs based on mode
+    if request.use_crawler:
+        if not request.url:
+            raise HTTPException(status_code=400, detail="URL is required when using crawler")
+        logger.info(f"Starting generation with crawler for URL: {request.url}")
+    else:
+        if not request.json_filename:
+            raise HTTPException(status_code=400, detail="JSON filename is required when not using crawler")
+        json_path = get_data_path(request.json_filename)
+        if not os.path.exists(json_path):
+            raise HTTPException(status_code=400, detail=f"JSON file not found: {request.json_filename}")
+        logger.info(f"Starting generation from JSON file: {request.json_filename}")
 
-    # Create timestamped output filename (never overwrites previous generations)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = get_data_path(f"generated_{timestamp}.json")
+    # Create output filename (use custom or auto-generate with timestamp)
+    if request.output_filename:
+        output_filename = get_data_path(request.output_filename)
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = get_data_path(f"generated_{timestamp}.json")
     logger.info(f"Output will be saved to: {output_filename}")
 
-    # Create runner with timestamped filename
+    # Create runner with output filename
     browser_runner = create_runner(
         output_file=output_filename,
         use_mock=False  # Real mode - actually scrapes websites
@@ -1564,9 +1584,14 @@ async def start_generation(request: GenerateRequest, background_tasks: Backgroun
     async def run_generation():
         try:
             async for progress in browser_runner.run(
-                url=request.url,
+                url=request.url or "",
                 max_pages=request.max_pages,
-                use_crawler=request.use_crawler
+                use_crawler=request.use_crawler,
+                max_depth=request.max_depth,
+                max_items=request.max_items,
+                thread_id=request.thread_id,
+                enable_checkpointing=request.enable_checkpointing,
+                json_filename=request.json_filename
             ):
                 logger.debug(f"Generation progress: {progress['status']} - {progress['current']}/{progress['total']}")
         except Exception as e:
@@ -1593,9 +1618,9 @@ async def generation_stream():
                 if browser_runner:
                     progress = browser_runner.get_progress()
 
-                    # Send progress update
+                    # Send progress update (no custom event type - use default "message")
+                    logger.info(f"[SSE] Sending progress: {progress['status']} - {progress['current']}/{progress['total']}")
                     yield {
-                        "event": "progress",
                         "data": json.dumps(progress)
                     }
 
@@ -1606,8 +1631,7 @@ async def generation_stream():
                 else:
                     # No runner yet
                     yield {
-                        "event": "status",
-                        "data": json.dumps({'status': 'waiting'})
+                        "data": json.dumps({'status': 'idle'})
                     }
 
                 await asyncio.sleep(1)  # Update every second
