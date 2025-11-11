@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { Topic, TopicDetail } from '../types';
-import { Folder, ChevronRight, Sparkles, Trash2, X } from 'lucide-react';
+import { Folder, ChevronRight, Sparkles, Trash2, X, Edit2, Save, XCircle } from 'lucide-react';
 
 export function Editor() {
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -9,6 +9,9 @@ export function Editor() {
   const [selectedQA, setSelectedQA] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingQA, setEditingQA] = useState<number | null>(null);
+  const [editQuestion, setEditQuestion] = useState('');
+  const [editAnswer, setEditAnswer] = useState('');
 
   useEffect(() => {
     loadTopics();
@@ -76,6 +79,38 @@ export function Editor() {
       newSet.add(index);
     }
     setSelectedQA(newSet);
+  };
+
+  const startEdit = (index: number, question: string, answer: string) => {
+    setEditingQA(index);
+    setEditQuestion(question);
+    setEditAnswer(answer);
+  };
+
+  const cancelEdit = () => {
+    setEditingQA(null);
+    setEditQuestion('');
+    setEditAnswer('');
+  };
+
+  const saveEdit = async () => {
+    if (!selectedTopic || editingQA === null) return;
+
+    try {
+      const topicIndex = topics.findIndex(t => t.name === selectedTopic.topic);
+      await apiClient.post('/api/editor/edit', {
+        topic_index: topicIndex,
+        qa_index: editingQA,
+        new_question: editQuestion,
+        new_answer: editAnswer,
+      });
+      alert('Q&A pair updated successfully!');
+      await loadTopicDetail(topicIndex);
+      await loadTopics();
+      cancelEdit();
+    } catch (err) {
+      alert('Failed to edit: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
   };
 
   if (loading) {
@@ -164,28 +199,78 @@ export function Editor() {
                   <div
                     key={idx}
                     className={`p-4 rounded-lg border-2 transition-all ${
-                      selectedQA.has(idx)
+                      editingQA === idx
+                        ? 'border-green-500 bg-green-50'
+                        : selectedQA.has(idx)
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedQA.has(idx)}
-                        onChange={() => toggleQA(idx)}
-                        className="mt-1 w-4 h-4 text-blue-500 rounded focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">{qa.question}</p>
-                        <p className="text-sm text-slate-600 mt-2">{qa.answer}</p>
-                        {qa.is_bucketed && (
-                          <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                            Bucket: {qa.bucket_id}
-                          </span>
-                        )}
+                    {editingQA === idx ? (
+                      // Edit Mode
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Question</label>
+                          <input
+                            type="text"
+                            value={editQuestion}
+                            onChange={(e) => setEditQuestion(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-700 mb-1">Answer</label>
+                          <textarea
+                            value={editAnswer}
+                            onChange={(e) => setEditAnswer(e.target.value)}
+                            rows={4}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm resize-none"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveEdit}
+                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1 text-sm font-medium"
+                          >
+                            <Save className="w-3 h-3" />
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors flex items-center gap-1 text-sm font-medium"
+                          >
+                            <XCircle className="w-3 h-3" />
+                            Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      // View Mode
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedQA.has(idx)}
+                          onChange={() => toggleQA(idx)}
+                          className="mt-1 w-4 h-4 text-blue-500 rounded focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-900">{qa.question}</p>
+                          <p className="text-sm text-slate-600 mt-2">{qa.answer}</p>
+                          {qa.is_bucketed && (
+                            <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                              Bucket: {qa.bucket_id}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => startEdit(idx, qa.question, qa.answer)}
+                          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4 text-slate-500" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

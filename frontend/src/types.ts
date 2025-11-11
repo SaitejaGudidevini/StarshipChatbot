@@ -44,7 +44,7 @@ export interface QAPair {
 }
 
 export interface GenerationProgress {
-  status: 'idle' | 'processing' | 'completed' | 'cancelled' | 'error';
+  status: 'idle' | 'initializing' | 'building_graph' | 'running' | 'completed' | 'cancelled' | 'error';
   current: number;
   total: number;
   qa_generated: number;
