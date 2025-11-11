@@ -206,9 +206,9 @@ class SimilaritySearchEngine:
     def __init__(self, dataset: QADataset, json_path: str = None, use_cache: bool = True):
         self.dataset = dataset
 
-        # Thresholds (same as SecondBrain)
+        # Thresholds (adjusted for better accuracy)
         self.SIMILARITY_THRESHOLD_IDEAL = 0.7
-        self.SIMILARITY_THRESHOLD = 0.45
+        self.SIMILARITY_THRESHOLD = 0.50  # Raised from 0.45 to force weak matches to answer-based search
 
         # Initialize sentence transformer model
         logger.info("Loading sentence transformer model (all-MiniLM-L6-v2)...")
@@ -436,11 +436,21 @@ Rephrase the user's question to be:
 1. Clear and concise
 2. Similar in style to the examples above
 3. Focused on the core intent
-4. Without personal details or pronouns
+4. Without personal pronouns (I, me, my, we, us, our)
+5. PRESERVE any names, people, locations, dates, or specific identifiers mentioned by the user
+6. If asking about a specific person by name, keep the name exactly as provided
+
+Examples of good rephrasing:
+- "who is becky?" → "Who is Becky?"
+- "tell me about john smith" → "What information is available about John Smith?"
+- "where is the indianapolis office" → "Where is the Indianapolis office located?"
+- "i need help with enrollment" → "How do I enroll?" (no name to preserve)
 
 Return ONLY the rephrased question, nothing else."""
         else:
-            prompt = f"""Rephrase this question to be clear, concise, and focused on the core intent:
+            prompt = f"""Rephrase this question to be clear, concise, and focused on the core intent.
+
+IMPORTANT: PRESERVE any names, people, locations, dates, or specific identifiers.
 
 "{user_question}"
 
@@ -450,7 +460,7 @@ Return ONLY the rephrased question, nothing else."""
             response = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model=self.model,
-                temperature=0.3,
+                temperature=0.1,  # Lower temperature for more conservative, literal rephrasing
                 max_tokens=100
             )
 
