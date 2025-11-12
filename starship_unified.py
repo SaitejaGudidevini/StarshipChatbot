@@ -2111,9 +2111,12 @@ async def get_current_json_file():
 async def upload_json_file(file: UploadFile = File(...)):
     """Upload a new JSON file to the project directory"""
     try:
+        logger.info(f"📤 Upload request received - filename: {file.filename}, content_type: {file.content_type}")
+
         # Validate filename
         filename = file.filename
         if not filename or not filename.endswith('.json'):
+            logger.warning(f"❌ Upload rejected - invalid filename: {filename}")
             raise HTTPException(status_code=400, detail="File must be a .json file")
 
         # Security: prevent path traversal
@@ -2128,19 +2131,28 @@ async def upload_json_file(file: UploadFile = File(...)):
 
         # Read and validate JSON content
         content = await file.read()
+        logger.info(f"📄 File size: {len(content)} bytes")
+
         try:
             data = json.loads(content.decode('utf-8'))
+            logger.info(f"✅ JSON parsed successfully")
         except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON parse error: {str(e)}")
             raise HTTPException(status_code=400, detail=f"Invalid JSON format: {str(e)}")
         except UnicodeDecodeError:
+            logger.error(f"❌ UTF-8 decode error")
             raise HTTPException(status_code=400, detail="File must be UTF-8 encoded")
 
         # Validate structure (must be array of topics)
         if not isinstance(data, list):
+            logger.error(f"❌ Invalid structure: data is {type(data).__name__}, not list")
             raise HTTPException(status_code=400, detail="JSON must be an array of topics")
 
         if len(data) == 0:
+            logger.error(f"❌ Empty array")
             raise HTTPException(status_code=400, detail="JSON file cannot be empty")
+
+        logger.info(f"📊 Found {len(data)} topics in uploaded file")
 
         # Validate each topic has required fields
         for idx, topic in enumerate(data):

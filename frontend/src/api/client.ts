@@ -27,7 +27,17 @@ export const apiClient = {
       method: 'POST',
       body: formData,
     });
-    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+    if (!response.ok) {
+      // Try to get detailed error message from response body
+      let errorDetail = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorDetail = errorData.detail || errorData.message || response.statusText;
+      } catch {
+        // If response is not JSON, use statusText
+      }
+      throw new Error(`Upload failed (${response.status}): ${errorDetail}`);
+    }
     return response.json();
   },
 };
