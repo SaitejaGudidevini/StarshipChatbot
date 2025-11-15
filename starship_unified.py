@@ -184,7 +184,19 @@ async def lifespan(app: FastAPI):
             json_path=json_path,
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
-        logger.info("✅ Chatbot engine ready")
+        logger.info("✅ Chatbot engine ready (V1)")
+
+        # Enable V2 architecture if available
+        try:
+            logger.info("Enabling V2 parallel-fused architecture...")
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ V2 architecture enabled")
+            else:
+                logger.info("⚠️  V2 architecture not available - using V1")
+        except Exception as v2_error:
+            logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
+
     except Exception as e:
         logger.error(f"❌ Failed to initialize chatbot: {e}")
 
@@ -1683,24 +1695,28 @@ async def cancel_generation():
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """Process chat question and return answer"""
+    """Process chat question and return answer (uses V2 if enabled, otherwise V1)"""
     if not chatbot_engine:
         raise HTTPException(status_code=500, detail="Chatbot not initialized")
 
     try:
-        result = chatbot_engine.process_question(
-            user_question=request.question,
-            session_id=request.session_id
-        )
+        # Use V2 if enabled, otherwise fallback to V1
+        if chatbot_engine.v2_enabled:
+            result = chatbot_engine.process_question_v2(request.question)
+        else:
+            result = chatbot_engine.process_question(
+                user_question=request.question,
+                session_id=request.session_id
+            )
 
         return {
             'answer': result['answer'],
             'matched_by': result['matched_by'],
             'confidence': result['confidence'],
-            'source_question': result['source_qa'].question if result['source_qa'] else None,
-            'source_topic': result['source_qa'].topic if result['source_qa'] else None,
+            'source_question': result['source_qa'].question if result.get('source_qa') else None,
+            'source_topic': result.get('source_topic') or (result['source_qa'].topic if result.get('source_qa') else None),
             'suggested_questions': result.get('suggested_questions'),
-            'pipeline_info': result['pipeline_info']
+            'pipeline_info': result.get('pipeline_info', {})
         }
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
@@ -2078,6 +2094,17 @@ async def switch_json_file(request: SwitchFileRequest):
             json_path=filepath,
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
+
+        # Enable V2 architecture if available
+        try:
+            logger.info("Enabling V2 parallel-fused architecture...")
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ V2 architecture enabled")
+            else:
+                logger.info("⚠️  V2 architecture not available - using V1")
+        except Exception as v2_error:
+            logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
 
         # Count stats
         topics_count = len(data)

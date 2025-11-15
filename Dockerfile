@@ -19,6 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download spaCy model for V2 architecture (NER)
+# This is required for V2 metadata enrichment
+RUN python -m spacy download en_core_web_sm
+
 # Copy only required Python application files
 COPY starship_unified.py .
 COPY json_chatbot_engine.py .
@@ -62,8 +66,15 @@ ENV PORT=8000
 ENV DATA_DIR=/app/data
 ENV JSON_DATA_PATH=CSU_Progress.json
 
+# V2 Architecture Notes:
+# - V2 will auto-enable if GROQ_API_KEY is set in Railway environment variables
+# - V2 uses spaCy (installed above) + Groq LLM for advanced entity disambiguation
+# - Falls back to V1 if GROQ_API_KEY is missing
+# - First startup with V2 takes ~30-60s for metadata enrichment (one-time)
+
 # Healthcheck to ensure server is running
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Increased start-period to 90s to accommodate V2 metadata enrichment on first run
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\", \"8000\")}/api/health').read()"
 
 # Run the StarshipChatbot Unified Server

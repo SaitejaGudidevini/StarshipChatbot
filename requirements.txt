@@ -30,10 +30,15 @@ uvicorn[standard]==0.32.0
 jinja2==3.1.4
 python-multipart==0.0.12
 
-# Chatbot dependencies  
+# Chatbot dependencies
 #chromadb==1.1.0
 pydantic==2.11.5
 
 # Additional dependencies for async operations
 aiofiles==24.1.0
 sse-starlette==3.0.3
+
+# V2 Architecture dependencies
+spacy>=3.7.0  # For Named Entity Recognition (NER)
+# Run: python -m spacy download en_core_web_sm
+rank-bm25>=0.2.2  # For BM25 keyword retrieval

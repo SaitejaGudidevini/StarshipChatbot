@@ -26,13 +26,21 @@ import time
 import pickle
 import logging
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from groq import Groq
 from dotenv import load_dotenv
+
+# V2 Architecture imports
+try:
+    import spacy
+    SPACY_AVAILABLE = True
+except ImportError:
+    SPACY_AVAILABLE = False
+    logger.warning("spaCy not available - V2 architecture will be disabled")
 
 # Load environment variables from .env file
 load_dotenv()
@@ -207,8 +215,16 @@ class SimilaritySearchEngine:
         self.dataset = dataset
 
         # Thresholds (adjusted for better accuracy)
-        self.SIMILARITY_THRESHOLD_IDEAL = 0.7
+        self.SIMILARITY_THRESHOLD_IDEAL = 0.4
         self.SIMILARITY_THRESHOLD = 0.50  # Raised from 0.45 to force weak matches to answer-based search
+
+        # Cross-encoder reranker thresholds (lower than semantic because cross-encoder scores are on different scale)
+        self.RERANKER_THRESHOLD_IDEAL = 0.3   # Ideal match for reranker
+        self.RERANKER_THRESHOLD_MINIMAL = 0.04  # Very permissive - accepts weak reranker scores
+
+        logger.info("📊 Thresholds configured:")
+        logger.info(f"   Semantic - Ideal: {self.SIMILARITY_THRESHOLD_IDEAL}, Minimal: {self.SIMILARITY_THRESHOLD}")
+        logger.info(f"   Reranker - Ideal: {self.RERANKER_THRESHOLD_IDEAL}, Minimal: {self.RERANKER_THRESHOLD_MINIMAL}")
 
         # Initialize sentence transformer model
         logger.info("Loading sentence transformer model (all-MiniLM-L6-v2)...")
@@ -236,7 +252,30 @@ class SimilaritySearchEngine:
             if use_cache:
                 self._save_cache(cache_file)
 
-        logger.info("✅ Similarity search engine ready")
+        # Initialize BM25 for keyword matching
+        logger.info("Initializing BM25 for keyword search...")
+        from rank_bm25 import BM25Okapi
+
+        # Create corpus combining questions and answers
+        self.bm25_corpus = []
+        for qa in dataset.all_qa_pairs:
+            doc = qa.question + " " + qa.answer
+            self.bm25_corpus.append(doc)
+
+        # Tokenize corpus
+        tokenized_corpus = [doc.lower().split() for doc in self.bm25_corpus]
+
+        # Initialize BM25
+        self.bm25 = BM25Okapi(tokenized_corpus)
+        logger.info("✅ BM25 keyword search initialized")
+
+        # Initialize Cross-Encoder for reranking
+        logger.info("Loading cross-encoder model for reranking...")
+        from sentence_transformers import CrossEncoder
+        self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+        logger.info("✅ Cross-encoder reranker initialized")
+
+        logger.info("✅ Similarity search engine ready (hybrid + reranking)")
 
     def _encode_all(self):
         """Encode all questions, answers, and topics"""
@@ -291,22 +330,29 @@ class SimilaritySearchEngine:
             logger.error(f"❌ Failed to load cache: {e}, re-encoding...")
             self._encode_all()
 
-    def search(self, user_question: str, search_answers: bool = False) -> Dict:
+    def similarity_search(self, user_question: str, search_answers: bool = False, top_k: int = 1) -> Dict:
         """
-        Search for most similar Q&A pair
+        Search for most similar Q&A pairs using semantic similarity
 
         Args:
             user_question: User's input question
             search_answers: If True, also search in answers
+            top_k: Number of top candidates to return (default=1 for backward compatibility)
 
         Returns:
             Dict with:
-            - best_match: QAPair object
-            - score: similarity score (0-1)
-            - matched_by: 'question' or 'answer'
-            - duration: search time in seconds
-            - meets_ideal_threshold: bool
-            - meets_minimal_threshold: bool
+            If top_k=1:
+                - best_match: QAPair object
+                - score: similarity score (0-1)
+                - matched_by: 'question' or 'answer'
+                - duration: search time in seconds
+                - meets_ideal_threshold: bool
+                - meets_minimal_threshold: bool
+            If top_k>1:
+                - candidates: List of top-K QAPair objects
+                - scores: List of similarity scores
+                - matched_by: 'question' or 'answer'
+                - duration: search time in seconds
         """
         start_time = time.time()
 
@@ -318,12 +364,8 @@ class SimilaritySearchEngine:
             np.linalg.norm(self.encoded_questions, axis=1) * np.linalg.norm(user_embedding)
         )
 
-        # Get best question match
-        best_question_idx = np.argmax(question_similarities)
-        best_question_score = question_similarities[best_question_idx]
-
-        best_idx = best_question_idx
-        best_score = best_question_score
+        # Default to question-based search
+        similarities = question_similarities
         matched_by = 'question'
 
         # Optionally search answers too
@@ -331,30 +373,163 @@ class SimilaritySearchEngine:
             answer_similarities = np.dot(self.encoded_answers, user_embedding) / (
                 np.linalg.norm(self.encoded_answers, axis=1) * np.linalg.norm(user_embedding)
             )
-            best_answer_idx = np.argmax(answer_similarities)
-            best_answer_score = answer_similarities[best_answer_idx]
-
-            if best_answer_score > best_question_score:
-                best_idx = best_answer_idx
-                best_score = best_answer_score
+            # Use answer similarities if they're better
+            if np.max(answer_similarities) > np.max(question_similarities):
+                similarities = answer_similarities
                 matched_by = 'answer'
 
         duration = time.time() - start_time
 
-        # Get QAPair object
-        best_match = self.dataset.all_qa_pairs[best_idx]
+        if top_k == 1:
+            # Single best match (backward compatible)
+            best_idx = np.argmax(similarities)
+            best_score = similarities[best_idx]
+            best_match = self.dataset.all_qa_pairs[best_idx]
 
-        # Log results
-        logger.info(f"Similarity search: score={best_score:.4f}, matched_by={matched_by}, duration={duration:.3f}s")
+            logger.info(f"Semantic search: score={best_score:.4f}, matched_by={matched_by}, duration={duration:.3f}s")
 
-        return {
-            'best_match': best_match,
-            'score': float(best_score),
-            'matched_by': matched_by,
-            'duration': duration,
-            'meets_ideal_threshold': best_score >= self.SIMILARITY_THRESHOLD_IDEAL,
-            'meets_minimal_threshold': best_score >= self.SIMILARITY_THRESHOLD
-        }
+            return {
+                'best_match': best_match,
+                'score': float(best_score),
+                'matched_by': matched_by,
+                'duration': duration,
+                'meets_ideal_threshold': best_score >= self.SIMILARITY_THRESHOLD_IDEAL,
+                'meets_minimal_threshold': best_score >= self.SIMILARITY_THRESHOLD
+            }
+        else:
+            # Top-K candidates for reranking
+            top_k_indices = np.argsort(similarities)[::-1][:top_k]
+            top_k_scores = similarities[top_k_indices]
+            top_k_candidates = [self.dataset.all_qa_pairs[idx] for idx in top_k_indices]
+
+            logger.info(f"Semantic search (top-{top_k}): best_score={top_k_scores[0]:.4f}, matched_by={matched_by}, duration={duration:.3f}s")
+
+            return {
+                'candidates': top_k_candidates,
+                'scores': top_k_scores.tolist(),
+                'matched_by': matched_by,
+                'duration': duration
+            }
+
+    def search(self, user_question: str, search_answers: bool = False) -> Dict:
+        """
+        Search for most similar Q&A pair (wrapper for backward compatibility)
+        """
+        return self.similarity_search(user_question, search_answers, top_k=1)
+
+    def hybrid_search(self, user_question: str, alpha=0.85, search_answers: bool = False, top_k: int = 1) -> Dict:
+        """
+        Hybrid search combining BM25 keyword matching and semantic similarity
+
+        Args:
+            user_question: User's input question
+            alpha: Weight for semantic vs BM25 (default 0.85 = 85% semantic, 15% BM25)
+            search_answers: If True, also search in answers
+            top_k: Number of top candidates to return (default 1 for backward compatibility)
+
+        Returns:
+            Dict with:
+            - best_match: QAPair object (or list if top_k > 1)
+            - candidates: List of top-K QAPair objects (if top_k > 1)
+            - scores: List of top-K scores (if top_k > 1)
+            - score: combined hybrid score (0-1) of best match
+            - semantic_score: semantic similarity score
+            - bm25_score: BM25 keyword score
+            - matched_by: 'hybrid'
+            - duration: search time in seconds
+            - meets_ideal_threshold: bool
+            - meets_minimal_threshold: bool
+        """
+        start_time = time.time()
+
+        # 1. SEMANTIC SEARCH
+        user_embedding = self.encoder.encode([user_question])[0]
+
+        if search_answers:
+            # Search in both questions and answers
+            question_similarities = np.dot(self.encoded_questions, user_embedding) / (
+                np.linalg.norm(self.encoded_questions, axis=1) * np.linalg.norm(user_embedding)
+            )
+            answer_similarities = np.dot(self.encoded_answers, user_embedding) / (
+                np.linalg.norm(self.encoded_answers, axis=1) * np.linalg.norm(user_embedding)
+            )
+            semantic_scores = np.maximum(question_similarities, answer_similarities)
+        else:
+            # Search only in questions
+            semantic_scores = np.dot(self.encoded_questions, user_embedding) / (
+                np.linalg.norm(self.encoded_questions, axis=1) * np.linalg.norm(user_embedding)
+            )
+
+        # 2. BM25 KEYWORD SEARCH
+        tokenized_query = user_question.lower().split()
+        bm25_scores = self.bm25.get_scores(tokenized_query)
+
+        # Normalize BM25 scores to 0-1 range (same scale as semantic)
+        if bm25_scores.max() > 0:
+            bm25_scores = bm25_scores / bm25_scores.max()
+        else:
+            bm25_scores = np.zeros_like(bm25_scores)
+
+        # 3. COMBINE SCORES WITH ALPHA WEIGHTING
+        hybrid_scores = alpha * semantic_scores + (1 - alpha) * bm25_scores
+
+        # 4. GET TOP-K MATCHES
+        if top_k == 1:
+            # Single best match (backward compatible)
+            best_idx = np.argmax(hybrid_scores)
+            best_score = hybrid_scores[best_idx]
+            best_match = self.dataset.all_qa_pairs[best_idx]
+
+            duration = time.time() - start_time
+
+            # Determine which method dominated the result
+            semantic_contribution = alpha * semantic_scores[best_idx]
+            bm25_contribution = (1 - alpha) * bm25_scores[best_idx]
+
+            if semantic_contribution > bm25_contribution:
+                dominant_method = "SEMANTIC"
+            elif bm25_contribution > semantic_contribution:
+                dominant_method = "BM25"
+            else:
+                dominant_method = "EQUAL"
+
+            # Log results with dominant method
+            logger.info(f"Hybrid search: semantic={semantic_scores[best_idx]:.4f}, "
+                       f"bm25={bm25_scores[best_idx]:.4f}, "
+                       f"hybrid={best_score:.4f}, 🎯 DOMINATED BY: {dominant_method}, duration={duration:.3f}s")
+
+            return {
+                'best_match': best_match,
+                'score': float(best_score),
+                'semantic_score': float(semantic_scores[best_idx]),
+                'bm25_score': float(bm25_scores[best_idx]),
+                'matched_by': 'hybrid',
+                'duration': duration,
+                'meets_ideal_threshold': best_score >= self.SIMILARITY_THRESHOLD_IDEAL,
+                'meets_minimal_threshold': best_score >= self.SIMILARITY_THRESHOLD
+            }
+        else:
+            # Top-K candidates for reranking
+            top_k_indices = np.argsort(hybrid_scores)[::-1][:top_k]
+            top_k_scores = hybrid_scores[top_k_indices]
+            top_k_candidates = [self.dataset.all_qa_pairs[idx] for idx in top_k_indices]
+
+            duration = time.time() - start_time
+
+            logger.info(f"Hybrid search: Retrieved top-{top_k} candidates, "
+                       f"scores range: {top_k_scores[0]:.4f} - {top_k_scores[-1]:.4f}, "
+                       f"duration={duration:.3f}s")
+
+            return {
+                'candidates': top_k_candidates,
+                'scores': top_k_scores.tolist(),
+                'best_match': top_k_candidates[0],
+                'score': float(top_k_scores[0]),
+                'matched_by': 'hybrid_topk',
+                'duration': duration,
+                'meets_ideal_threshold': top_k_scores[0] >= self.SIMILARITY_THRESHOLD_IDEAL,
+                'meets_minimal_threshold': top_k_scores[0] >= self.SIMILARITY_THRESHOLD
+            }
 
     def search_topic(self, user_question: str) -> Optional[Tuple[int, float]]:
         """
@@ -376,11 +551,82 @@ class SimilaritySearchEngine:
         best_score = similarities[best_idx]
 
         # Lower threshold for topic matching (0.5 vs 0.6 for Q&A)
-        if best_score >= 0.5:
+        if best_score >= 0.3:
             logger.info(f"Topic match: '{self.dataset.topics[best_idx].topic}' (score={best_score:.4f})")
             return best_idx, float(best_score)
 
         return None
+
+    def rerank_with_cross_encoder(self, user_question: str, candidates: List, hybrid_scores: List[float] = None) -> Dict:
+        """
+        Rerank top-K candidates using cross-encoder for higher precision
+
+        Args:
+            user_question: User's input question
+            candidates: List of QAPair objects to rerank
+            hybrid_scores: Optional list of hybrid scores for logging
+
+        Returns:
+            Dict with:
+            - best_match: Best QAPair after reranking
+            - score: Cross-encoder relevance score
+            - reranked_candidates: List of candidates sorted by cross-encoder score
+            - rerank_scores: List of cross-encoder scores
+            - matched_by: 'reranked'
+            - duration: reranking time
+        """
+        start_time = time.time()
+
+        # Prepare query-candidate pairs for cross-encoder
+        pairs = [(user_question, cand.question) for cand in candidates]
+
+        # Get cross-encoder scores (higher = more relevant)
+        rerank_scores = self.reranker.predict(pairs)
+
+        # Normalize cross-encoder scores to 0-1 range using sigmoid
+        # Cross-encoder returns logits, we need probabilities
+        def sigmoid(x):
+            return 1 / (1 + np.exp(-x))
+
+        rerank_scores_normalized = sigmoid(rerank_scores)
+
+        # Sort by reranker score (descending)
+        sorted_indices = np.argsort(rerank_scores_normalized)[::-1]
+        reranked_candidates = [candidates[i] for i in sorted_indices]
+        sorted_scores = [rerank_scores_normalized[i] for i in sorted_indices]
+
+        best_match = reranked_candidates[0]
+        best_score = sorted_scores[0]
+
+        duration = time.time() - start_time
+
+        # Log reranking results
+        if hybrid_scores:
+            logger.info(f"🔄 Reranked {len(candidates)} candidates:")
+            logger.info(f"   Before: hybrid_score={hybrid_scores[0]:.4f}, question=\"{candidates[0].question[:50]}...\"")
+            logger.info(f"   After:  rerank_score={best_score:.4f}, question=\"{best_match.question[:50]}...\"")
+            if candidates[0] != best_match:
+                logger.info(f"   ⚠️ RERANKER CHANGED THE RESULT!")
+        else:
+            logger.info(f"🔄 Reranking: best_score={best_score:.4f}, duration={duration:.3f}s")
+
+        return {
+            'best_match': best_match,
+            'score': float(best_score),
+            'reranked_candidates': reranked_candidates,
+            'rerank_scores': sorted_scores,
+            'matched_by': 'reranked',
+            'duration': duration,
+            'meets_ideal_threshold': best_score >= self.RERANKER_THRESHOLD_IDEAL,
+            'meets_minimal_threshold': best_score >= self.RERANKER_THRESHOLD_MINIMAL
+        }
+
+    # Removed hardcoded pattern-based validation methods:
+    # - is_person_query()
+    # - validate_person_entity()
+    #
+    # These methods used hardcoded patterns that don't generalize to different JSON files.
+    # Relying purely on semantic similarity and cross-encoder reranking scores instead.
 
 
 # ============================================================================
@@ -545,6 +791,148 @@ class JSONChatbotEngine:
         logger.info(f"   Rephrasing: {'Enabled' if self.rephraser else 'Disabled'}")
         logger.info("="*60)
 
+        # Initialize V2 architecture components (lazy initialization)
+        self.v2_enabled = False
+        self.enricher_v2 = None
+        self.query_parser_v2 = None
+        self.parallel_retriever_v2 = None
+        self.verifier_v2 = None
+
+    def enable_v2_architecture(self):
+        """
+        Enable V2 parallel-fused hybrid architecture.
+
+        This initializes the new components for metadata-enriched, parallel retrieval
+        with RRF fusion and LLM verification. Falls back to V1 if dependencies missing.
+        """
+        if self.v2_enabled:
+            logger.info("V2 architecture already enabled")
+            return
+
+        logger.info("="*70)
+        logger.info("ENABLING V2 ARCHITECTURE (Parallel-Fused Hybrid)")
+        logger.info("="*70)
+
+        if not self.rephraser or not self.rephraser.client:
+            logger.error("❌ V2 requires GROQ_API_KEY - V2 disabled")
+            return
+
+        try:
+            # Initialize V2 components
+            self.enricher_v2 = MetadataEnricher(self.rephraser.client)
+            self.query_parser_v2 = QueryParserV2(self.rephraser.client)
+            self.parallel_retriever_v2 = ParallelRetrieverV2(self.search_engine)
+            self.verifier_v2 = LLMVerifierV2(self.rephraser.client)
+
+            # Enrich dataset with metadata
+            self.parallel_retriever_v2.enrich_dataset(self.enricher_v2)
+
+            self.v2_enabled = True
+            logger.info("="*70)
+            logger.info("✅ V2 ARCHITECTURE ENABLED")
+            logger.info("="*70)
+
+        except Exception as e:
+            logger.error(f"❌ Failed to enable V2 architecture: {e}")
+            self.v2_enabled = False
+
+    def process_question_v2(self, user_question: str) -> Dict[str, Any]:
+        """
+        Process question using V2 parallel-fused architecture.
+
+        This method implements the team lead's recommended architecture:
+        1. Query parsing (intent + entity extraction)
+        2. Parallel retrieval (4 retrievers)
+        3. RRF fusion
+        4. LLM verification (NLI)
+
+        Args:
+            user_question: User's input question
+
+        Returns:
+            Dict with answer, confidence, and metadata
+        """
+        if not self.v2_enabled:
+            logger.warning("V2 architecture not enabled - call enable_v2_architecture() first")
+            return self.process_question(user_question)  # Fallback to V1
+
+        start_time = time.time()
+
+        logger.info("="*70)
+        logger.info(f"PROCESSING QUERY (V2): '{user_question}'")
+        logger.info("="*70)
+
+        # Step 1: Query Analysis
+        logger.info("\n📊 STEP 1: Query Analysis (LLM)")
+        query_analysis = self.query_parser_v2.parse(user_question)
+        logger.info(f"   Intent: {query_analysis.intent}")
+        logger.info(f"   Entities: {query_analysis.entities}")
+        logger.info(f"   Semantic Query: {query_analysis.semantic_query}")
+
+        # Step 2: Parallel Retrieval + RRF Fusion
+        logger.info("\n🔍 STEP 2: Parallel Retrieval + RRF Fusion")
+        candidates, retrieval_details = self.parallel_retriever_v2.retrieve(query_analysis, top_k=10)
+
+        if not candidates:
+            logger.warning("No candidates found!")
+            return self._fallback_response_v2()
+
+        logger.info(f"\n🏆 Top 3 RRF candidates:")
+        for i, cand in enumerate(candidates[:3], 1):
+            logger.info(f"   {i}. [RRF Score: {cand.score:.4f}] {cand.qa_pair.question[:60]}...")
+
+        # Step 3: LLM Verification
+        logger.info("\n✓ STEP 3: LLM Verification (NLI)")
+        verified = self.verifier_v2.verify(user_question, candidates, top_k=1)
+
+        if not verified:
+            logger.warning("⚠️ No candidates passed verification - using top RRF candidate")
+            verified = [candidates[0]]  # Fallback to top RRF if verification too strict
+
+        # Return verified answer
+        best_candidate = verified[0]
+        duration = time.time() - start_time
+
+        logger.info("\n"+"="*70)
+        logger.info(f"✅ V2 ANSWER FOUND in {duration:.2f}s")
+        logger.info(f"   Question: {best_candidate.qa_pair.question}")
+        logger.info(f"   Answer: {best_candidate.qa_pair.answer[:100]}...")
+        logger.info("="*70)
+
+        return {
+            'answer': best_candidate.qa_pair.answer,
+            'source_qa': best_candidate.qa_pair,
+            'matched_by': 'v2_parallel_fused_verified',
+            'confidence': float(best_candidate.score),
+            'source_topic': best_candidate.qa_pair.topic,
+            'source_qa_index': best_candidate.qa_pair.qa_index,
+            'duration': duration,
+            'pipeline_info': {
+                'architecture': 'v2_parallel_fused',
+                'query_analysis': {
+                    'intent': query_analysis.intent,
+                    'entities': query_analysis.entities,
+                    'semantic_query': query_analysis.semantic_query
+                },
+                'retrieval_details': retrieval_details,
+                'candidates_evaluated': len(candidates),
+                'candidates_verified': len(verified),
+                'duration': duration
+            }
+        }
+
+    def _fallback_response_v2(self) -> Dict[str, Any]:
+        """Fallback when no answer found (V2)"""
+        return {
+            'answer': "I don't have specific information to answer that question. Please try rephrasing or ask about a different topic.",
+            'source_qa': None,
+            'matched_by': 'v2_fallback',
+            'confidence': 0.0,
+            'source_topic': None,
+            'source_qa_index': None,
+            'duration': 0.0
+        }
+
     def process_question(self, user_question: str, session_id: str = "default") -> Dict:
         """
         Process user question through multi-stage pipeline
@@ -573,17 +961,42 @@ class JSONChatbotEngine:
         }
 
         # ====================================================================
-        # STAGE 1: Primary Similarity Search (IDEAL threshold)
+        # STAGE 1: Two-Stage Retrieval (Semantic Search + Cross-Encoder Reranking)
         # ====================================================================
-        logger.info("\n🔍 STAGE 1: Primary Similarity Search")
+        logger.info("\n🔍 STAGE 1: Two-Stage Retrieval (Semantic + Reranking)")
 
-        search_result = self.search_engine.search(user_question)
+        # Step 1a: Get top-10 candidates with pure semantic search
+        logger.info("   Step 1a: Semantic search for top-10 candidates")
+        semantic_result = self.search_engine.similarity_search(user_question, top_k=10)
+        candidates = semantic_result['candidates']
+        semantic_scores = semantic_result['scores']
+
+        logger.info(f"   📊 Semantic top match: score={semantic_scores[0]:.4f}, question=\"{candidates[0].question[:60]}...\"")
+
+        # Step 1b: Rerank with cross-encoder
+        logger.info("   Step 1b: Cross-encoder reranking")
+        search_result = self.search_engine.rerank_with_cross_encoder(
+            user_question,
+            candidates,
+            hybrid_scores=semantic_scores  # Pass semantic scores for comparison
+        )
 
         stage_1_info = {
+            'stage_number': 1,
+            'stage_name': 'Stage 1a: Semantic (Top-10) → Stage 1b: Reranking',
             'stage': 'primary_similarity',
-            'score': search_result['score'],
+            'score': float(search_result['score']),
             'matched_by': search_result['matched_by'],
-            'duration': search_result['duration']
+            'duration': float(search_result['duration']),
+            'best_match_question': search_result['best_match'].question,
+            'best_match_topic': search_result['best_match'].topic,
+            'threshold_ideal': float(self.search_engine.RERANKER_THRESHOLD_IDEAL),
+            'threshold_minimal': float(self.search_engine.RERANKER_THRESHOLD_MINIMAL),
+            'meets_ideal': bool(search_result['meets_ideal_threshold']),
+            'meets_minimal': bool(search_result['meets_minimal_threshold']),
+            'top_k_candidates': int(len(candidates)) if 'candidates' in locals() else 1,
+            'reranker_used': True,
+            'semantic_score': float(semantic_scores[0])  # Add semantic score for comparison
         }
         pipeline_info['stages'].append(stage_1_info)
 
@@ -619,23 +1032,34 @@ class JSONChatbotEngine:
             )
 
             stage_2_info = {
+                'stage_number': 2,
+                'stage_name': 'Rephrase + Retry',
                 'stage': 'rephrase',
                 'rephrased_text': rephrased_text,
-                'duration': rephrase_info.get('duration', 0)
+                'duration': float(rephrase_info.get('duration', 0)),
+                'score': 0.0
             }
             pipeline_info['stages'].append(stage_2_info)
 
             if rephrased_text and rephrased_text != user_question:
                 logger.info(f"   Rephrased: '{rephrased_text}'")
 
-                # Search with rephrased text
-                rephrase_search = self.search_engine.search(rephrased_text)
+                # Search with rephrased text using two-stage retrieval
+                rephrase_hybrid = self.search_engine.hybrid_search(rephrased_text, alpha=0.85, top_k=10)
+                rephrase_search = self.search_engine.rerank_with_cross_encoder(
+                    rephrased_text,
+                    rephrase_hybrid['candidates'],
+                    hybrid_scores=rephrase_hybrid['scores']
+                )
 
                 stage_2_search_info = {
                     'stage': 'rephrase_similarity',
-                    'score': rephrase_search['score'],
+                    'score': float(rephrase_search['score']),
                     'matched_by': rephrase_search['matched_by'],
-                    'duration': rephrase_search['duration']
+                    'duration': float(rephrase_search['duration']),
+                    'best_match_question': rephrase_search['best_match'].question if 'best_match' in rephrase_search else None,
+                    'meets_ideal': bool(rephrase_search.get('meets_ideal_threshold', False)),
+                    'meets_minimal': bool(rephrase_search.get('meets_minimal_threshold', False))
                 }
                 pipeline_info['stages'].append(stage_2_search_info)
 
@@ -685,20 +1109,33 @@ class JSONChatbotEngine:
         # ====================================================================
         # STAGE 2.5: Search in Answers (Extended Search)
         # ====================================================================
-        logger.info("\n🔎 STAGE 2.5: Answer-Based Search")
+        logger.info("\n🔎 STAGE 2.5: Answer-Based Search (No Reranking)")
         logger.info("   Searching in answer content instead of questions...")
+        logger.info("   ⚠️ Skipping reranking because reranker compares query vs question, not query vs answer")
 
-        answer_search_result = self.search_engine.search(user_question, search_answers=True)
+        # Use hybrid search with top_k=1 to get best match directly (no reranking)
+        answer_search_result = self.search_engine.hybrid_search(user_question, alpha=0.8, search_answers=True, top_k=1)
+
+        # Check thresholds using hybrid score
+        meets_ideal = answer_search_result['score'] >= self.search_engine.SIMILARITY_THRESHOLD_IDEAL
+        meets_minimal = answer_search_result['score'] >= self.search_engine.SIMILARITY_THRESHOLD
 
         stage_2_5_info = {
+            'stage_number': 2.5,
+            'stage_name': 'Answer-Based Search (Hybrid Only)',
             'stage': 'answer_search',
-            'score': answer_search_result['score'],
+            'score': float(answer_search_result['score']),
             'matched_by': answer_search_result['matched_by'],
-            'duration': answer_search_result['duration']
+            'duration': float(answer_search_result['duration']),
+            'best_match_question': answer_search_result['best_match'].question,
+            'best_match_topic': answer_search_result['best_match'].topic,
+            'meets_ideal': bool(meets_ideal),
+            'meets_minimal': bool(meets_minimal),
+            'reranker_used': False  # Explicitly disabled for answer-based search
         }
         pipeline_info['stages'].append(stage_2_5_info)
 
-        if answer_search_result['meets_minimal_threshold']:
+        if meets_minimal:
             logger.info(f"✅ ANSWER MATCH FOUND (score: {answer_search_result['score']:.4f})")
             logger.info(f"   Matched by: {answer_search_result['matched_by']}")
             logger.info(f"   Question: {answer_search_result['best_match'].question}")
@@ -720,53 +1157,62 @@ class JSONChatbotEngine:
             logger.info(f"   Answer preview: {answer_search_result['best_match'].answer[:100]}...")
 
         # ====================================================================
-        # STAGE 3: Topic-Level Search
+        # STAGE 3: Topic-Level Search (DISABLED - not relevant for most queries)
         # ====================================================================
-        logger.info("\n📚 STAGE 3: Topic-Level Search")
+        # logger.info("\n📚 STAGE 3: Topic-Level Search")
+        #
+        # topic_result = self.search_engine.search_topic(user_question)
+        #
+        # if topic_result:
+        #     topic_idx, topic_score = topic_result
+        #     topic = self.dataset.topics[topic_idx]
+        #
+        #     stage_3_info = {
+        #         'stage_number': 3,
+        #         'stage_name': 'Topic-Level Search',
+        #         'stage': 'topic_search',
+        #         'topic_name': topic.topic,
+        #         'score': float(topic_score)
+        #     }
+        #     pipeline_info['stages'].append(stage_3_info)
+        #
+        #     logger.info(f"✅ TOPIC MATCH FOUND: '{topic.topic}' (score: {topic_score:.4f})")
+        #     logger.info("="*60)
+        #
+        #     # Build topic overview response
+        #     answer = f"I found information about '{topic.topic}'.\n\n"
+        #     answer += f"Here are some questions I can answer about this topic:\n\n"
+        #
+        #     for i, qa in enumerate(topic.qa_pairs[:5], 1):
+        #         answer += f"{i}. {qa.question}\n"
+        #
+        #     if len(topic.qa_pairs) > 5:
+        #         answer += f"\n...and {len(topic.qa_pairs) - 5} more questions."
+        #
+        #     return {
+        #         'answer': answer,
+        #         'source_qa': None,
+        #         'matched_by': 'topic',
+        #         'confidence': topic_score,
+        #         'pipeline_info': pipeline_info,
+        #         'suggested_questions': [qa.question for qa in topic.qa_pairs[:5]]
+        #     }
+        #
+        # logger.info("⚠️ No topic match found (highest topic similarity below 0.5 threshold)")
 
-        topic_result = self.search_engine.search_topic(user_question)
-
-        if topic_result:
-            topic_idx, topic_score = topic_result
-            topic = self.dataset.topics[topic_idx]
-
-            stage_3_info = {
-                'stage': 'topic_search',
-                'topic_name': topic.topic,
-                'score': topic_score
-            }
-            pipeline_info['stages'].append(stage_3_info)
-
-            logger.info(f"✅ TOPIC MATCH FOUND: '{topic.topic}' (score: {topic_score:.4f})")
-            logger.info("="*60)
-
-            # Build topic overview response
-            answer = f"I found information about '{topic.topic}'.\n\n"
-            answer += f"Here are some questions I can answer about this topic:\n\n"
-
-            for i, qa in enumerate(topic.qa_pairs[:5], 1):
-                answer += f"{i}. {qa.question}\n"
-
-            if len(topic.qa_pairs) > 5:
-                answer += f"\n...and {len(topic.qa_pairs) - 5} more questions."
-
-            return {
-                'answer': answer,
-                'source_qa': None,
-                'matched_by': 'topic',
-                'confidence': topic_score,
-                'pipeline_info': pipeline_info,
-                'suggested_questions': [qa.question for qa in topic.qa_pairs[:5]]
-            }
-
-        logger.info("⚠️ No topic match found (highest topic similarity below 0.5 threshold)")
+        logger.info("\n📚 STAGE 3: Topic-Level Search - SKIPPED (disabled)")
 
         # ====================================================================
         # STAGE 4: Fallback Response
         # ====================================================================
         logger.info("\n❌ STAGE 4: Fallback Response")
 
-        stage_4_info = {'stage': 'fallback'}
+        stage_4_info = {
+            'stage_number': 4,
+            'stage_name': 'Fallback Response',
+            'stage': 'fallback',
+            'score': 0.0
+        }
         pipeline_info['stages'].append(stage_4_info)
 
         logger.info("No match found in any stage, returning fallback")
@@ -812,6 +1258,491 @@ class JSONChatbotEngine:
             if topic.topic.lower() == topic_name.lower():
                 return [qa.to_dict() for qa in topic.qa_pairs]
         return None
+
+
+# ============================================================================
+# V2 ARCHITECTURE: PARALLEL-FUSED HYBRID WITH METADATA ENRICHMENT
+# ============================================================================
+# Based on architectural analysis identifying sequential fallback as flawed.
+# Implements: Metadata extraction, Query parsing, Parallel retrieval, RRF fusion, LLM verification
+# ============================================================================
+
+@dataclass
+class QueryAnalysisV2:
+    """Structured output from LLM query parser (V2)"""
+    intent: str  # e.g., "person_role_lookup", "role_person_lookup", "general_faq"
+    entities: Dict[str, str] = field(default_factory=dict)
+    semantic_query: str = ""
+
+
+@dataclass
+class RetrievalCandidate:
+    """Single candidate from a retriever"""
+    qa_pair: QAPair
+    score: float
+    retriever_name: str
+
+
+class MetadataEnricher:
+    """
+    Enriches Q&A pairs with extracted metadata using NER + LLM.
+    Part of V2 ingestion-time enrichment.
+    """
+
+    def __init__(self, groq_client: Groq):
+        self.groq_client = groq_client
+
+        if SPACY_AVAILABLE:
+            try:
+                self.nlp = spacy.load("en_core_web_sm")
+                self.enabled = True
+                logger.info("✅ Metadata enricher initialized (NER + LLM)")
+            except OSError:
+                logger.warning("spaCy model not found - run: python -m spacy download en_core_web_sm")
+                self.enabled = False
+        else:
+            self.enabled = False
+
+    def extract_entities(self, qa_pair: QAPair) -> Dict[str, List[str]]:
+        """Extract entities from Q&A pair using spaCy NER only (no LLM calls)"""
+        if not self.enabled:
+            return {'persons': [], 'roles': [], 'orgs': []}
+
+        combined_text = f"{qa_pair.question} {qa_pair.answer}"
+        entities = {'persons': [], 'roles': [], 'orgs': []}
+
+        # NER for PERSON and ORG using spaCy (fast, no LLM calls)
+        doc = self.nlp(combined_text)
+        for ent in doc.ents:
+            if ent.label_ == "PERSON":
+                entities['persons'].append(ent.text)
+            elif ent.label_ == "ORG":
+                entities['orgs'].append(ent.text)
+
+        # Note: Role extraction via LLM disabled to avoid token drain
+        # spaCy NER will handle most entity types efficiently
+        entities['roles'] = []
+
+        return entities
+
+    def _extract_roles_llm(self, text: str) -> List[str]:
+        """Extract role/title entities using LLM"""
+        prompt = f"""Extract job titles/roles from this text. Return ONLY a JSON list.
+
+Text: "{text}"
+
+JSON list (or [] if none):"""
+
+        try:
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=150
+            )
+
+            result = response.choices[0].message.content.strip()
+            import re
+            json_match = re.search(r'\[.*\]', result, re.DOTALL)
+            if json_match:
+                roles = json.loads(json_match.group())
+                return [r for r in roles if isinstance(r, str)]
+        except:
+            pass
+
+        return []
+
+
+class QueryParserV2:
+    """Parses user queries into structured QueryAnalysisV2 objects (V2)"""
+
+    def __init__(self, groq_client: Groq):
+        self.groq_client = groq_client
+
+    def parse(self, user_query: str) -> QueryAnalysisV2:
+        """Parse query into intent and entities"""
+        prompt = f"""Analyze this query. Return ONLY valid JSON:
+{{
+  "intent": "person_role_lookup" | "role_person_lookup" | "general_faq",
+  "entities": {{"person": "", "role": ""}},
+  "semantic_query": "rephrased query"
+}}
+
+Query: "{user_query}"
+
+JSON:"""
+
+        try:
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=250
+            )
+
+            result = response.choices[0].message.content.strip()
+            import re
+            json_match = re.search(r'\{.*\}', result, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group())
+                return QueryAnalysisV2(
+                    intent=parsed.get('intent', 'general_faq'),
+                    entities=parsed.get('entities', {}),
+                    semantic_query=parsed.get('semantic_query', user_query)
+                )
+        except:
+            pass
+
+        return QueryAnalysisV2(intent='general_faq', entities={}, semantic_query=user_query)
+
+
+class ParallelRetrieverV2:
+    """
+    Implements parallel-fused hybrid retrieval with RRF.
+    Replaces sequential fallback pipeline.
+    """
+
+    def __init__(self, search_engine):
+        self.search_engine = search_engine
+        self.dataset = search_engine.dataset
+        self.encoder = search_engine.encoder
+        self.bm25 = search_engine.bm25
+
+        # Store enriched metadata (populated by enrich_dataset)
+        self.qa_metadata: Dict[str, Dict[str, List[str]]] = {}
+
+    def enrich_dataset(self, enricher: MetadataEnricher):
+        """Enrich all Q&A pairs with metadata"""
+        if not enricher.enabled:
+            logger.warning("Metadata enricher not available - V2 will use limited filtering")
+            return
+
+        logger.info("Enriching Q&A dataset with metadata...")
+        for qa_pair in self.dataset.all_qa_pairs:
+            entities = enricher.extract_entities(qa_pair)
+            # Use a unique key for each QA pair
+            key = f"{qa_pair.topic}_{qa_pair.topic_index}_{qa_pair.qa_index}"
+            self.qa_metadata[key] = entities
+
+        logger.info(f"✅ Enriched {len(self.qa_metadata)} Q&A pairs with metadata")
+
+    def retrieve(self, query_analysis: QueryAnalysisV2, top_k: int = 10):
+        """Execute parallel retrieval + RRF fusion"""
+        logger.info("🔍 Running parallel retrieval (4 strategies)...")
+
+        # Run 4 retrievers
+        candidates_1 = self._retriever_filtered_semantic(query_analysis, 20)
+        candidates_2 = self._retriever_bm25(query_analysis.semantic_query, 20)
+        candidates_3 = self._retriever_question_semantic(query_analysis.semantic_query, 20)
+        candidates_4 = self._retriever_answer_semantic(query_analysis.semantic_query, 20)
+
+        # Store retriever details for UI with user-friendly names
+        retriever_details = {
+            'retriever_1': {
+                **self._format_retriever_results(candidates_1[:3], "Smart Filter + Meaning Search"),
+                'description': 'Filters by entities (people, roles, etc.) then searches by meaning',
+                'technical_name': 'Filtered-Semantic'
+            },
+            'retriever_2': {
+                **self._format_retriever_results(candidates_2[:3], "Exact Word Matching"),
+                'description': 'Finds questions with exact keyword matches',
+                'technical_name': 'BM25-Keyword'
+            },
+            'retriever_3': {
+                **self._format_retriever_results(candidates_3[:3], "Question Similarity"),
+                'description': 'Finds questions with similar meanings',
+                'technical_name': 'Q-Semantic'
+            },
+            'retriever_4': {
+                **self._format_retriever_results(candidates_4[:3], "Answer Content Search"),
+                'description': 'Searches answer text for relevant information',
+                'technical_name': 'A-Semantic'
+            }
+        }
+
+        # RRF fusion
+        fused, rrf_details = self._rrf_fusion([candidates_1, candidates_2, candidates_3, candidates_4], top_k)
+
+        logger.info(f"✅ RRF fusion complete: {len(fused)} candidates")
+
+        return fused, {
+            'retrievers': retriever_details,
+            'rrf_fusion': rrf_details
+        }
+
+    def _format_retriever_results(self, candidates: List[RetrievalCandidate], name: str) -> Dict:
+        """Format retriever results for UI display"""
+        return {
+            'name': name,
+            'results': [
+                {
+                    'rank': i + 1,
+                    'score': float(cand.score),
+                    'score_display': self._score_to_stars(cand.score),
+                    'question': cand.qa_pair.question,
+                    'topic': cand.qa_pair.topic
+                }
+                for i, cand in enumerate(candidates)
+            ]
+        }
+
+    def _score_to_stars(self, score: float) -> str:
+        """Convert score to star rating for better UX"""
+        if score >= 0.8:
+            return "⭐⭐⭐⭐⭐"
+        elif score >= 0.6:
+            return "⭐⭐⭐⭐"
+        elif score >= 0.4:
+            return "⭐⭐⭐"
+        elif score >= 0.2:
+            return "⭐⭐"
+        else:
+            return "⭐"
+
+    def _rrf_score_to_label(self, score: float) -> str:
+        """Convert RRF score to user-friendly label"""
+        if score >= 0.06:
+            return "Very High"
+        elif score >= 0.05:
+            return "High"
+        elif score >= 0.04:
+            return "Medium"
+        elif score >= 0.03:
+            return "Low"
+        else:
+            return "Very Low"
+
+    def _vote_count_to_consensus(self, count: int) -> str:
+        """Convert vote count to consensus label"""
+        if count == 4:
+            return "✓✓✓✓ Strong Consensus"
+        elif count == 3:
+            return "✓✓✓ Good Consensus"
+        elif count == 2:
+            return "✓✓ Moderate Agreement"
+        else:
+            return "✓ Weak Agreement"
+
+    def _retriever_filtered_semantic(self, query: QueryAnalysisV2, top_k: int) -> List[RetrievalCandidate]:
+        """Retriever 1: Metadata-filtered semantic"""
+        filtered_pairs = self.dataset.all_qa_pairs
+
+        # Apply metadata filters
+        if query.intent == "person_role_lookup" and query.entities.get('person'):
+            person = query.entities['person'].lower()
+            filtered_pairs = [
+                qa for qa in filtered_pairs
+                if self._has_person(qa, person)
+            ]
+            logger.info(f"   R1: Filtered to {len(filtered_pairs)} with person='{person}'")
+
+        elif query.intent == "role_person_lookup" and query.entities.get('role'):
+            role = query.entities['role'].lower()
+            filtered_pairs = [
+                qa for qa in filtered_pairs
+                if self._has_role(qa, role)
+            ]
+            logger.info(f"   R1: Filtered to {len(filtered_pairs)} with role='{role}'")
+
+        if not filtered_pairs:
+            return []
+
+        # Semantic search
+        query_emb = self.encoder.encode([query.semantic_query])[0]
+        scores = []
+        for qa in filtered_pairs:
+            idx = self.dataset.all_qa_pairs.index(qa)
+            sim = np.dot(self.search_engine.encoded_questions[idx], query_emb) / (
+                np.linalg.norm(self.search_engine.encoded_questions[idx]) * np.linalg.norm(query_emb)
+            )
+            scores.append(sim)
+
+        top_indices = np.argsort(scores)[::-1][:top_k]
+        results = [RetrievalCandidate(filtered_pairs[i], scores[i], "Filtered-Semantic") for i in top_indices]
+
+        # Log top 3 results
+        logger.info(f"   📋 Retriever 1 (Filtered-Semantic) - Top 3:")
+        for rank, cand in enumerate(results[:3], 1):
+            logger.info(f"      #{rank} [Score: {cand.score:.4f}] {cand.qa_pair.question[:80]}...")
+
+        return results
+
+    def _has_person(self, qa: QAPair, person_name: str) -> bool:
+        """Check if QA pair has person entity"""
+        key = f"{qa.topic}_{qa.topic_index}_{qa.qa_index}"
+        if key in self.qa_metadata:
+            return any(person_name in p.lower() for p in self.qa_metadata[key]['persons'])
+        # Fallback: check in text
+        combined = f"{qa.question} {qa.answer}".lower()
+        return person_name in combined
+
+    def _has_role(self, qa: QAPair, role_name: str) -> bool:
+        """Check if QA pair has role entity"""
+        key = f"{qa.topic}_{qa.topic_index}_{qa.qa_index}"
+        if key in self.qa_metadata:
+            return any(role_name in r.lower() for r in self.qa_metadata[key]['roles'])
+        # Fallback: check in text
+        combined = f"{qa.question} {qa.answer}".lower()
+        return role_name in combined
+
+    def _retriever_bm25(self, query: str, top_k: int) -> List[RetrievalCandidate]:
+        """Retriever 2: BM25 keyword"""
+        tokens = query.lower().split()
+        scores = self.bm25.get_scores(tokens)
+        top_indices = np.argsort(scores)[::-1][:top_k]
+        results = [RetrievalCandidate(self.dataset.all_qa_pairs[i], scores[i], "BM25") for i in top_indices]
+
+        # Log top 3 results
+        logger.info(f"   📋 Retriever 2 (BM25-Keyword) - Top 3:")
+        for rank, cand in enumerate(results[:3], 1):
+            logger.info(f"      #{rank} [Score: {cand.score:.4f}] {cand.qa_pair.question[:80]}...")
+
+        return results
+
+    def _retriever_question_semantic(self, query: str, top_k: int) -> List[RetrievalCandidate]:
+        """Retriever 3: Semantic on questions"""
+        query_emb = self.encoder.encode([query])[0]
+        scores = np.dot(self.search_engine.encoded_questions, query_emb) / (
+            np.linalg.norm(self.search_engine.encoded_questions, axis=1) * np.linalg.norm(query_emb)
+        )
+        top_indices = np.argsort(scores)[::-1][:top_k]
+        results = [RetrievalCandidate(self.dataset.all_qa_pairs[i], scores[i], "Q-Semantic") for i in top_indices]
+
+        # Log top 3 results
+        logger.info(f"   📋 Retriever 3 (Q-Semantic) - Top 3:")
+        for rank, cand in enumerate(results[:3], 1):
+            logger.info(f"      #{rank} [Score: {cand.score:.4f}] {cand.qa_pair.question[:80]}...")
+
+        return results
+
+    def _retriever_answer_semantic(self, query: str, top_k: int) -> List[RetrievalCandidate]:
+        """Retriever 4: Semantic on answers"""
+        query_emb = self.encoder.encode([query])[0]
+        scores = np.dot(self.search_engine.encoded_answers, query_emb) / (
+            np.linalg.norm(self.search_engine.encoded_answers, axis=1) * np.linalg.norm(query_emb)
+        )
+        top_indices = np.argsort(scores)[::-1][:top_k]
+        results = [RetrievalCandidate(self.dataset.all_qa_pairs[i], scores[i], "A-Semantic") for i in top_indices]
+
+        # Log top 3 results
+        logger.info(f"   📋 Retriever 4 (A-Semantic) - Top 3:")
+        for rank, cand in enumerate(results[:3], 1):
+            logger.info(f"      #{rank} [Score: {cand.score:.4f}] {cand.qa_pair.question[:80]}...")
+
+        return results
+
+    def _rrf_fusion(self, retriever_results: List[List[RetrievalCandidate]], top_k: int, k: int = 60):
+        """Reciprocal Rank Fusion"""
+        rrf_scores = {}
+
+        logger.info(f"\n   🔄 RRF Fusion Process (k={k}):")
+
+        for retriever_idx, candidates in enumerate(retriever_results, 1):
+            for rank, cand in enumerate(candidates, 1):
+                qa_key = f"{cand.qa_pair.topic}_{cand.qa_pair.topic_index}_{cand.qa_pair.qa_index}"
+
+                if qa_key not in rrf_scores:
+                    rrf_scores[qa_key] = {
+                        'score': 0.0,
+                        'qa_pair': cand.qa_pair,
+                        'sources': [],
+                        'calculations': []
+                    }
+
+                score_contribution = 1.0 / (k + rank)
+                rrf_scores[qa_key]['score'] += score_contribution
+                rrf_scores[qa_key]['sources'].append(f"{cand.retriever_name}#{rank}")
+                rrf_scores[qa_key]['calculations'].append(f"R{retriever_idx}@{rank}={score_contribution:.4f}")
+
+        sorted_items = sorted(rrf_scores.items(), key=lambda x: x[1]['score'], reverse=True)
+
+        # Log top 3 RRF calculations
+        logger.info(f"\n   🏆 RRF Top 3 Calculations:")
+        for idx, (qa_key, data) in enumerate(sorted_items[:3], 1):
+            calc_str = " + ".join(data['calculations'])
+            logger.info(f"      #{idx} [Total: {data['score']:.4f}] = {calc_str}")
+            logger.info(f"          Question: {data['qa_pair'].question[:80]}...")
+            logger.info(f"          Voted by: {', '.join(data['sources'])}")
+
+        # Prepare RRF details for UI
+        rrf_details = [
+            {
+                'rank': idx,
+                'total_score': float(data['score']),
+                'score_display': self._rrf_score_to_label(data['score']),
+                'question': data['qa_pair'].question,
+                'topic': data['qa_pair'].topic,
+                'calculation': " + ".join(data['calculations']),
+                'calculation_simple': f"{len(data['sources'])} out of 4 methods agreed",
+                'voted_by': data['sources'],
+                'vote_count': len(data['sources']),
+                'consensus': self._vote_count_to_consensus(len(data['sources']))
+            }
+            for idx, (_, data) in enumerate(sorted_items[:3], 1)
+        ]
+
+        candidates = [
+            RetrievalCandidate(
+                data['qa_pair'],
+                data['score'],
+                f"RRF({', '.join(data['sources'][:2])})"
+            )
+            for _, data in sorted_items[:top_k]
+        ]
+
+        return candidates, rrf_details
+
+
+class LLMVerifierV2:
+    """LLM-as-a-Verifier using NLI for factual validation"""
+
+    def __init__(self, groq_client: Groq):
+        self.groq_client = groq_client
+
+    def verify(self, query: str, candidates: List[RetrievalCandidate], top_k: int = 3) -> List[RetrievalCandidate]:
+        """Verify candidates using NLI"""
+        logger.info(f"🔍 Verifying top {len(candidates[:5])} candidates...")
+
+        verified = []
+        for cand in candidates[:5]:
+            label = self._verify_single(query, cand)
+
+            if label == "Entailment":
+                verified.append(cand)
+                logger.info(f"   ✅ VERIFIED: {cand.qa_pair.question[:60]}...")
+                if len(verified) >= top_k:
+                    break
+            else:
+                logger.info(f"   ❌ REJECTED ({label})")
+
+        return verified
+
+    def _verify_single(self, query: str, cand: RetrievalCandidate) -> str:
+        """Verify single candidate with NLI"""
+        prompt = f"""Does this Document answer the Query? Label: Entailment, Neutral, or Contradiction.
+
+Query: "{query}"
+Document: "{cand.qa_pair.answer}"
+
+Label:"""
+
+        try:
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+                max_tokens=20
+            )
+
+            result = response.choices[0].message.content.strip()
+            if "Entailment" in result:
+                return "Entailment"
+            elif "Contradiction" in result:
+                return "Contradiction"
+            else:
+                return "Neutral"
+        except:
+            return "Neutral"
 
 
 # ============================================================================
