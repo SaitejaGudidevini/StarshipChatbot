@@ -230,6 +230,16 @@ class SimilaritySearchEngine:
         logger.info("Loading sentence transformer model (all-MiniLM-L6-v2)...")
         self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
 
+        # Enable multi-processing to use all available CPU cores
+        import os
+        import torch
+        cpu_count = os.cpu_count() or 4
+
+        # Set number of threads for PyTorch (used by sentence-transformers)
+        torch.set_num_threads(cpu_count)
+
+        logger.info(f"   Using {cpu_count} CPU cores for encoding")
+
         # Encoded embeddings
         self.encoded_questions = None
         self.encoded_answers = None
@@ -283,25 +293,35 @@ class SimilaritySearchEngine:
         answers = self.dataset.get_all_answers()
         topics = self.dataset.get_topic_names()
 
+        # Get CPU count for parallel processing
+        import os
+        cpu_count = os.cpu_count() or 4
+
         logger.info(f"Encoding {len(questions)} questions...")
         self.encoded_questions = self.encoder.encode(
             questions,
             show_progress_bar=True,
-            convert_to_numpy=True
+            convert_to_numpy=True,
+            batch_size=32,
+            normalize_embeddings=False
         )
 
         logger.info(f"Encoding {len(answers)} answers...")
         self.encoded_answers = self.encoder.encode(
             answers,
             show_progress_bar=True,
-            convert_to_numpy=True
+            convert_to_numpy=True,
+            batch_size=32,
+            normalize_embeddings=False
         )
 
         logger.info(f"Encoding {len(topics)} topics...")
         self.encoded_topics = self.encoder.encode(
             topics,
             show_progress_bar=True,
-            convert_to_numpy=True
+            convert_to_numpy=True,
+            batch_size=16,
+            normalize_embeddings=False
         )
 
     def _save_cache(self, cache_file: str):
