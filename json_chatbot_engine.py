@@ -311,21 +311,35 @@ class SimilaritySearchEngine:
                 pickle.dump({
                     'encoded_questions': self.encoded_questions,
                     'encoded_answers': self.encoded_answers,
-                    'encoded_topics': self.encoded_topics
+                    'encoded_topics': self.encoded_topics,
+                    'qa_count': len(self.dataset.all_qa_pairs),  # Save count for validation
+                    'topic_count': len(self.dataset.topics)
                 }, f)
             logger.info(f"✅ Cached encodings to {cache_file}")
         except Exception as e:
             logger.error(f"❌ Failed to cache encodings: {e}")
 
     def _load_cache(self, cache_file: str):
-        """Load encoded data from cache"""
+        """Load encoded data from cache with validation"""
         try:
             with open(cache_file, 'rb') as f:
                 cached = pickle.load(f)
+
+            # Validate cache matches current dataset
+            cached_qa_count = cached.get('qa_count', 0)
+            current_qa_count = len(self.dataset.all_qa_pairs)
+
+            if cached_qa_count != current_qa_count:
+                logger.warning(f"⚠️  Cache is stale! Cached: {cached_qa_count} Q&As, Current: {current_qa_count} Q&As")
+                logger.info("🔄 Re-encoding to match current dataset...")
+                self._encode_all()
+                return
+
+            # Cache is valid, load it
             self.encoded_questions = cached['encoded_questions']
             self.encoded_answers = cached['encoded_answers']
             self.encoded_topics = cached['encoded_topics']
-            logger.info("✅ Loaded cached encodings")
+            logger.info(f"✅ Loaded cached encodings ({cached_qa_count} Q&As)")
         except Exception as e:
             logger.error(f"❌ Failed to load cache: {e}, re-encoding...")
             self._encode_all()
@@ -470,10 +484,19 @@ class SimilaritySearchEngine:
         else:
             bm25_scores = np.zeros_like(bm25_scores)
 
-        # 3. COMBINE SCORES WITH ALPHA WEIGHTING
+        # 3. HANDLE SIZE MISMATCH (safety check)
+        if len(semantic_scores) != len(bm25_scores):
+            logger.warning(f"⚠️  Size mismatch: semantic={len(semantic_scores)}, bm25={len(bm25_scores)}")
+            # Resize to match the smaller size (safer than padding)
+            min_size = min(len(semantic_scores), len(bm25_scores))
+            semantic_scores = semantic_scores[:min_size]
+            bm25_scores = bm25_scores[:min_size]
+            logger.warning(f"   Resized both to {min_size} elements")
+
+        # 4. COMBINE SCORES WITH ALPHA WEIGHTING
         hybrid_scores = alpha * semantic_scores + (1 - alpha) * bm25_scores
 
-        # 4. GET TOP-K MATCHES
+        # 5. GET TOP-K MATCHES
         if top_k == 1:
             # Single best match (backward compatible)
             best_idx = np.argmax(hybrid_scores)
@@ -871,7 +894,9 @@ class JSONChatbotEngine:
 
         # Step 2: Parallel Retrieval + RRF Fusion
         logger.info("\n🔍 STEP 2: Parallel Retrieval + RRF Fusion")
-        candidates, retrieval_details = self.parallel_retriever_v2.retrieve(query_analysis, top_k=10)
+        # Increased from top_k=10 to top_k=30 for better coverage (Improvement #3)
+        # With 6,279 Q&A pairs, top-30 gives 3x better recall
+        candidates, retrieval_details = self.parallel_retriever_v2.retrieve(query_analysis, top_k=30)
 
         if not candidates:
             logger.warning("No candidates found!")
@@ -1411,6 +1436,15 @@ class ParallelRetrieverV2:
         # Store enriched metadata (populated by enrich_dataset)
         self.qa_metadata: Dict[str, Dict[str, List[str]]] = {}
 
+        # Retriever weights for RRF fusion (Improvement #4)
+        # Empirically tuned based on retriever performance characteristics
+        self.retriever_weights = {
+            'Filtered-Semantic': 1.5,  # Best for entity-specific queries
+            'BM25': 1.0,                # Baseline keyword matching
+            'Q-Semantic': 1.2,          # Good for paraphrased questions
+            'A-Semantic': 0.8           # Weakest, often retrieves off-topic
+        }
+
     def enrich_dataset(self, enricher: MetadataEnricher):
         """Enrich all Q&A pairs with metadata"""
         if not enricher.enabled:
@@ -1632,10 +1666,10 @@ class ParallelRetrieverV2:
         return results
 
     def _rrf_fusion(self, retriever_results: List[List[RetrievalCandidate]], top_k: int, k: int = 60):
-        """Reciprocal Rank Fusion"""
+        """Reciprocal Rank Fusion with weighted retrievers (Improvement #4)"""
         rrf_scores = {}
 
-        logger.info(f"\n   🔄 RRF Fusion Process (k={k}):")
+        logger.info(f"\n   🔄 RRF Fusion Process (k={k}, weighted):")
 
         for retriever_idx, candidates in enumerate(retriever_results, 1):
             for rank, cand in enumerate(candidates, 1):
@@ -1649,10 +1683,16 @@ class ParallelRetrieverV2:
                         'calculations': []
                     }
 
-                score_contribution = 1.0 / (k + rank)
+                # Apply retriever-specific weight (Improvement #4)
+                weight = self.retriever_weights.get(cand.retriever_name, 1.0)
+                base_score = 1.0 / (k + rank)
+                score_contribution = weight * base_score
+
                 rrf_scores[qa_key]['score'] += score_contribution
                 rrf_scores[qa_key]['sources'].append(f"{cand.retriever_name}#{rank}")
-                rrf_scores[qa_key]['calculations'].append(f"R{retriever_idx}@{rank}={score_contribution:.4f}")
+                rrf_scores[qa_key]['calculations'].append(
+                    f"{cand.retriever_name}@{rank}={score_contribution:.4f}(w={weight})"
+                )
 
         sorted_items = sorted(rrf_scores.items(), key=lambda x: x[1]['score'], reverse=True)
 
@@ -1718,11 +1758,27 @@ class LLMVerifierV2:
         return verified
 
     def _verify_single(self, query: str, cand: RetrievalCandidate) -> str:
-        """Verify single candidate with NLI"""
-        prompt = f"""Does this Document answer the Query? Label: Entailment, Neutral, or Contradiction.
+        """Verify single candidate with NLI (Improvement #1: Strengthened prompt)"""
+        prompt = f"""You are a strict factual verifier for a Q&A system. Determine if the Document DIRECTLY and COMPLETELY answers the Query.
 
 Query: "{query}"
 Document: "{cand.qa_pair.answer}"
+
+CLASSIFICATION RULES:
+1. "Entailment" - Document contains the EXACT answer to the Query
+   Example: Q: "Who handles admissions?" D: "Contact Enrollment at (800)..." → Entailment
+
+2. "Neutral" - Document is related but doesn't directly answer the Query
+   Example: Q: "Who handles admissions?" D: "Info about transfer admissions at..." → Neutral
+
+3. "Contradiction" - Document contradicts or conflicts with the Query
+
+STRICT CRITERIA:
+- If Document mentions a related topic but doesn't answer the specific question → Neutral
+- If Document answers a different question about the same topic → Neutral
+- Only label "Entailment" if you're 100% confident the Document answers the Query
+
+Return ONLY one word: Entailment, Neutral, or Contradiction
 
 Label:"""
 
