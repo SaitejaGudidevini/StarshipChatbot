@@ -1827,6 +1827,14 @@ async def simplify_topic(request: SimplifyRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
+        # Re-enable V2 architecture after reload
+        try:
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ V2 re-enabled after simplify")
+        except Exception as v2_error:
+            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+
         # Count unique buckets
         unique_buckets = len(set(pair.get("bucket_id", "") for pair in bucketed_pairs if pair.get("is_bucketed")))
 
@@ -1899,6 +1907,14 @@ async def merge_qa_pairs(request: MergeRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
+        # Re-enable V2 architecture after reload
+        try:
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ V2 re-enabled after merge")
+        except Exception as v2_error:
+            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+
         logger.info(f"✅ Merge complete: {result.get('agent_response')}")
 
         return {
@@ -1949,6 +1965,15 @@ async def delete_qa_pairs(request: DeleteRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
+        # Re-enable V2 architecture after reload
+        try:
+            logger.info("Re-enabling V2 parallel-fused architecture...")
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ V2 architecture re-enabled after delete")
+        except Exception as v2_error:
+            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+
         return {
             'message': f'Deleted {len(request.qa_indices)} Q&A pairs',
             'deleted_count': len(request.qa_indices)
@@ -1990,6 +2015,15 @@ async def edit_qa_pair(request: EditRequest):
             json_path=json_path,
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
+
+        # Re-enable V2 architecture after reload
+        try:
+            logger.info("Re-enabling V2 parallel-fused architecture...")
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ V2 architecture re-enabled after edit")
+        except Exception as v2_error:
+            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
 
         return {
             'message': 'Q&A pair updated successfully',
