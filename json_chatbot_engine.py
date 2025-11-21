@@ -993,7 +993,7 @@ class JSONChatbotEngine:
             self.verifier_v2 = LLMVerifierV2(self.rephraser.client)
 
             # Enrich dataset with metadata
-            self.parallel_retriever_v2.enrich_dataset(self.enricher_v2)
+            self.parallel_retriever_v2.enrich_dataset(self.enricher_v2, self.json_path)
 
             self.v2_enabled = True
             logger.info("="*70)
@@ -1590,20 +1590,90 @@ class ParallelRetrieverV2:
             'A-Semantic': 0.8           # Weakest, often retrieves off-topic
         }
 
-    def enrich_dataset(self, enricher: MetadataEnricher):
-        """Enrich all Q&A pairs with metadata"""
+    def _compute_hash(self, text: str) -> str:
+        """Compute MD5 hash of text for caching"""
+        return hashlib.md5(text.encode('utf-8')).hexdigest()
+
+    def enrich_dataset(self, enricher: MetadataEnricher, json_path: str = None):
+        """Enrich all Q&A pairs with metadata (Incremental Update)"""
         if not enricher.enabled:
             logger.warning("Metadata enricher not available - V2 will use limited filtering")
             return
 
-        logger.info("Enriching Q&A dataset with metadata...")
-        for qa_pair in self.dataset.all_qa_pairs:
-            entities = enricher.extract_entities(qa_pair)
-            # Use a unique key for each QA pair
-            key = f"{qa_pair.topic}_{qa_pair.topic_index}_{qa_pair.qa_index}"
-            self.qa_metadata[key] = entities
+        # Determine cache file
+        if json_path:
+            cache_file = json_path.replace('.json', '_metadata_cache.pkl')
+        else:
+            cache_file = 'metadata_cache.pkl'
 
-        logger.info(f"✅ Enriched {len(self.qa_metadata)} Q&A pairs with metadata")
+        # Load cache if exists
+        cached_metadata = {}
+        cached_hashes = {}
+        
+        if os.path.exists(cache_file):
+            try:
+                with open(cache_file, 'rb') as f:
+                    cache_data = pickle.load(f)
+                    cached_metadata = cache_data.get('metadata', {})
+                    cached_hashes = cache_data.get('hashes', {})
+                logger.info(f"✅ Found existing metadata cache: {cache_file}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to load metadata cache: {e}")
+
+        logger.info("Enriching Q&A dataset with metadata...")
+        
+        current_hashes = {}
+        new_metadata = {}
+        
+        items_to_process = []
+        reused_count = 0
+        
+        # Identify what needs processing
+        for qa_pair in self.dataset.all_qa_pairs:
+            # Unique key for the QA pair
+            key = f"{qa_pair.topic}_{qa_pair.topic_index}_{qa_pair.qa_index}"
+            
+            # Compute hash of content (question + answer + topic)
+            content_str = f"{qa_pair.question}|{qa_pair.answer}|{qa_pair.topic}"
+            content_hash = self._compute_hash(content_str)
+            
+            current_hashes[key] = content_hash
+            
+            # Check if we can reuse cached metadata
+            if key in cached_hashes and cached_hashes[key] == content_hash and key in cached_metadata:
+                new_metadata[key] = cached_metadata[key]
+                reused_count += 1
+            else:
+                items_to_process.append((key, qa_pair))
+
+        # Process new/changed items
+        if items_to_process:
+            logger.info(f"🔄 Incremental enrichment: Processing {len(items_to_process)} new/changed items...")
+            
+            # Process in batches to show progress
+            total = len(items_to_process)
+            for i, (key, qa_pair) in enumerate(items_to_process):
+                if i % 100 == 0:
+                    logger.info(f"   Processing {i}/{total}...")
+                
+                entities = enricher.extract_entities(qa_pair)
+                new_metadata[key] = entities
+        
+        self.qa_metadata = new_metadata
+        
+        logger.info(f"✅ Enriched {len(self.qa_metadata)} Q&A pairs (Reused: {reused_count}, New: {len(items_to_process)})")
+        
+        # Save cache if changes made
+        if items_to_process or len(self.qa_metadata) != len(cached_metadata):
+            try:
+                with open(cache_file, 'wb') as f:
+                    pickle.dump({
+                        'metadata': self.qa_metadata,
+                        'hashes': current_hashes
+                    }, f)
+                logger.info(f"✅ Cached metadata to {cache_file}")
+            except Exception as e:
+                logger.error(f"❌ Failed to save metadata cache: {e}")
 
     def retrieve(self, query_analysis: QueryAnalysisV2, top_k: int = 10):
         """Execute parallel retrieval + RRF fusion"""
