@@ -236,9 +236,12 @@ class SimilaritySearchEngine:
         cpu_count = os.cpu_count() or 4
 
         # Set number of threads for PyTorch (used by sentence-transformers)
-        torch.set_num_threads(cpu_count)
+        # CRITICAL FIX: Limit threads to avoid thrashing in containers (Railway has 48 host cores but limited vCPU)
+        max_threads = int(os.getenv('MAX_CPU_THREADS', '4'))
+        effective_threads = min(cpu_count, max_threads)
+        torch.set_num_threads(effective_threads)
 
-        logger.info(f"   Using {cpu_count} CPU cores for encoding")
+        logger.info(f"   Using {effective_threads} CPU cores for encoding (Host has {cpu_count})")
 
         # Encoded embeddings
         self.encoded_questions = None
@@ -295,7 +298,12 @@ class SimilaritySearchEngine:
 
         # Get CPU count for parallel processing
         import os
+        # Get CPU count for parallel processing
+        import os
+        # Use the same logic as init to avoid over-subscription
         cpu_count = os.cpu_count() or 4
+        max_threads = int(os.getenv('MAX_CPU_THREADS', '4'))
+        effective_threads = min(cpu_count, max_threads)
 
         logger.info(f"Encoding {len(questions)} questions...")
         self.encoded_questions = self.encoder.encode(
