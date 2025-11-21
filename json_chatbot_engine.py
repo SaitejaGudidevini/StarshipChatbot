@@ -25,6 +25,7 @@ import os
 import time
 import pickle
 import logging
+import hashlib
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime
@@ -243,10 +244,12 @@ class SimilaritySearchEngine:
 
         logger.info(f"   Using {effective_threads} CPU cores for encoding (Host has {cpu_count})")
 
-        # Encoded embeddings
+        # Encoded embeddings and hashes
         self.encoded_questions = None
         self.encoded_answers = None
         self.encoded_topics = None
+        self.question_hashes = []
+        self.answer_hashes = []
 
         # Cache handling - create unique cache file per JSON file
         if json_path:
@@ -290,14 +293,20 @@ class SimilaritySearchEngine:
 
         logger.info("✅ Similarity search engine ready (hybrid + reranking)")
 
+    def _compute_hash(self, text: str) -> str:
+        """Compute MD5 hash of text for caching"""
+        return hashlib.md5(text.encode('utf-8')).hexdigest()
+
     def _encode_all(self):
         """Encode all questions, answers, and topics"""
         questions = self.dataset.get_all_questions()
         answers = self.dataset.get_all_answers()
         topics = self.dataset.get_topic_names()
 
-        # Get CPU count for parallel processing
-        import os
+        # Compute hashes
+        self.question_hashes = [self._compute_hash(q) for q in questions]
+        self.answer_hashes = [self._compute_hash(a) for a in answers]
+
         # Get CPU count for parallel processing
         import os
         # Use the same logic as init to avoid over-subscription
@@ -340,7 +349,9 @@ class SimilaritySearchEngine:
                     'encoded_questions': self.encoded_questions,
                     'encoded_answers': self.encoded_answers,
                     'encoded_topics': self.encoded_topics,
-                    'qa_count': len(self.dataset.all_qa_pairs),  # Save count for validation
+                    'question_hashes': self.question_hashes,
+                    'answer_hashes': self.answer_hashes,
+                    'qa_count': len(self.dataset.all_qa_pairs),
                     'topic_count': len(self.dataset.topics)
                 }, f)
             logger.info(f"✅ Cached encodings to {cache_file}")
@@ -348,26 +359,132 @@ class SimilaritySearchEngine:
             logger.error(f"❌ Failed to cache encodings: {e}")
 
     def _load_cache(self, cache_file: str):
-        """Load encoded data from cache with validation"""
+        """Load encoded data from cache with incremental update support"""
         try:
             with open(cache_file, 'rb') as f:
                 cached = pickle.load(f)
 
-            # Validate cache matches current dataset
-            cached_qa_count = cached.get('qa_count', 0)
-            current_qa_count = len(self.dataset.all_qa_pairs)
-
-            if cached_qa_count != current_qa_count:
-                logger.warning(f"⚠️  Cache is stale! Cached: {cached_qa_count} Q&As, Current: {current_qa_count} Q&As")
-                logger.info("🔄 Re-encoding to match current dataset...")
+            # Check if cache has hashes (new format)
+            if 'question_hashes' not in cached:
+                logger.warning("⚠️  Legacy cache format detected. Performing full re-encode...")
                 self._encode_all()
+                self._save_cache(cache_file)
                 return
 
-            # Cache is valid, load it
-            self.encoded_questions = cached['encoded_questions']
-            self.encoded_answers = cached['encoded_answers']
-            self.encoded_topics = cached['encoded_topics']
-            logger.info(f"✅ Loaded cached encodings ({cached_qa_count} Q&As)")
+            # Get current data
+            current_questions = self.dataset.get_all_questions()
+            current_answers = self.dataset.get_all_answers()
+            
+            # Compute current hashes
+            current_q_hashes = [self._compute_hash(q) for q in current_questions]
+            current_a_hashes = [self._compute_hash(a) for a in current_answers]
+
+            # ---------------------------------------------------------
+            # INCREMENTAL UPDATE LOGIC
+            # ---------------------------------------------------------
+            
+            # 1. Map cached hashes to embeddings
+            cached_q_hashes = cached['question_hashes']
+            cached_q_embeddings = cached['encoded_questions']
+            
+            # Create lookup: hash -> embedding
+            # Handle duplicates by taking the first occurrence (same text = same embedding)
+            q_hash_to_emb = {}
+            for h, emb in zip(cached_q_hashes, cached_q_embeddings):
+                q_hash_to_emb[h] = emb
+
+            # 2. Reconstruct Question Embeddings
+            new_q_embeddings = []
+            q_indices_to_encode = []
+            q_texts_to_encode = []
+
+            reused_count = 0
+            
+            for i, h in enumerate(current_q_hashes):
+                if h in q_hash_to_emb:
+                    new_q_embeddings.append(q_hash_to_emb[h])
+                    reused_count += 1
+                else:
+                    new_q_embeddings.append(None) # Placeholder
+                    q_indices_to_encode.append(i)
+                    q_texts_to_encode.append(current_questions[i])
+
+            # 3. Encode new questions if any
+            if q_texts_to_encode:
+                logger.info(f"🔄 Incremental update: Encoding {len(q_texts_to_encode)} new/changed questions...")
+                new_embeddings = self.encoder.encode(
+                    q_texts_to_encode,
+                    show_progress_bar=True,
+                    convert_to_numpy=True,
+                    batch_size=32,
+                    normalize_embeddings=False
+                )
+                
+                # Fill placeholders
+                for idx, emb in zip(q_indices_to_encode, new_embeddings):
+                    new_q_embeddings[idx] = emb
+            
+            self.encoded_questions = np.array(new_q_embeddings)
+            self.question_hashes = current_q_hashes
+            
+            logger.info(f"   Questions: Reused {reused_count}, Encoded {len(q_texts_to_encode)}")
+
+            # ---------------------------------------------------------
+            # REPEAT FOR ANSWERS
+            # ---------------------------------------------------------
+            cached_a_hashes = cached['answer_hashes']
+            cached_a_embeddings = cached['encoded_answers']
+            
+            a_hash_to_emb = {h: emb for h, emb in zip(cached_a_hashes, cached_a_embeddings)}
+            
+            new_a_embeddings = []
+            a_indices_to_encode = []
+            a_texts_to_encode = []
+            
+            for i, h in enumerate(current_a_hashes):
+                if h in a_hash_to_emb:
+                    new_a_embeddings.append(a_hash_to_emb[h])
+                else:
+                    new_a_embeddings.append(None)
+                    a_indices_to_encode.append(i)
+                    a_texts_to_encode.append(current_answers[i])
+            
+            if a_texts_to_encode:
+                logger.info(f"🔄 Incremental update: Encoding {len(a_texts_to_encode)} new/changed answers...")
+                new_embeddings = self.encoder.encode(
+                    a_texts_to_encode,
+                    show_progress_bar=True,
+                    convert_to_numpy=True,
+                    batch_size=32,
+                    normalize_embeddings=False
+                )
+                for idx, emb in zip(a_indices_to_encode, new_embeddings):
+                    new_a_embeddings[idx] = emb
+            
+            self.encoded_answers = np.array(new_a_embeddings)
+            self.answer_hashes = current_a_hashes
+
+            # ---------------------------------------------------------
+            # TOPICS (Always re-encode as they are few)
+            # ---------------------------------------------------------
+            # We could optimize this too, but topics are usually < 100, so it's negligible (ms)
+            topics = self.dataset.get_topic_names()
+            self.encoded_topics = self.encoder.encode(
+                topics,
+                show_progress_bar=False,
+                convert_to_numpy=True,
+                normalize_embeddings=False
+            )
+
+            logger.info(f"✅ Loaded & Updated Cache: {len(self.encoded_questions)} Q&As ready")
+            
+            # Save updated cache if we made changes
+            if q_texts_to_encode or a_texts_to_encode:
+                self._save_cache(cache_file)
+
+        except Exception as e:
+            logger.error(f"❌ Failed to load cache: {e}, re-encoding...")
+            self._encode_all()
         except Exception as e:
             logger.error(f"❌ Failed to load cache: {e}, re-encoding...")
             self._encode_all()
