@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { MessageSquare, LayoutDashboard, Edit, Zap, Settings } from 'lucide-react';
+import { MessageSquare, LayoutDashboard, Edit, Zap, Network, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,6 +13,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'editor', label: 'Editor', icon: Edit },
     { id: 'generator', label: 'Generator', icon: Zap },
+    { id: 'tree', label: 'Tree View', icon: Network },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -34,11 +35,10 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
                 <button
                   key={id}
                   onClick={() => onNavigate(id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    currentPage === id
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${currentPage === id
                       ? 'bg-blue-50 text-blue-600'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{label}</span>

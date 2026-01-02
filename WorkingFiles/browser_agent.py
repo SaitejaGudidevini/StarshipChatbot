@@ -266,18 +266,24 @@ Provide a detailed, structured response that covers all aspects found on the pag
         # Create browser session
         browser_session = BrowserSession(headless=True)
 
-        # Create browser_use agent
+        # Create browser_use agent with intelligent error handling
         agent = Agent(
             task=task,
             llm=groq_llm,
             use_cloud=False,
-            browser_session=browser_session
+            browser_session=browser_session,
+            # Intelligent error handling and loop prevention
+            max_failures=2,              # Fail faster on stuck elements (default: 3)
+            step_timeout=60,             # Timeout faster on unresponsive elements (default: 120s)
+            max_actions_per_step=3,      # More focused, deliberate actions (default: 4)
+            use_thinking=True,           # Enable reasoning to recognize stuck patterns (default: True)
+            final_response_after_failure=True  # Always try to extract something (default: True)
         )
 
-        # Execute extraction
+        # Execute extraction with reasonable step limit
         logger.info(f"🌐 Extracting content for: {topic}")
         start_time = time.time()
-        result = await agent.run()
+        result = await agent.run(max_steps=30)  # Prevent infinite loops (default: 100)
         processing_time = time.time() - start_time
 
         # Cleanup browser session

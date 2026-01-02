@@ -4,6 +4,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Chat } from './pages/Chat';
 import { Editor } from './pages/Editor';
 import { Generator } from './pages/Generator';
+import { TreeView } from './pages/TreeView';
 import { Settings } from './pages/Settings';
 
 function App() {
@@ -19,6 +20,8 @@ function App() {
         return <Editor />;
       case 'generator':
         return <Generator />;
+      case 'tree':
+        return <TreeView />;
       case 'settings':
         return <Settings />;
       default:

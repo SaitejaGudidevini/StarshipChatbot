@@ -108,3 +108,26 @@ export interface JsonFileList {
   files: JsonFile[];
   current: string;
 }
+
+export interface TreeNode {
+  title: string;
+  url: string;
+  semantic_path: string;
+  source_type: 'homepage' | 'heading' | 'link';
+  depth: number;
+  visited: boolean;
+  has_content: boolean;
+  children: TreeNode[];
+}
+
+export interface TreeData {
+  metadata: {
+    domain: string;
+    start_url: string;
+    timestamp: string;
+    total_nodes: number;
+    max_depth: number;
+    format: string;
+  };
+  tree: TreeNode;
+}

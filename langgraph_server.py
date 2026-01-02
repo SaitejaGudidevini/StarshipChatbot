@@ -77,7 +77,7 @@ async def lifespan(app: FastAPI):
     # Setup data directory (Railway volume support)
     import os
     DATA_DIR = Path(os.getenv("DATA_DIR", "."))
-    JSON_FILE_PATH = DATA_DIR / "browser_agent_test_output.json"
+    JSON_FILE_PATH = DATA_DIR / "MelindaFile.json"
 
     # Store globally for use in endpoints
     app.state.json_file_path = JSON_FILE_PATH
@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
         with open(JSON_FILE_PATH, 'r', encoding='utf-8') as f:
             json_data = json.load(f)
         logger.info(f"✅ JSON file found: {len(json_data)} topics")
-        logger.info("📁 Data source: browser_agent_test_output.json")
+        logger.info("📁 Data source: MelindaFile.json")
     else:
         logger.warning("⚠️  JSON file not found - creating empty dataset")
         # Create empty JSON file with sample structure
@@ -1812,7 +1812,7 @@ async def download_data(request: Request):
         return JSONResponse(
             content=data,
             headers={
-                "Content-Disposition": f"attachment; filename=browser_agent_test_output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                "Content-Disposition": f"attachment; filename=CSU_Progress{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             }
         )
 

@@ -22,7 +22,7 @@ from datetime import datetime
 
 from playwright.async_api import async_playwright, Page, Browser, BrowserContext
 from playwright.async_api import TimeoutError as PlaywrightTimeout
-from WorkingFiles.labeling import SemanticLabeler
+from labeling import SemanticLabeler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +35,7 @@ class CrawlNode:
     original_url: str
     semantic_path: str
     source_type: str  # 'heading' or 'link'
+    text: str = ""    # The text content of the heading or link
     parent_url: Optional[str] = None
     depth: int = 0
     visited: bool = False
@@ -58,7 +59,7 @@ class HierarchicalWebCrawler:
         max_depth: int = 3,
         max_pages: int = 100,
         headless: bool = True,
-        timeout: int = 30000
+        timeout: int = 60000
     ):
         self.start_url = self._normalize_url(start_url)
         self.domain = urlparse(self.start_url).netloc
@@ -73,7 +74,11 @@ class HierarchicalWebCrawler:
         self.processed_urls: Set[str] = set()
         self.crawl_nodes: Dict[str, CrawlNode] = {}
         self.navigation_tree: Dict[str, List[str]] = {}
-        
+
+        # 🔑 GLOBAL REGISTRY: "First-Discovery-Wins" Gatekeeper
+        # Maps normalized URL to its canonical semantic path (first discovered)
+        self.url_registry: Dict[str, str] = {}
+
         # Browser instances
         self.playwright = None
         self.browser: Optional[Browser] = None
@@ -85,7 +90,10 @@ class HierarchicalWebCrawler:
             "total_links_found": 0,
             "heading_pages_crawled": 0,
             "link_pages_crawled": 0,
-            "backtrack_count": 0
+            "backtrack_count": 0,
+            "duplicates_blocked": 0,  # Total duplicates rejected by registry
+            "heading_duplicates_blocked": 0,  # Heading duplicates blocked
+            "link_duplicates_blocked": 0  # Link duplicates blocked
         }
     
     def _normalize_url(self, url: str) -> str:
@@ -100,7 +108,78 @@ class HierarchicalWebCrawler:
             ''
         ))
         return normalized
-    
+
+    def _register_url(self, url: str, semantic_path: str) -> bool:
+        """
+        🔑 GATEKEEPER: Atomic "First-Discovery-Wins" registration
+
+        Attempts to claim a URL for a specific semantic path.
+        This is the core of the duplicate prevention system.
+
+        Args:
+            url: The URL to register (will be normalized)
+            semantic_path: The semantic path claiming this URL
+
+        Returns:
+            True: URL successfully claimed (first discovery) - proceed with processing
+            False: URL already claimed by another path (duplicate) - reject immediately
+        """
+        normalized_url = self._normalize_url(url)
+
+        # Check if URL already claimed by another discovery
+        if normalized_url in self.url_registry:
+            canonical_path = self.url_registry[normalized_url]
+            logger.debug(f"⏭️  URL already claimed: {normalized_url}")
+            logger.debug(f"    Canonical path: {canonical_path}")
+            logger.debug(f"    Rejected path: {semantic_path}")
+            return False  # Duplicate - reject
+
+        # Claim the URL (First Discovery!)
+        self.url_registry[normalized_url] = semantic_path
+        logger.debug(f"🔒 URL claimed: {normalized_url} → {semantic_path}")
+        return True  # Success - proceed with this discovery
+
+    def _register_heading(self, heading_text: str, url: str, semantic_path: str) -> bool:
+        """
+        🔑 GATEKEEPER: Heading duplicate detection
+
+        For headings, we check for duplicates based on:
+        - Heading text (normalized)
+        - Parent URL (the page it appears on)
+
+        This prevents the same heading from appearing multiple times on the same page.
+
+        Args:
+            heading_text: The heading text
+            url: The parent page URL
+            semantic_path: The semantic path for this heading
+
+        Returns:
+            True: Heading is unique (first discovery) - proceed with processing
+            False: Heading already exists (duplicate) - reject immediately
+        """
+        normalized_url = self._normalize_url(url)
+
+        # Create a signature: normalized text + parent URL
+        # This allows same heading text on DIFFERENT pages (different context)
+        # But blocks same heading text on SAME page (true duplicate)
+        clean_text = heading_text.strip().lower()[:100]  # First 100 chars, normalized
+        heading_signature = f"{clean_text}@{normalized_url}"
+
+        # Check if this heading signature already exists
+        if heading_signature in self.url_registry:
+            canonical_path = self.url_registry[heading_signature]
+            logger.debug(f"⏭️  Heading already claimed: '{heading_text[:50]}'")
+            logger.debug(f"    On page: {normalized_url}")
+            logger.debug(f"    Canonical path: {canonical_path}")
+            logger.debug(f"    Rejected path: {semantic_path}")
+            return False  # Duplicate - reject
+
+        # Claim this heading (First Discovery!)
+        self.url_registry[heading_signature] = semantic_path
+        logger.debug(f"🔒 Heading claimed: '{heading_text[:50]}' on {normalized_url}")
+        return True  # Success - proceed with this discovery
+
     def _is_same_domain(self, url: str) -> bool:
         """Check if URL belongs to the same domain"""
         return urlparse(url).netloc == self.domain
@@ -129,6 +208,29 @@ class HierarchicalWebCrawler:
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         )
         return context
+    async def _navigate_safely(self, page: Page, url: str) -> Optional[object]:
+        """
+        Navigate to a URL with robust fallback strategies.
+        1. Try networkidle (ideal for SPAs)
+        2. Fallback to domcontentloaded (if networkidle times out)
+        3. Fallback to load (if all else fails)
+        """
+        try:
+            # Strategy 1: Network Idle (Best for dynamic content)
+            response = await page.goto(url, wait_until='networkidle', timeout=self.timeout)
+            return response
+        except PlaywrightTimeout:
+            logger.warning(f"⚠️ Timeout waiting for networkidle on {url}. Retrying with domcontentloaded...")
+            try:
+                # Strategy 2: DOM Content Loaded (Faster, less strict)
+                response = await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+                return response
+            except Exception as e:
+                logger.error(f"❌ Failed to navigate to {url} even with fallback: {e}")
+                return None
+        except Exception as e:
+            logger.error(f"❌ Error navigating to {url}: {e}")
+            return None
     
     async def _extract_page_data(self, page: Page, url: str) -> Tuple[Dict, str, int]:
         """
@@ -626,91 +728,125 @@ class HierarchicalWebCrawler:
         
         return content
     
-    async def _discover_headings_and_links_with_locators(self, page: Page, current_url: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
+    async def _discover_headings_and_links_with_locators(self, page: Page, current_url: str, current_semantic_path: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
         """
-        Discover headings and links using Playwright locators for better relationship understanding
+        Discover headings and links using a robust Content-Aware approach.
+        Identifies 'Topics' by looking for elements (Headings, Links, Divs) followed by descriptive content.
         Returns: ([(heading_text, semantic_path), ...], [(link_text, link_url, semantic_path), ...])
         """
         discovered_headings = []
         discovered_links = []
 
         try:
-            # Use locators for headings with content verification
-            headings = page.locator('h1, h2, h3, h4, h5, h6')
-            heading_count = await headings.count()
+            # Execute JS to analyze the DOM structure and group links under topics
+            # This matches the logic verified in tree_scraper_demo.py
+            page_structure = await page.evaluate('''() => {
+                // FIRST: Remove Footer and Header elements using Semantic HTML & ARIA Roles
+                
+                // 1. Semantic Tags (The "HTML Perspective")
+                const semanticSelectors = [
+                    'header',       // <header> tag
+                    'footer',       // <footer> tag
+                    'nav',          // <nav> tag
+                    '[role="banner"]',      // ARIA role for header
+                    '[role="contentinfo"]', // ARIA role for footer
+                    '[role="navigation"]'   // ARIA role for nav
+                ];
+                
+                semanticSelectors.forEach(selector => {
+                    document.querySelectorAll(selector).forEach(el => el.remove());
+                });
 
-            for i in range(heading_count):
-                heading = headings.nth(i)
+                // 2. Fallback: Common structural classes (Only if semantic tags missed them)
+                // We keep these as a backup because not all sites use semantic HTML
+                const fallbackSelectors = [
+                    '.site-footer', '.global-footer', '#footer',
+                    '.site-header', '.global-header', '#header',
+                    // Utility links that often live outside headers
+                    '.skip-link', '.skip-to-content', '#skip-to-content', 
+                    '.language-picker', '.utility-nav', '.usa-banner' // Common on gov sites
+                ];
+                fallbackSelectors.forEach(selector => {
+                    document.querySelectorAll(selector).forEach(el => el.remove());
+                });
 
+                const headings = [];
+                const links = [];
+                const processedLinks = new Set();
+                
+                // 1. Collect Headings (LEAVES)
+                // We strictly treat H1-H6 as content leaves on the current page
+                const headingElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                headingElements.forEach(el => {
+                    const text = el.innerText.trim();
+                    if (text && text.length > 3) {
+                        headings.push({
+                            text: text,
+                            type: el.tagName
+                        });
+                    }
+                });
+
+                // 2. Collect Links (BRANCHES)
+                // We strictly treat Links as navigation to new sub-trees
+                const linkElements = document.querySelectorAll('a[href]');
+                linkElements.forEach(el => {
+                    // Skip if already processed
+                    if (processedLinks.has(el.href)) return;
+                    
+                    // Skip common non-content links
+                    if (el.innerText.match(/Skip to|Menu|Search|Login/i)) return;
+
+                    const text = el.innerText.trim();
+                    if (text && text.length > 2) {
+                        links.push({
+                            text: text,
+                            url: el.href,
+                            is_topic: false // Links are always branches now
+                        });
+                        processedLinks.add(el.href);
+                    }
+                });
+                
+                return { headings, links };
+            }''')
+
+            # Process Headings (LEAVES)
+            for h in page_structure['headings']:
+                clean_text = self.labeler._clean_text_natural(h['text'])
+                # Single slash / denotes content on current page
+                # Use current_semantic_path as base
+                semantic_path = f"{current_semantic_path}/{clean_text}"
+                discovered_headings.append((h['text'], semantic_path))
+
+            # Process Links (BRANCHES)
+            for l in page_structure['links']:
                 try:
-                    heading_text = await heading.inner_text()
-                    if heading_text and len(heading_text.strip()) > 2:
-                        # Check if heading has meaningful content after it using XPath
-                        # Look for following siblings that are paragraphs or content divs
-                        following_content = heading.locator('xpath=./following-sibling::*[self::p or self::div][1]')
-                        has_content = await following_content.count() > 0
-
-                        if has_content:
-                            # Verify the content is substantial
-                            content_text = await following_content.inner_text() if await following_content.count() > 0 else ""
-                            if len(content_text.strip()) > 20:  # Only process if meaningful content exists
-                                # Create semantic path for heading (single slash)
-                                clean_text = self.labeler._clean_text_natural(heading_text.strip())
-                                semantic_path = f"https://{self.domain}/{clean_text}"
-                                discovered_headings.append((heading_text.strip(), semantic_path))
-
-                except Exception as e:
-                    logger.debug(f"Error processing heading: {e}")
-                    continue
-
-            # Use locators for links with better filtering
-            links = page.locator('a[href]')
-            link_count = await links.count()
-
-            # Track processed URLs to avoid duplicates
-            processed_in_batch = set()
-
-            for i in range(link_count):
-                link = links.nth(i)
-
-                try:
-                    href = await link.get_attribute('href')
-                    link_text = await link.inner_text()
-
-                    # Skip invalid links
-                    if not href or href.startswith('#') or href.startswith('javascript:'):
-                        continue
-
-                    # Get absolute URL
-                    absolute_url = urljoin(current_url, href)
-                    normalized_url = self._normalize_url(absolute_url)
-
-                    # Check if URL is within the same domain
+                    normalized_url = self._normalize_url(l['url'])
+                    
+                    # Check domain
                     if not self._is_same_domain(normalized_url):
                         continue
-
-                    # Skip if already processed
-                    if normalized_url in self.processed_urls or normalized_url in processed_in_batch:
+                        
+                    # Skip if already processed (global check)
+                    if normalized_url in self.processed_urls:
                         continue
 
-                    processed_in_batch.add(normalized_url)
-
-                    # Check if link has meaningful text or aria-label
-                    aria_label = await link.get_attribute('aria-label')
-                    meaningful_text = link_text.strip() if link_text else (aria_label if aria_label else "")
-
-                    if meaningful_text and len(meaningful_text) > 2:
-                        # Create semantic path for link (double slash)
-                        clean_text = self.labeler._clean_text_natural(meaningful_text)
-                        semantic_path = f"https://{self.domain}//{clean_text}"
-                        discovered_links.append((meaningful_text, normalized_url, semantic_path))
-
+                    clean_text = self.labeler._clean_text_natural(l['text'])
+                    # Double slash // denotes navigation to new page
+                    # Use current_semantic_path as base
+                    semantic_path = f"{current_semantic_path}//{clean_text}"
+                    
+                    discovered_links.append((l['text'], l['url'], semantic_path))
+                    
                 except Exception as e:
-                    logger.debug(f"Error processing link: {e}")
+                    logger.warning(f"Error processing link {l}: {e}")
                     continue
 
         except Exception as e:
-            logger.error(f"Error discovering with locators from {current_url}: {e}")
+            logger.error(f"Error in content-aware discovery: {e}")
+            # Fallback to basic extraction if JS fails
+            return [], []
 
         return discovered_headings, discovered_links
 
@@ -887,36 +1023,86 @@ class HierarchicalWebCrawler:
             logger.debug(f"Page primary heading identified: '{page_primary_heading}'")
 
             # Discover headings and links for further crawling
-            discovered_headings, discovered_links = await self._discover_headings_and_links(page, node.original_url)
-            
-            # Add discovered headings to heading queue (if within depth limit)
+            discovered_headings, discovered_links = await self._discover_headings_and_links_with_locators(page, node.original_url, node.semantic_path)
+
+            # DEBUG: Print what was discovered
+            logger.info(f"🔍 DEBUG: Discovered {len(discovered_headings)} headings and {len(discovered_links)} links from {node.original_url}")
+            if discovered_links:
+                logger.info(f"   📋 Links found: {[link[0][:50] for link in discovered_links[:5]]}")  # Show first 5 link texts
+
+            # Add discovered headings to heading queue (with Global Registry gatekeeper)
             if node.depth < self.max_depth:
+                headings_added_count = 0
+                heading_duplicates_blocked = 0
+
                 for heading_text, semantic_path in discovered_headings:
+                    # 🔑 GATEKEEPER: Check if this heading is a duplicate
+                    if not self._register_heading(heading_text, node.original_url, semantic_path):
+                        # Heading already exists on this page - duplicate
+                        heading_duplicates_blocked += 1
+                        logger.debug(f"⏭️  Blocked duplicate heading: '{heading_text[:50]}'")
+                        continue  # Discard immediately - do not create node, do not queue
+
+                    # Heading is unique - proceed with creation
                     if semantic_path not in self.crawl_nodes:
                         heading_node = CrawlNode(
                             original_url=node.original_url,  # Headings reference same page
                             semantic_path=semantic_path,
                             source_type='heading',
+                            text=heading_text,
                             parent_url=node.original_url,
                             depth=node.depth + 1
                         )
                         self.crawl_nodes[semantic_path] = heading_node
-                        self.heading_queue.append(heading_node)
+                        self.heading_queue.appendleft(heading_node)  # DFS: Add to FRONT for depth-first
                         self.stats["total_headings_found"] += 1
-                
-                # Add discovered links to link queue
+                        headings_added_count += 1
+
+                # Log heading processing results
+                if heading_duplicates_blocked > 0:
+                    logger.info(f"📰 Added {headings_added_count} unique headings, blocked {heading_duplicates_blocked} duplicates")
+                    self.stats["heading_duplicates_blocked"] = self.stats.get("heading_duplicates_blocked", 0) + heading_duplicates_blocked
+
+                # Add discovered links to link queue (with Global Registry gatekeeper)
+                links_added_count = 0
+                duplicates_blocked = 0
+
                 for link_text, link_url, semantic_path in discovered_links:
+                    # 🔑 GATEKEEPER: Try to claim this URL in the registry
+                    if not self._register_url(link_url, semantic_path):
+                        # URL already claimed by another path - this is a duplicate
+                        duplicates_blocked += 1
+                        logger.debug(f"⏭️  Blocked duplicate: '{link_text[:50]}' → {link_url}")
+                        continue  # Discard immediately - do not create node, do not queue
+
+                    # URL successfully claimed! This is the canonical path for this URL
+                    # Now proceed with normal node creation
                     if semantic_path not in self.crawl_nodes:
                         link_node = CrawlNode(
                             original_url=link_url,
                             semantic_path=semantic_path,
                             source_type='link',
+                            text=link_text,
                             parent_url=node.original_url,
                             depth=node.depth + 1
                         )
                         self.crawl_nodes[semantic_path] = link_node
-                        self.link_queue.append(link_node)
+                        self.link_queue.appendleft(link_node)  # DFS: Add to FRONT for depth-first
                         self.stats["total_links_found"] += 1
+                        links_added_count += 1
+
+                # Enhanced logging with duplicate count
+                logger.info(f"✅ Added {links_added_count} unique links, blocked {duplicates_blocked} duplicates (depth {node.depth} → {node.depth + 1})")
+                self.stats["link_duplicates_blocked"] = self.stats.get("link_duplicates_blocked", 0) + duplicates_blocked
+                self.stats["duplicates_blocked"] = self.stats.get("duplicates_blocked", 0) + duplicates_blocked
+
+                # DEBUG: Show tree structure for first few links
+                if links_added_count > 0 and node.depth <= 2:
+                    indent = "  " * node.depth
+                    logger.info(f"🌳 TREE: {indent}└─> Parent: {node.semantic_path.split('/')[-1][:40]}")
+                    for link_text, link_url, semantic_path in list(discovered_links)[:3]:
+                        if semantic_path in self.crawl_nodes:
+                            logger.info(f"🌳 TREE: {indent}    ├─> Child: {link_text[:40]} (depth {node.depth + 1})")
             else:
                 # Track "extra deep" elements that exceeded max depth
                 for heading_text, semantic_path in discovered_headings:
@@ -925,6 +1111,7 @@ class HierarchicalWebCrawler:
                             original_url=node.original_url,
                             semantic_path=semantic_path,
                             source_type='heading',
+                            text=heading_text,
                             parent_url=node.original_url,
                             depth=node.depth + 1,
                             visited=False,
@@ -940,6 +1127,7 @@ class HierarchicalWebCrawler:
                             original_url=link_url,
                             semantic_path=semantic_path,
                             source_type='link',
+                            text=link_text,
                             parent_url=node.original_url,
                             depth=node.depth + 1,
                             visited=False,
@@ -993,7 +1181,12 @@ class HierarchicalWebCrawler:
             )
             
             self.crawl_nodes[root_semantic] = root_node
-            
+
+            # 🔑 REGISTRY: Pre-register the homepage to prevent re-discovery
+            # (e.g., from logo links, footer links, etc.)
+            self.url_registry[self.start_url] = root_semantic
+            logger.info(f"🔒 Registry initialized: {self.start_url} → {root_semantic}")
+
             # Phase 1: Crawl homepage and discover initial headings/links
             logger.info("\n🚀 PHASE 1: Homepage Discovery")
             success = await self._crawl_single_page(root_node)
@@ -1002,14 +1195,14 @@ class HierarchicalWebCrawler:
                 logger.error("❌ Failed to crawl homepage. Aborting.")
                 return self.crawl_nodes
             
-            # Phase 2: Process all headings first (depth-first)
+            # Phase 2: Process all headings first (depth-first - goes deep on each branch)
             logger.info(f"\n📰 PHASE 2: Processing {len(self.heading_queue)} Headings (Priority)")
             while self.heading_queue and len(self.processed_urls) < self.max_pages:
                 heading_node = self.heading_queue.popleft()
                 if not heading_node.visited:
                     await self._crawl_single_page(heading_node)
-            
-            # Phase 3: Process all links (depth-first)
+
+            # Phase 3: Process all links (depth-first - goes deep on each branch)
             logger.info(f"\n🔗 PHASE 3: Processing {len(self.link_queue)} Links")
             while self.link_queue and len(self.processed_urls) < self.max_pages:
                 link_node = self.link_queue.popleft()
@@ -1033,6 +1226,10 @@ class HierarchicalWebCrawler:
         logger.info(f"   🔗 Link-based entries: {self.stats['link_pages_crawled']}")
         logger.info(f"   🔍 Total headings discovered: {self.stats['total_headings_found']}")
         logger.info(f"   🔗 Total links discovered: {self.stats['total_links_found']}")
+        logger.info(f"   🚫 Total duplicates blocked by registry: {self.stats.get('duplicates_blocked', 0)}")
+        logger.info(f"      📰 Heading duplicates blocked: {self.stats.get('heading_duplicates_blocked', 0)}")
+        logger.info(f"      🔗 Link duplicates blocked: {self.stats.get('link_duplicates_blocked', 0)}")
+        logger.info(f"   ✅ Unique items registered: {len(self.url_registry)}")
     
     def _clean_text_for_path(self, text: str) -> str:
         """Clean text for use in semantic path"""
@@ -1072,7 +1269,18 @@ class HierarchicalWebCrawler:
 
         # Process each crawl node and create individual entries for each element
         for semantic_path, node in self.crawl_nodes.items():
-            # Handle regular visited nodes
+            # 1. Add the node itself as a semantic element
+            # This ensures every discovered node (heading or link) is in the output
+            crawl_data["semantic_elements"][semantic_path] = {
+                "text": node.text if node.text else node.page_primary_heading,
+                "element_type": node.source_type,
+                "original_url": node.original_url,
+                "parent_url": node.parent_url,
+                "depth": node.depth,
+                "content": node.page_content if node.visited else None
+            }
+
+            # 2. Handle visited nodes (add extra content)
             if node.visited and node.page_elements:
                 # Add new structured content if available
                 if 'structured_content' in node.page_elements:
@@ -1090,83 +1298,9 @@ class HierarchicalWebCrawler:
                     rel = node.page_elements['relationships']
                     if 'heading_to_content' in rel:
                         crawl_data["element_relationships"].update(rel['heading_to_content'])
-
-                # Create entries for each element type (original method)
-                for element_type in ['headings', 'links', 'buttons']:
-                    elements = node.page_elements.get(element_type, [])
-
-                    for element in elements:
-                        if element.get('text'):
-                            # Create semantic path for this specific element
-                            element_text = element['text'].strip()
-                            # Clean element text for use in path
-                            clean_text = self._clean_text_for_path(element_text)
-
-                            # Build semantic path based on page context and element type
-                            if node.depth == 0:
-                                # Homepage elements (depth 0)
-                                if element_type == 'links':
-                                    # Links from homepage: https://pytorch.org//LinkText
-                                    element_semantic_path = f"https://{self.domain}//{clean_text}"
-                                    parent_semantic = None
-                                else:
-                                    # Headings from homepage: https://pytorch.org/HeadingText
-                                    element_semantic_path = f"https://{self.domain}/{clean_text}"
-                                    parent_semantic = None
-                            else:
-                                # Sub-page elements (depth >= 1)
-                                # Use the page's primary heading as the base context
-                                if node.page_primary_heading:
-                                    base_context = node.page_primary_heading
-                                else:
-                                    # Fallback: extract from semantic_path
-                                    if '//' in semantic_path:
-                                        base_context = semantic_path.split('//')[-1].split('/')[0]
-                                    else:
-                                        base_context = semantic_path.split('/')[-1]
-
-                                if element_type == 'links':
-                                    # Links: https://pytorch.org//PageHeading/LinkText
-                                    element_semantic_path = f"https://{self.domain}//{base_context}/{clean_text}"
-                                    parent_semantic = f"https://{self.domain}//{base_context}"
-                                elif element_type == 'buttons':
-                                    # Buttons: https://pytorch.org//PageHeading/ButtonText
-                                    element_semantic_path = f"https://{self.domain}//{base_context}/{clean_text}"
-                                    parent_semantic = f"https://{self.domain}//{base_context}"
-                                else:
-                                    # Headings: https://pytorch.org/PageHeading/SubHeading
-                                    element_semantic_path = f"https://{self.domain}/{base_context}/{clean_text}"
-                                    parent_semantic = f"https://{self.domain}/{base_context}"
-
-                            element_entry = {
-                                    "semantic_path": element_semantic_path,
-                                    "original_url": node.original_url,
-                                    "source_type": element_type[:-1],  # Remove 's' (heading, link, button)
-                                    "element_type": element_type[:-1]
-                                }
-                            """
-                            # Add specific attributes
-                            if element_type == 'links' and 'href' in element:
-                                element_entry['href'] = element['href']
-                            elif element_type == 'buttons' and 'type' in element:
-                                element_entry['button_type'] = element['type']
-                            """
-                            
-                            crawl_data["semantic_elements"][element_semantic_path] = element_entry
-                            total_elements += 1
             
-            # Handle "extra deep" nodes that exceeded max depth
-            elif not node.visited and node.page_content == "extra deep":
-                # Create a special entry for this extra deep node
-                element_entry = {
-                    "semantic_path": semantic_path,
-                    "original_url": node.original_url,
-                    "source_type": node.source_type,
-                    "element_type": node.source_type
-                }
-                
-                crawl_data["semantic_elements"][semantic_path] = element_entry
-                total_elements += 1
+            total_elements += 1
+
         
         # Update metadata with all counts
         crawl_data["crawl_metadata"]["total_elements"] = total_elements
@@ -1182,14 +1316,152 @@ class HierarchicalWebCrawler:
             json.dump(crawl_data, f, indent=2, ensure_ascii=False)
         
         logger.info(f"💾 Hierarchical results saved to: {filename}")
+        
+        # Also save tree structure for visualization
+        try:
+            logger.info("🌳 Starting tree structure save...")
+            tree_filename = self.save_tree_structure(filename)
+            logger.info(f"🌳 Tree structure saved to: {tree_filename}")
+        except Exception as e:
+            logger.error(f"❌ Failed to save tree structure: {e}", exc_info=True)
+        
         return filename
+    
+    def save_tree_structure(self, base_filename: str = None) -> str:
+        """
+        Save hierarchical tree structure for D3.js visualization
+        Converts flat crawl_nodes into nested parent-child tree structure
+        """
+        if base_filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            domain_clean = self.domain.replace('.', '_')
+            base_filename = f"output/hierarchical_crawl_{domain_clean}_{timestamp}.json"
+        
+        # Create tree filename
+        tree_filename = base_filename.replace('.json', '_tree.json')
+        
+        # Find root node (depth 0)
+        root_node = None
+        for node in self.crawl_nodes.values():
+            if node.depth == 0:
+                root_node = node
+                break
+        
+        if not root_node:
+            logger.warning("No root node found, cannot build tree")
+            return tree_filename
+        
+        # Build hierarchical tree iteratively (avoids recursion depth issues)
+        def build_tree_node_iterative(root_node: CrawlNode) -> dict:
+            """Build tree structure iteratively to avoid recursion depth errors"""
+            from collections import deque
+            
+            logger.info(f"🔨 Building tree from {len(self.crawl_nodes)} total nodes...")
+            
+            # Create root tree node
+            def create_tree_node(node: CrawlNode) -> dict:
+                # Extract title from semantic path
+                if '//' in node.semantic_path:
+                    title = node.semantic_path.split('//')[-1].split('/')[0]
+                else:
+                    title = node.semantic_path.split('/')[-1]
+                
+                display_title = node.text if node.text else title
+                
+                return {
+                    "title": display_title,
+                    "url": node.original_url,
+                    "semantic_path": node.semantic_path,
+                    "source_type": node.source_type,
+                    "depth": node.depth,
+                    "visited": node.visited,
+                    "has_content": bool(node.page_content),
+                    "children": [],
+                    "_crawl_node": node  # Temporary reference
+                }
+            
+            # Build tree iteratively using DFS
+            root_tree = create_tree_node(root_node)
+            queue = deque([root_tree])
+            processed = 0
+            visited_paths = {root_node.semantic_path}  # Track visited semantic paths to prevent duplicates
+
+            logger.info(f"🔄 Starting DFS tree building...")
+
+            while queue:
+                current_tree_node = queue.popleft()
+                current_crawl_node = current_tree_node["_crawl_node"]
+                processed += 1
+
+                if processed % 10 == 0:
+                    logger.info(f"   Processed {processed} nodes, queue size: {len(queue)}, visited: {len(visited_paths)}")
+
+                # Find children
+                children = []
+                for child_node in self.crawl_nodes.values():
+                    if (child_node.parent_url == current_crawl_node.original_url and
+                        child_node.semantic_path != current_crawl_node.semantic_path and
+                        child_node.semantic_path not in visited_paths):  # Prevent duplicates using semantic_path
+                        children.append(child_node)
+                        visited_paths.add(child_node.semantic_path)  # Mark semantic_path as visited
+                
+                # Sort children
+                children.sort(key=lambda n: (n.source_type != 'heading', n.depth, n.semantic_path))
+                
+                # Add children to tree
+                for child in children:
+                    child_tree_node = create_tree_node(child)
+                    current_tree_node["children"].append(child_tree_node)
+                    queue.appendleft(child_tree_node)  # DFS: Add to FRONT for depth-first tree building
+
+            logger.info(f"✅ DFS complete. Processed {processed} nodes total.")
+            logger.info(f"🧹 Cleaning temporary references...")
+            
+            # Remove temporary references iteratively
+            clean_queue = deque([root_tree])
+            cleaned = 0
+            while clean_queue:
+                node = clean_queue.popleft()
+                if "_crawl_node" in node:
+                    del node["_crawl_node"]
+                    cleaned += 1
+                for child in node.get("children", []):
+                    clean_queue.append(child)
+            
+            logger.info(f"✅ Cleaned {cleaned} nodes.")
+            return root_tree
+        
+        # Build the complete tree
+        tree_data = build_tree_node_iterative(root_node)
+        
+        # Add metadata
+        tree_output = {
+            "metadata": {
+                "domain": self.domain,
+                "start_url": self.start_url,
+                "timestamp": datetime.now().isoformat(),
+                "total_nodes": len(self.crawl_nodes),
+                "max_depth": self.max_depth,
+                "format": "hierarchical_tree_for_d3js"
+            },
+            "tree": tree_data
+        }
+        
+        # Save to file
+        import os
+        os.makedirs("output", exist_ok=True)
+        
+        with open(tree_filename, 'w', encoding='utf-8') as f:
+            json.dump(tree_output, f, indent=2, ensure_ascii=False)
+        
+        return tree_filename
 
 
 async def main():
     """Example usage of hierarchical crawler"""
     crawler = HierarchicalWebCrawler(
-        start_url="https://www.westlakemedical.com",
-        max_depth=2,
+        start_url="https://www.austintexas.org/event/austins-new-year/383808/",
+        max_depth=10,
         max_pages=20,  # Only crawl homepage
         headless=True
     )

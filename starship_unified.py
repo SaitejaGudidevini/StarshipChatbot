@@ -295,6 +295,7 @@ async def root():
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StarshipChatbot - Control Center</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -653,6 +654,71 @@ async def root():
             to { transform: rotate(360deg); }
         }
 
+        /* Tree Visualization Styles */
+        #tree-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            overflow: hidden;
+            position: relative;
+        }
+        .tree-node circle {
+            fill: #fff;
+            stroke: #667eea;
+            stroke-width: 2px;
+            cursor: pointer;
+        }
+        .tree-node circle:hover {
+            stroke: #764ba2;
+            stroke-width: 3px;
+        }
+        .tree-node text {
+            font: 12px sans-serif;
+            cursor: pointer;
+            fill: #333;
+        }
+        .tree-link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+        .tree-tooltip {
+            position: absolute;
+            text-align: left;
+            padding: 10px;
+            font: 12px sans-serif;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        .tree-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        .tree-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
         /* Quick Actions */
         .quick-actions {
             display: flex;
@@ -711,6 +777,7 @@ async def root():
         <button class="tab" onclick="showTab('generate')">🤖 Generate Data</button>
         <button class="tab" onclick="showTab('edit')">✏️ Edit Data</button>
         <button class="tab" onclick="showTab('chat')">💬 Chat</button>
+        <button class="tab" onclick="showTab('tree')">🌳 Tree View</button>
         <button class="tab" onclick="showTab('settings')">⚙️ Settings</button>
     </div>
 
@@ -757,22 +824,75 @@ async def root():
             <h2>🤖 Generate Q&A Data from Website</h2>
             <p class="subtitle">Automatically scrape websites and generate Q&A pairs using AI</p>
 
+            <!-- Mode Selection -->
             <div class="form-group">
-                <label class="form-label">Website URL</label>
-                <input type="text" id="generateUrl" class="form-input" placeholder="https://example.com" value="https://example.com" />
+                <label class="form-label">Generation Mode</label>
+                <div style="display: flex; gap: 20px; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="generationMode" value="crawler" checked onchange="toggleGenerationMode()">
+                        <span>🕷️ Run Crawler (Discover + Generate)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="generationMode" value="existing" onchange="toggleGenerationMode()">
+                        <span>📂 Use Existing Crawler JSON (Generate Only)</span>
+                    </label>
+                </div>
             </div>
 
+            <!-- CRAWLER MODE FIELDS -->
+            <div id="crawlerModeFields">
+                <div class="form-group">
+                    <label class="form-label">Website URL</label>
+                    <input type="text" id="generateUrl" class="form-input" placeholder="https://pytorch.org" value="https://pytorch.org" />
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">Maximum Pages to Crawl</label>
+                        <input type="number" id="generateMaxPages" class="form-input" value="20" min="1" max="500" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Maximum Depth (Levels)</label>
+                        <input type="number" id="generateMaxDepth" class="form-input" value="3" min="1" max="10" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- EXISTING JSON MODE FIELDS -->
+            <div id="existingJsonFields" style="display: none;">
+                <div class="form-group">
+                    <label class="form-label">Select Crawler Output JSON</label>
+                    <select id="crawlerJsonSelector" class="form-input" onchange="loadCrawlerJsonPreview()">
+                        <option value="">-- Select a file --</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="refreshCrawlerJsonList()" style="margin-top: 10px;">
+                        🔄 Refresh List
+                    </button>
+                </div>
+
+                <div id="crawlerJsonPreview" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                    <h4 style="margin: 0 0 10px 0;">File Preview:</h4>
+                    <div style="font-size: 14px; color: #666;">
+                        <div><strong>Domain:</strong> <span id="previewDomain">-</span></div>
+                        <div><strong>Total Elements:</strong> <span id="previewElements">-</span></div>
+                        <div><strong>Crawled:</strong> <span id="previewTimestamp">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMMON FIELDS -->
             <div class="form-group">
-                <label class="form-label">Maximum Pages to Scrape</label>
-                <input type="number" id="generateMaxPages" class="form-input" value="5" min="1" max="50" />
+                <label class="form-label">Max Items to Process (Optional)</label>
+                <input type="number" id="generateMaxItems" class="form-input" placeholder="Leave empty to process all" min="1" />
+                <small style="color: #666; font-size: 12px;">Limit how many semantic paths to process (useful for testing)</small>
             </div>
 
             <div style="display: flex; gap: 15px;">
                 <button class="btn btn-primary" onclick="startGeneration()" id="startBtn">
-                    <span id="startBtnText">Start Generation</span>
+                    <span id="startBtnText">▶️ Start Generation</span>
                 </button>
                 <button class="btn btn-danger" onclick="cancelGeneration()" id="cancelBtn" style="display:none;">
-                    Cancel
+                    ⏹️ Cancel
                 </button>
             </div>
 
@@ -844,7 +964,27 @@ async def root():
             </div>
         </div>
 
-        <!-- TAB 5: SETTINGS -->
+        <!-- TAB 5: TREE VISUALIZATION -->
+        <div id="tree" class="tab-content">
+            <h2>🌳 Crawler Tree Visualization</h2>
+            <p class="subtitle">Interactive hierarchical view of crawled website structure</p>
+
+            <div style="position: relative;">
+                <div id="tree-container">
+                    <div style="text-align: center; padding: 100px 40px; color: #666;">
+                        <div class="spinner" style="border-color: #667eea; border-top-color: transparent; width: 40px; height: 40px; margin: 0 auto;"></div>
+                        <p style="margin-top: 20px;">Loading tree data...</p>
+                    </div>
+                </div>
+                <div class="tree-tooltip" id="treeTooltip"></div>
+            </div>
+
+            <div class="tree-info" id="treeInfo">
+                <strong>Instructions:</strong> Scroll to zoom • Drag to pan • Click nodes to expand/collapse children
+            </div>
+        </div>
+
+        <!-- TAB 6: SETTINGS -->
         <div id="settings" class="tab-content">
             <h2>⚙️ System Settings</h2>
             <p class="subtitle">Configure your StarshipChatbot system</p>
@@ -890,6 +1030,8 @@ async def root():
             // Load data if needed
             if (tabName === 'edit') {
                 loadTopics();
+            } else if (tabName === 'tree') {
+                loadTreeVisualization();
             }
         }
 
@@ -897,13 +1039,97 @@ async def root():
         // DATA GENERATION
         // ═══════════════════════════════════════════════════════════
 
-        async function startGeneration() {
-            const url = document.getElementById('generateUrl').value.trim();
-            const maxPages = parseInt(document.getElementById('generateMaxPages').value);
+        function toggleGenerationMode() {
+            const mode = document.querySelector('input[name="generationMode"]:checked').value;
+            const crawlerFields = document.getElementById('crawlerModeFields');
+            const existingFields = document.getElementById('existingJsonFields');
 
-            if (!url) {
-                showStatus('Please enter a URL', 'error');
+            if (mode === 'crawler') {
+                crawlerFields.style.display = 'block';
+                existingFields.style.display = 'none';
+            } else {
+                crawlerFields.style.display = 'none';
+                existingFields.style.display = 'block';
+                refreshCrawlerJsonList();
+            }
+        }
+
+        async function refreshCrawlerJsonList() {
+            try {
+                const response = await fetch('/api/crawler-files/list');
+                const data = await response.json();
+
+                const selector = document.getElementById('crawlerJsonSelector');
+                selector.innerHTML = '<option value="">-- Select a file --</option>';
+
+                data.files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file;
+                    option.textContent = file;
+                    selector.appendChild(option);
+                });
+            } catch (error) {
+                showStatus('Error loading crawler files: ' + error.message, 'error');
+            }
+        }
+
+        async function loadCrawlerJsonPreview() {
+            const filename = document.getElementById('crawlerJsonSelector').value;
+            const preview = document.getElementById('crawlerJsonPreview');
+
+            if (!filename) {
+                preview.style.display = 'none';
                 return;
+            }
+
+            try {
+                const response = await fetch(`/api/crawler-files/preview?filename=${encodeURIComponent(filename)}`);
+                const data = await response.json();
+
+                document.getElementById('previewDomain').textContent = data.domain || 'N/A';
+                document.getElementById('previewElements').textContent = data.total_elements || 'N/A';
+                document.getElementById('previewTimestamp').textContent = data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A';
+
+                preview.style.display = 'block';
+            } catch (error) {
+                showStatus('Error loading preview: ' + error.message, 'error');
+            }
+        }
+
+        async function startGeneration() {
+            const mode = document.querySelector('input[name="generationMode"]:checked').value;
+            const maxItems = document.getElementById('generateMaxItems').value;
+
+            let requestBody = {
+                max_items: maxItems ? parseInt(maxItems) : null,
+                enable_checkpointing: true
+            };
+
+            // Build request based on mode
+            if (mode === 'crawler') {
+                const url = document.getElementById('generateUrl').value.trim();
+                const maxPages = parseInt(document.getElementById('generateMaxPages').value);
+                const maxDepth = parseInt(document.getElementById('generateMaxDepth').value);
+
+                if (!url) {
+                    showStatus('Please enter a URL', 'error');
+                    return;
+                }
+
+                requestBody.use_crawler = true;
+                requestBody.url = url;
+                requestBody.max_pages = maxPages;
+                requestBody.max_depth = maxDepth;
+            } else {
+                const jsonFilename = document.getElementById('crawlerJsonSelector').value;
+
+                if (!jsonFilename) {
+                    showStatus('Please select a crawler JSON file', 'error');
+                    return;
+                }
+
+                requestBody.use_crawler = false;
+                requestBody.json_filename = jsonFilename;
             }
 
             // Start generation
@@ -911,7 +1137,7 @@ async def root():
                 const response = await fetch('/api/generate/start', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url, max_pages: maxPages, use_crawler: false})
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (!response.ok) {
@@ -1389,6 +1615,275 @@ async def root():
         document.getElementById('chatInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendChat();
         });
+
+        // ═══════════════════════════════════════════════════════════
+        // TREE VISUALIZATION
+        // ═══════════════════════════════════════════════════════════
+
+        let treeDataGlobal = null;
+        let treeRendered = false;
+
+        async function loadTreeVisualization() {
+            // Only load once
+            if (treeRendered) return;
+
+            try {
+                const response = await fetch('/api/tree/data');
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    document.getElementById('tree-container').innerHTML = `
+                        <div style="text-align: center; padding: 100px 40px; color: #e74c3c;">
+                            <h3>❌ No Tree Data Found</h3>
+                            <p>${error.detail}</p>
+                            <p style="margin-top: 15px;">Generate data first using the "Generate Data" tab.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const data = await response.json();
+                treeDataGlobal = data;
+                
+                // Update info
+                const metadata = data.metadata || {};
+                document.getElementById('treeInfo').innerHTML = `
+                    <strong>Domain:</strong> ${metadata.domain || 'Unknown'} | 
+                    <strong>Total Nodes:</strong> ${metadata.total_nodes || 0} | 
+                    <strong>Max Depth:</strong> ${metadata.max_depth || 0}<br>
+                    <strong>Instructions:</strong> Scroll to zoom • Drag to pan • Click nodes to expand/collapse children
+                `;
+
+                // Render tree
+                renderTree(data.tree);
+                treeRendered = true;
+
+            } catch (error) {
+                console.error('Error loading tree:', error);
+                document.getElementById('tree-container').innerHTML = `
+                    <div style="text-align: center; padding: 100px 40px; color: #e74c3c;">
+                        <h3>❌ Error Loading Tree</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function renderTree(treeData) {
+            // Clear container
+            const container = document.getElementById('tree-container');
+            container.innerHTML = '';
+
+            // Set up dimensions
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Create SVG
+            const svg = d3.select('#tree-container').append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            // Create zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+
+            svg.call(zoom);
+
+            // Create main group
+            const g = svg.append('g')
+                .attr('transform', `translate(100, ${height / 2})`);
+
+            // Create controls
+            const controlsDiv = d3.select('#tree-container').append('div')
+                .attr('class', 'tree-controls');
+
+            controlsDiv.append('button')
+                .attr('class', 'btn btn-primary')
+                .style('font-size', '0.85em')
+                .style('padding', '6px 12px')
+                .text('Expand All')
+                .on('click', () => {
+                    expandAll(root);
+                    update(root);
+                });
+
+            controlsDiv.append('button')
+                .attr('class', 'btn')
+                .style('font-size', '0.85em')
+                .style('padding', '6px 12px')
+                .style('background', '#95a5a6')
+                .text('Collapse All')
+                .on('click', () => {
+                    if (root.children) {
+                        root.children.forEach(collapse);
+                    }
+                    update(root);
+                });
+
+            let i = 0;
+            const duration = 750;
+            let root;
+
+            // Create tree layout
+            const treeLayout = d3.tree().nodeSize([25, 200]);
+
+            // Create hierarchy
+            root = d3.hierarchy(treeData, d => d.children);
+            root.x0 = height / 2;
+            root.y0 = 0;
+
+            // Collapse children initially
+            if (root.children) {
+                root.children.forEach(collapse);
+            }
+
+            update(root);
+
+            function collapse(d) {
+                if (d.children) {
+                    d._children = d.children;
+                    d._children.forEach(collapse);
+                    d.children = null;
+                }
+            }
+
+            function expandAll(d) {
+                if (d._children) {
+                    d.children = d._children;
+                    d._children = null;
+                }
+                if (d.children) {
+                    d.children.forEach(expandAll);
+                }
+            }
+
+            function update(source) {
+                // Compute new tree layout
+                const treeData = treeLayout(root);
+                const nodes = treeData.descendants();
+                const links = treeData.descendants().slice(1);
+
+                // Normalize for fixed-depth
+                nodes.forEach(d => { d.y = d.depth * 250; });
+
+                // Update nodes
+                const node = g.selectAll('g.tree-node')
+                    .data(nodes, d => d.id || (d.id = ++i));
+
+                // Enter new nodes
+                const nodeEnter = node.enter().append('g')
+                    .attr('class', 'tree-node')
+                    .attr('transform', d => `translate(${source.y0},${source.x0})`)
+                    .on('click', click)
+                    .on('mouseover', function(event, d) {
+                        const tooltip = d3.select('#treeTooltip');
+                        tooltip.transition().duration(200).style('opacity', 0.9);
+                        tooltip.html(`
+                            <strong>${d.data.title}</strong><br/>
+                            <em>${d.data.source_type}</em><br/>
+                            Depth: ${d.data.depth}<br/>
+                            ${d.data.url ? `URL: ${d.data.url.substring(0, 50)}...` : ''}
+                        `)
+                            .style('left', (event.pageX + 10) + 'px')
+                            .style('top', (event.pageY - 28) + 'px');
+                    })
+                    .on('mouseout', function() {
+                        d3.select('#treeTooltip').transition().duration(500).style('opacity', 0);
+                    });
+
+                // Add circles
+                nodeEnter.append('circle')
+                    .attr('r', 1e-6)
+                    .style('fill', d => {
+                        if (d.data.source_type === 'homepage') return '#667eea';
+                        if (d.data.source_type === 'heading') return '#f093fb';
+                        return d._children ? '#4facfe' : '#fff';
+                    });
+
+                // Add labels
+                nodeEnter.append('text')
+                    .attr('dy', '.35em')
+                    .attr('x', d => d.children || d._children ? -13 : 13)
+                    .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
+                    .text(d => d.data.title.length > 30 ? d.data.title.substring(0, 30) + '...' : d.data.title);
+
+                // Update
+                const nodeUpdate = nodeEnter.merge(node);
+
+                nodeUpdate.transition()
+                    .duration(duration)
+                    .attr('transform', d => `translate(${d.y},${d.x})`);
+
+                nodeUpdate.select('circle')
+                    .attr('r', 6)
+                    .style('fill', d => {
+                        if (d.data.source_type === 'homepage') return '#667eea';
+                        if (d.data.source_type === 'heading') return '#f093fb';
+                        return d._children ? '#4facfe' : '#fff';
+                    });
+
+                // Remove exiting nodes
+                const nodeExit = node.exit().transition()
+                    .duration(duration)
+                    .attr('transform', d => `translate(${source.y},${source.x})`)
+                    .remove();
+
+                nodeExit.select('circle').attr('r', 1e-6);
+                nodeExit.select('text').style('fill-opacity', 1e-6);
+
+                // Update links
+                const link = g.selectAll('path.tree-link')
+                    .data(links, d => d.id);
+
+                const linkEnter = link.enter().insert('path', 'g')
+                    .attr('class', 'tree-link')
+                    .attr('d', d => {
+                        const o = {x: source.x0, y: source.y0};
+                        return diagonal(o, o);
+                    });
+
+                const linkUpdate = linkEnter.merge(link);
+
+                linkUpdate.transition()
+                    .duration(duration)
+                    .attr('d', d => diagonal(d, d.parent));
+
+                const linkExit = link.exit().transition()
+                    .duration(duration)
+                    .attr('d', d => {
+                        const o = {x: source.x, y: source.y};
+                        return diagonal(o, o);
+                    })
+                    .remove();
+
+                // Store old positions
+                nodes.forEach(d => {
+                    d.x0 = d.x;
+                    d.y0 = d.y;
+                });
+
+                function diagonal(s, d) {
+                    return `M ${s.y} ${s.x}
+                            C ${(s.y + d.y) / 2} ${s.x},
+                              ${(s.y + d.y) / 2} ${d.x},
+                              ${d.y} ${d.x}`;
+                }
+
+                function click(event, d) {
+                    if (d.children) {
+                        d._children = d.children;
+                        d.children = null;
+                    } else {
+                        d.children = d._children;
+                        d._children = null;
+                    }
+                    update(d);
+                }
+            }
+        }
 
         // ═══════════════════════════════════════════════════════════
         // JSON FILE MANAGEMENT
@@ -2247,6 +2742,93 @@ async def upload_json_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============================================================================
+# CRAWLER FILE MANAGEMENT
+# ============================================================================
+
+@app.get("/api/crawler-files/list")
+async def list_crawler_files():
+    """List all hierarchical crawler JSON output files"""
+    try:
+        import glob
+
+        # Search in both output directories
+        search_patterns = [
+            os.path.join(DATA_DIR, "output", "hierarchical_crawl_*.json"),
+            os.path.join(DATA_DIR, "hierarchical_crawl_*.json"),
+            "output/hierarchical_crawl_*.json",  # Local development
+            "hierarchical_crawl_*.json"
+        ]
+
+        crawler_files = []
+        for pattern in search_patterns:
+            found = glob.glob(pattern)
+            crawler_files.extend(found)
+
+        # Get just filenames and remove duplicates
+        crawler_files = list(set([os.path.basename(f) for f in crawler_files]))
+
+        # Filter out _tree.json files (we want the main files only)
+        crawler_files = [f for f in crawler_files if not f.endswith('_tree.json')]
+
+        # Sort by most recent first (based on timestamp in filename)
+        crawler_files.sort(reverse=True)
+
+        logger.info(f"📁 Found {len(crawler_files)} crawler output files")
+
+        return {
+            'files': crawler_files,
+            'count': len(crawler_files)
+        }
+    except Exception as e:
+        logger.error(f"Error listing crawler files: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/crawler-files/preview")
+async def preview_crawler_file(filename: str):
+    """Get preview/metadata of a crawler JSON file"""
+    try:
+        # Try to find the file in various locations
+        possible_paths = [
+            os.path.join(DATA_DIR, "output", filename),
+            os.path.join(DATA_DIR, filename),
+            os.path.join("output", filename),
+            os.path.join("WorkingFiles", "output", filename),
+            filename
+        ]
+
+        filepath = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                filepath = path
+                break
+
+        if not filepath:
+            raise HTTPException(status_code=404, detail=f"Crawler file not found: {filename}")
+
+        # Read and extract metadata
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        # Extract metadata
+        metadata = data.get('crawl_metadata', {})
+
+        return {
+            'filename': filename,
+            'domain': metadata.get('domain', 'Unknown'),
+            'total_elements': metadata.get('total_elements', 0),
+            'timestamp': metadata.get('timestamp', ''),
+            'crawl_type': metadata.get('crawl_type', ''),
+            'statistics': metadata.get('statistics', {})
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error previewing crawler file: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/volume/diagnostics")
 async def volume_diagnostics():
     """
@@ -2318,6 +2900,82 @@ async def volume_diagnostics():
 
     except Exception as e:
         logger.error(f"Volume diagnostics error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# TREE VISUALIZATION
+# ============================================================================
+
+@app.get("/api/tree/data")
+async def get_tree_data():
+    """Get hierarchical tree structure for D3.js visualization"""
+    try:
+        import glob
+        
+        # Find all tree JSON files in output directory
+        tree_files = glob.glob("output/*_tree.json")
+        
+        if not tree_files:
+            raise HTTPException(status_code=404, detail="No tree data found. Generate data first.")
+        
+        # Get the most recent tree file
+        latest_tree_file = max(tree_files, key=os.path.getctime)
+        
+        logger.info(f"Loading tree data from: {latest_tree_file}")
+        
+        # Load and return tree data
+        with open(latest_tree_file, 'r', encoding='utf-8') as f:
+            tree_data = json.load(f)
+        
+        return tree_data
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error loading tree data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/tree/list")
+async def list_tree_files():
+    """List all available tree visualization files"""
+    try:
+        import glob
+        from datetime import datetime
+        
+        tree_files = glob.glob("output/*_tree.json")
+        
+        file_info = []
+        for filepath in tree_files:
+            try:
+                # Get file stats
+                stat = os.stat(filepath)
+                modified_time = datetime.fromtimestamp(stat.st_mtime)
+                
+                # Load metadata
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    metadata = data.get('metadata', {})
+                
+                file_info.append({
+                    'filename': os.path.basename(filepath),
+                    'domain': metadata.get('domain', 'Unknown'),
+                    'total_nodes': metadata.get('total_nodes', 0),
+                    'modified': modified_time.isoformat(),
+                    'path': filepath
+                })
+            except Exception as e:
+                logger.warning(f"Could not read tree file {filepath}: {e}")
+                continue
+        
+        # Sort by modified time (newest first)
+        file_info.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return {'files': file_info}
+    
+    except Exception as e:
+        logger.error(f"Error listing tree files: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
