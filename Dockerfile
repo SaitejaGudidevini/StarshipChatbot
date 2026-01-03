@@ -9,15 +9,21 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies (needed for sentence-transformers and numpy)
+# Install system dependencies (needed for sentence-transformers, numpy, and Playwright)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    wget \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright browsers (required for browser-use)
+# This downloads Chromium and its dependencies
+RUN playwright install --with-deps chromium
 
 # Download spaCy model for V2 architecture (NER)
 # This is required for V2 metadata enrichment
