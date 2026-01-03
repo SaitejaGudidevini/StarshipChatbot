@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
+# Cache bust: 2026-01-03 - Force rebuild for aiosqlite>=0.21.0 fix
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
