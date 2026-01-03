@@ -16,11 +16,11 @@ numpy==2.3.3
 # LangGraph dependencies
 langgraph>=0.2.0
 langgraph-checkpoint>=2.0.0
-langgraph-checkpoint-sqlite>=2.0.0
+langgraph-checkpoint-sqlite>=2.0.11  # Pin to 2.0.11+ for is_alive() support
 langsmith>=0.2.0  # Optional: for workflow tracing and observability
 langchain-groq>=0.2.0  # For structured output with Pydantic models
 
-aiosqlite
+aiosqlite>=0.21.0  # Pin to 0.21.0+ for compatibility with langgraph-checkpoint-sqlite
 # Development dependencies
 python-dotenv==1.0.1
 
