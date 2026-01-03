@@ -13,14 +13,13 @@ sentence-transformers==3.0.1
 scikit-learn==1.7.2
 numpy==2.3.3
 
-# LangGraph dependencies
+# LangGraph dependencies - CRITICAL: Install aiosqlite FIRST
+aiosqlite==0.21.0  # MUST be exact version 0.21.0+ for is_alive() support - install BEFORE langgraph
 langgraph>=0.2.0
 langgraph-checkpoint>=2.0.0
-langgraph-checkpoint-sqlite>=2.0.11  # Pin to 2.0.11+ for is_alive() support
+langgraph-checkpoint-sqlite>=2.0.11  # Requires aiosqlite 0.21.0+
 langsmith>=0.2.0  # Optional: for workflow tracing and observability
 langchain-groq>=0.2.0  # For structured output with Pydantic models
-
-aiosqlite>=0.21.0  # Pin to 0.21.0+ for compatibility with langgraph-checkpoint-sqlite
 # Development dependencies
 python-dotenv==1.0.1
 

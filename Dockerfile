@@ -18,9 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-# Cache bust: 2026-01-03 - Force rebuild for aiosqlite>=0.21.0 fix
+# Cache bust: 2026-01-03-v2 - Force rebuild with exact aiosqlite==0.21.0
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Install Playwright browsers (required for browser-use)
 # This downloads Chromium and its dependencies
