@@ -22,6 +22,10 @@ from datetime import datetime
 
 from playwright.async_api import async_playwright, Page, Browser, BrowserContext
 from playwright.async_api import TimeoutError as PlaywrightTimeout
+import sys
+import os
+# Add parent directory to path to import labeling from /app/ (for Docker compatibility)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from labeling import SemanticLabeler
 
 # Configure logging
