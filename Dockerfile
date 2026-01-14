@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Use browser_use official image (Chromium pre-installed in correct paths)
+FROM browseruse/browseruse:0.2.6
 
 # Set working directory
 WORKDIR /app
@@ -7,26 +8,18 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    IN_DOCKER=True
 
-# Install system dependencies (needed for sentence-transformers, numpy, and Playwright)
+# Install system dependencies (needed for sentence-transformers, numpy)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
-    wget \
-    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-# Cache bust: 2026-01-03-v2 - Force rebuild with exact aiosqlite==0.21.0
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
-
-# Install Playwright browsers (required for browser-use)
-# Let Playwright install to default path (/root/.cache/ms-playwright/)
-# IN_DOCKER=True tells browser_use we're in a container
-ENV IN_DOCKER=True
-RUN playwright install --with-deps chromium
 
 # Download spaCy model for V2 architecture (NER)
 # This is required for V2 metadata enrichment
