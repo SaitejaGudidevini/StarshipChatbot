@@ -1245,7 +1245,10 @@ class HierarchicalWebCrawler:
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             domain_clean = self.domain.replace('.', '_')
-            filename = f"output/hierarchical_crawl_{domain_clean}_{timestamp}.json"
+            # Use DATA_DIR env var (Railway volume) or fallback to output/
+            output_dir = os.environ.get('DATA_DIR', 'output')
+            os.makedirs(output_dir, exist_ok=True)
+            filename = f"{output_dir}/hierarchical_crawl_{domain_clean}_{timestamp}.json"
         
         # Convert crawl nodes to flattened element format
         crawl_data = {
@@ -1335,7 +1338,10 @@ class HierarchicalWebCrawler:
         if base_filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             domain_clean = self.domain.replace('.', '_')
-            base_filename = f"output/hierarchical_crawl_{domain_clean}_{timestamp}.json"
+            # Use DATA_DIR env var (Railway volume) or fallback to output/
+            output_dir = os.environ.get('DATA_DIR', 'output')
+            os.makedirs(output_dir, exist_ok=True)
+            base_filename = f"{output_dir}/hierarchical_crawl_{domain_clean}_{timestamp}.json"
         
         # Create tree filename
         tree_filename = base_filename.replace('.json', '_tree.json')

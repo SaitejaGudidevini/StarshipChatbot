@@ -53,13 +53,64 @@ from dataclasses import dataclass
 # Suppress verbose browser_use logs BEFORE importing (must be set before import)
 os.environ['BROWSER_USE_LOGGING_LEVEL'] = 'warning'  # Only show final results
 
-from browser_use import Agent, BrowserSession, ChatGroq
+from browser_use import Agent, BrowserSession, BrowserProfile, ChatGroq
 from dotenv import load_dotenv
+import glob as glob_module
 from langchain_groq import ChatGroq as LangChainChatGroq
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from hierarchical_crawler import HierarchicalWebCrawler
 from pydantic import BaseModel, Field
+
+# ============================================================================
+# BROWSER PATH DETECTION (for Railway/Docker compatibility)
+# ============================================================================
+
+def get_chromium_path() -> Optional[str]:
+    """
+    Find Playwright's Chromium binary. Works locally and in Docker/Railway.
+    Returns None if not found (browser_use will try its own detection).
+    """
+    search_patterns = [
+        # Linux (Docker/Railway) - new Playwright path structure
+        "/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome",
+        "/root/.cache/ms-playwright/chromium-*/chrome-linux64/chrome",
+        # Linux alternative paths
+        "/home/*/.cache/ms-playwright/chromium-*/chrome-linux/chrome",
+        # macOS
+        os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-mac/Chromium.app/Contents/MacOS/Chromium"),
+        os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium"),
+    ]
+
+    for pattern in search_patterns:
+        matches = glob_module.glob(pattern)
+        if matches:
+            binary = matches[0]
+            if os.path.isfile(binary) and os.access(binary, os.X_OK):
+                logger.info(f"Found Chromium at: {binary}")
+                return binary
+
+    return None
+
+
+def create_browser_session(headless: bool = True) -> BrowserSession:
+    """
+    Create BrowserSession with proper browser path for both local and Docker.
+    """
+    chromium_path = get_chromium_path()
+
+    if chromium_path:
+        # Found Chromium - pass explicit path to bypass LocalBrowserWatchdog
+        profile = BrowserProfile(
+            headless=headless,
+            executable_path=chromium_path,
+            chromium_sandbox=False  # Required for Docker
+        )
+        return BrowserSession(browser_profile=profile)
+    else:
+        # Let browser_use auto-detect (local dev with Chrome installed)
+        return BrowserSession(headless=headless)
+
 
 # ============================================================================
 # PARALLEL PROCESSING CONFIGURATION
@@ -445,8 +496,8 @@ Do NOT leave this domain or search for '{topic}' on other websites.
 Provide a structured response with the information found.
 """
 
-        # Create browser session
-        browser_session = BrowserSession(headless=True)
+        # Create browser session (uses helper to find Chromium in Docker)
+        browser_session = create_browser_session(headless=True)
 
         # Create browser_use agent with intelligent error handling
         agent = Agent(
@@ -551,9 +602,9 @@ async def extract_single_item_parallel(
                 }
 
             browser_session = None
-            
-            # Create isolated browser session for this worker
-            browser_session = BrowserSession(headless=True)
+
+            # Create isolated browser session for this worker (uses helper to find Chromium in Docker)
+            browser_session = create_browser_session(headless=True)
 
             # Initialize Groq LLM
             groq_llm = ChatGroq(

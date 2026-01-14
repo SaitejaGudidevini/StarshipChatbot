@@ -1,5 +1,4 @@
-# Use browser_use official image (Chromium pre-installed in correct paths)
-FROM browseruse/browseruse:0.2.6
+FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
@@ -8,18 +7,22 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    IN_DOCKER=True
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Install system dependencies (needed for sentence-transformers, numpy)
+# Install system dependencies (needed for sentence-transformers, numpy, and Playwright)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    wget \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
+# Install Playwright browsers to default path
+RUN playwright install --with-deps chromium
 
 # Download spaCy model for V2 architecture (NER)
 # This is required for V2 metadata enrichment
