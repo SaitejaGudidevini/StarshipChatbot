@@ -870,7 +870,7 @@ async def crawler_node(state: AgentState) -> AgentState:
             max_depth=max_depth,
             max_pages=max_pages,
             headless=True,
-            timeout=30000
+            timeout=60000  # 60 seconds for slow government sites
         )
 
         # Run hierarchical crawl

@@ -2140,30 +2140,28 @@ async def generation_stream():
                 except Exception as e:
                     logger.error(f"SSE stream (tracker) error: {e}", exc_info=True)
                     yield {"event": "error", "data": json.dumps({'error': str(e)})}
-            else: # Fallback to old polling method
-                logger.info("SSE stream falling back to legacy polling mode.")
+            else: # Fallback: wait for tracker to become active or task to complete
+                logger.info("SSE stream waiting for parallel processing to start...")
                 try:
                     while True:
+                        # Check if tracker became active
+                        tracker = browser_agent.progress_tracker
+                        if tracker and tracker._active:
+                            logger.info("SSE stream connected to ParallelProgressTracker (late).")
+                            async for update in tracker.get_updates():
+                                yield {"data": update}
+                            break
+
+                        # Check if task completed/failed
                         if browser_runner:
                             progress = browser_runner.get_progress()
-
-                            # Send progress update
-                            logger.info(f"[SSE] Sending polling progress: {progress['status']} - {progress['current']}/{progress['total']}")
-                            yield {
-                                "data": json.dumps(progress)
-                            }
-
-                            # Stop streaming if completed or errored
                             if progress['status'] in ['completed', 'error', 'cancelled']:
                                 logger.info(f"Generation {progress['status']}")
+                                yield {"data": json.dumps(progress)}
                                 break
-                        else:
-                            # No runner yet, send idle status
-                            yield {
-                                "data": json.dumps({'status': 'idle', 'completed': 0, 'total': 0, 'qa_generated': 0, 'elapsed_seconds': 0})
-                            }
 
-                        await asyncio.sleep(1)  # Update every second
+                        # Wait silently during crawler phase (no spam logging)
+                        await asyncio.sleep(2)
 
                 except asyncio.CancelledError:
                     logger.info("SSE stream (polling) cancelled by client.")
