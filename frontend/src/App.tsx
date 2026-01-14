@@ -6,6 +6,8 @@ import { Editor } from './pages/Editor';
 import { Generator } from './pages/Generator';
 import { TreeView } from './pages/TreeView';
 import { Settings } from './pages/Settings';
+import { GeneratorProvider } from './context/GeneratorContext';
+import { ChatProvider } from './context/ChatContext';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -30,9 +32,13 @@ function App() {
   };
 
   return (
-    <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
-      {renderPage()}
-    </Layout>
+    <GeneratorProvider>
+      <ChatProvider>
+        <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
+          {renderPage()}
+        </Layout>
+      </ChatProvider>
+    </GeneratorProvider>
   );
 }
 

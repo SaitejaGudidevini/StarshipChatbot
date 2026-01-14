@@ -1,18 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { apiClient } from '../api/client';
-import { ChatMessage, ChatResponse } from '../types';
 import { Send, Bot, User, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { useChat } from '../context/ChatContext';
 
 export function Chat() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      type: 'bot',
-      text: 'Hello! Ask me anything about the Q&A database.',
-    },
-  ]);
+  // Chat state from context (persists across page navigation)
+  const { messages, loading, sendMessage } = useChat();
+
+  // Local UI state
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const [expandedPipeline, setExpandedPipeline] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -20,43 +15,11 @@ export function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = async () => {
+  const handleSend = async () => {
     if (!input.trim() || loading) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: 'user',
-      text: input,
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-
-    try {
-      const response = await apiClient.post<ChatResponse>('/api/chat', {
-        question: input,
-      });
-
-      const botMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        text: response.answer,
-        confidence: response.confidence,
-        topic: response.source_topic,
-        matched_by: response.matched_by,
-        pipeline_info: response.pipeline_info,
-      };
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      const errorMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        text: 'Sorry, an error occurred. Please try again.',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
-    }
+    const text = input;
+    setInput(''); // Clear input immediately
+    await sendMessage(text);
   };
 
   return (
@@ -74,11 +37,10 @@ export function Chat() {
               className={`flex gap-3 ${msg.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  msg.type === 'user'
+                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.type === 'user'
                     ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
                     : 'bg-gradient-to-br from-slate-600 to-slate-700'
-                }`}
+                  }`}
               >
                 {msg.type === 'user' ? (
                   <User className="w-5 h-5 text-white" />
@@ -88,11 +50,10 @@ export function Chat() {
               </div>
               <div className={`max-w-2xl ${msg.type === 'user' ? '' : 'w-full'}`}>
                 <div
-                  className={`px-4 py-3 rounded-2xl ${
-                    msg.type === 'user'
+                  className={`px-4 py-3 rounded-2xl ${msg.type === 'user'
                       ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white'
                       : 'bg-white border border-slate-200 text-slate-900'
-                  }`}
+                    }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                   {msg.confidence !== undefined && (
@@ -290,13 +251,13 @@ export function Chat() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Type your question..."
               className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={loading}
             />
             <button
-              onClick={sendMessage}
+              onClick={handleSend}
               disabled={loading || !input.trim()}
               className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
             >

@@ -1,9 +1,57 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
-import { GenerationProgress } from '../types';
-import { Zap, Play, Square, AlertCircle } from 'lucide-react';
+import { WorkerState } from '../types';
+import { Zap, Play, Square, AlertCircle, Users } from 'lucide-react';
+import { useGenerator } from '../context/GeneratorContext';
+
+// Worker status card component for parallel processing display
+const WorkerStatusCard: React.FC<{ workerId: string; state: WorkerState }> = ({ workerId, state }) => {
+  const getStatusStyles = () => {
+    switch (state.status) {
+      case 'processing':
+        return 'border-l-blue-500 bg-blue-50';
+      case 'completed':
+        return 'border-l-green-500 bg-green-50';
+      case 'error':
+        return 'border-l-red-500 bg-red-50';
+      default:
+        return 'border-l-slate-300 bg-slate-50';
+    }
+  };
+
+  const getStatusBadge = () => {
+    switch (state.status) {
+      case 'processing':
+        return <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full animate-pulse">Processing</span>;
+      case 'completed':
+        return <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Done</span>;
+      case 'error':
+        return <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">Error</span>;
+      default:
+        return <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 rounded-full">Idle</span>;
+    }
+  };
+
+  return (
+    <div className={`p-3 border-l-4 rounded-lg ${getStatusStyles()}`}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-semibold text-slate-700">Worker {workerId}</span>
+        {getStatusBadge()}
+      </div>
+      <div className="text-xs text-slate-500">
+        Completed: {state.items_completed}
+      </div>
+      {state.status === 'processing' && state.item && (
+        <div className="mt-2 text-xs text-slate-600 truncate" title={state.item}>
+          {state.item}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export function Generator() {
+  // Form state (local to this page)
   const [url, setUrl] = useState('');
   const [maxPages, setMaxPages] = useState(10);
   const [useCrawler, setUseCrawler] = useState(false);
@@ -15,14 +63,22 @@ export function Generator() {
   const [jsonFilename, setJsonFilename] = useState('');
   const [availableFiles, setAvailableFiles] = useState<string[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [progress, setProgress] = useState<GenerationProgress | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+
+  // Progress state from context (persists across page navigation)
+  const {
+    progress,
+    parallelProgress,
+    workers,
+    isParallelMode,
+    isConnected,
+    startSSE,
+  } = useGenerator();
 
   // Load available JSON files
   useEffect(() => {
     const loadFiles = async () => {
       try {
-        const data = await apiClient.get<{files: Array<{filename: string}>}>('/api/json-files/list');
+        const data = await apiClient.get<{ files: Array<{ filename: string }> }>('/api/json-files/list');
         setAvailableFiles(data.files.map(f => f.filename));
         if (data.files.length > 0 && !jsonFilename) {
           setJsonFilename(data.files[0].filename); // Select first file by default
@@ -32,43 +88,6 @@ export function Generator() {
       }
     };
     loadFiles();
-  }, []);
-
-  useEffect(() => {
-    // Use same origin for SSE connection (works in both dev and production)
-    const apiBaseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const sseUrl = `${apiBaseUrl}/api/generate/stream`;
-    console.log('[SSE] Connecting to:', sseUrl);
-    const eventSource = new EventSource(sseUrl);
-
-    eventSource.onopen = () => {
-      console.log('[SSE] Connection opened');
-      setIsConnected(true);
-    };
-
-    eventSource.onmessage = (event) => {
-      console.log('[SSE] Message received:', event.data);
-      const data: GenerationProgress = JSON.parse(event.data);
-      console.log('[SSE] Parsed progress:', data);
-      setProgress(data);
-
-      if (data.status === 'completed' || data.status === 'error') {
-        console.log('[SSE] Generation finished, closing connection');
-        eventSource.close();
-        setIsConnected(false);
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('[SSE] Error occurred:', error);
-      eventSource.close();
-      setIsConnected(false);
-    };
-
-    return () => {
-      console.log('[SSE] Cleaning up connection');
-      eventSource.close();
-    };
   }, []);
 
   const startGeneration = async () => {
@@ -100,6 +119,8 @@ export function Generator() {
         output_filename: outputFilename || null,
         json_filename: !useCrawler ? jsonFilename : null,
       });
+      // Trigger SSE connection after starting generation (via context)
+      startSSE();
     } catch (err) {
       alert('Failed to start generation: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
@@ -327,15 +348,14 @@ export function Generator() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-slate-900">Progress</h3>
             <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${
-                progress.status === 'running' || progress.status === 'initializing' || progress.status === 'building_graph'
-                  ? 'bg-blue-100 text-blue-700'
-                  : progress.status === 'completed'
+              className={`px-3 py-1 rounded-full text-xs font-medium ${progress.status === 'running' || progress.status === 'initializing' || progress.status === 'building_graph'
+                ? 'bg-blue-100 text-blue-700'
+                : progress.status === 'completed'
                   ? 'bg-green-100 text-green-700'
                   : progress.status === 'error'
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-slate-100 text-slate-600'
-              }`}
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-slate-100 text-slate-600'
+                }`}
             >
               {progress.status}
             </span>
@@ -357,16 +377,60 @@ export function Generator() {
               </div>
             </div>
 
+            {/* Batch Progress - Show in parallel mode */}
+            {isParallelMode && parallelProgress?.current_batch && (
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-indigo-700">
+                    Batch {parallelProgress.current_batch} of {parallelProgress.total_batches}
+                  </span>
+                  <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
+                    {parallelProgress.batch_completed || 0} / {parallelProgress.batch_total || 0} items
+                  </span>
+                </div>
+                <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full bg-indigo-500 transition-all duration-300 rounded-full"
+                    style={{ width: `${parallelProgress.batch_total ? (parallelProgress.batch_completed || 0) / parallelProgress.batch_total * 100 : 0}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-indigo-600 mt-2">
+                  💾 Checkpoint saved after each batch (50 items) - Safe to stop anytime
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-50 rounded-lg p-4">
                 <p className="text-sm text-slate-600">Q&A Generated</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1">{progress.qa_generated}</p>
               </div>
               <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-600">Elapsed Time</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{progress.elapsed_seconds}s</p>
+                <p className="text-sm text-slate-600">
+                  {isParallelMode ? 'Failed Items' : 'Elapsed Time'}
+                </p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">
+                  {isParallelMode ? (parallelProgress?.failed || 0) : `${progress.elapsed_seconds}s`}
+                </p>
               </div>
             </div>
+
+            {/* Parallel Workers Grid */}
+            {isParallelMode && Object.keys(workers).length > 0 && (
+              <div className="border-t border-slate-200 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="w-4 h-4 text-slate-500" />
+                  <h4 className="text-sm font-semibold text-slate-700">
+                    Parallel Workers ({Object.keys(workers).length})
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {Object.entries(workers).map(([workerId, state]) => (
+                    <WorkerStatusCard key={workerId} workerId={workerId} state={state} />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {progress.current_url && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

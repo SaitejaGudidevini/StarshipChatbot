@@ -87,6 +87,14 @@ export interface QAPair {
   is_unified: boolean;
 }
 
+// Worker state for parallel processing
+export interface WorkerState {
+  status: 'idle' | 'processing' | 'completed' | 'error';
+  item: string;
+  items_completed: number;
+}
+
+// Legacy progress format (for backward compatibility)
 export interface GenerationProgress {
   status: 'idle' | 'initializing' | 'building_graph' | 'running' | 'completed' | 'cancelled' | 'error';
   current: number;
@@ -94,6 +102,35 @@ export interface GenerationProgress {
   qa_generated: number;
   current_url?: string;
   elapsed_seconds: number;
+  error?: string;
+}
+
+// New parallel progress event format
+export interface ParallelProgressEvent {
+  // Event type from backend
+  type: 'worker_update' | 'item_completed' | 'heartbeat' | 'batch_completed';
+
+  // Overall progress stats
+  completed: number;
+  failed: number;
+  total: number;
+  progress_pct: number;
+
+  // Batch-level progress
+  batch_completed?: number;
+  batch_failed?: number;
+  batch_total?: number;
+  current_batch?: number;
+  total_batches?: number;
+
+  // Real-time state of all workers
+  workers: Record<string, WorkerState>;
+
+  // Optional fields depending on event type
+  worker_id?: number;
+  success?: boolean;
+  item?: string;
+  status?: 'completed' | 'error';
   error?: string;
 }
 
