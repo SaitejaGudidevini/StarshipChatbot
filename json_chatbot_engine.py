@@ -1063,6 +1063,28 @@ class JSONChatbotEngine:
         best_candidate = verified[0]
         duration = time.time() - start_time
 
+        # CONFIDENCE THRESHOLD CHECK - Return fallback if score too low
+        # Note: RRF scores are typically 0.01-0.1 range (not 0-1 like similarity scores)
+        # RRF formula: sum(1/(k+rank)) where k=60, so max ~0.26 for perfect ranks
+        MIN_RRF_THRESHOLD = 0.05  # 5% RRF score threshold (good matches typically > 0.06)
+        if best_candidate.score < MIN_RRF_THRESHOLD:
+            logger.warning(f"⚠️ RRF score {best_candidate.score:.4f} below threshold {MIN_RRF_THRESHOLD} - returning fallback")
+            fallback = self._fallback_response_v2()
+            fallback['pipeline_info'] = {
+                'architecture': 'v2_parallel_fused',
+                'query_analysis': {
+                    'intent': query_analysis.intent,
+                    'entities': query_analysis.entities,
+                    'semantic_query': query_analysis.semantic_query
+                },
+                'retrieval_details': retrieval_details,
+                'candidates_evaluated': len(candidates),
+                'candidates_verified': len(verified),
+                'rejected_reason': f'RRF score {best_candidate.score:.4f} < threshold {MIN_RRF_THRESHOLD}',
+                'duration': duration
+            }
+            return fallback
+
         logger.info("\n"+"="*70)
         logger.info(f"✅ V2 ANSWER FOUND in {duration:.2f}s")
         logger.info(f"   Question: {best_candidate.qa_pair.question}")

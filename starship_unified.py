@@ -29,18 +29,22 @@ from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from datetime import datetime
 
+# CRITICAL: Load .env FIRST, before any browser_use imports!
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from dotenv import load_dotenv
 from sse_starlette.sse import EventSourceResponse
 import shutil
 
-# Import our systems
+# Import our systems (after load_dotenv so browser_use sees BROWSER_USE_LOGGING_LEVEL)
 from json_chatbot_engine import JSONChatbotEngine
 from browser_agent_runner import create_runner
+import browser_agent  # Import module to access progress_tracker dynamically
 
 # Try to import LangGraph editor
 try:
@@ -49,9 +53,6 @@ try:
 except ImportError:
     LANGGRAPH_AVAILABLE = False
     logging.warning("⚠️  LangGraph editor not available")
-
-# Load environment
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -2116,37 +2117,65 @@ async def start_generation(request: GenerateRequest, background_tasks: Backgroun
 
 @app.get("/api/generate/stream")
 async def generation_stream():
-    """SSE endpoint for real-time generation progress"""
+    """SSE endpoint for real-time generation progress.
+    Streams from the new ParallelProgressTracker if available, otherwise falls back to polling.
+    """
 
     async def event_generator():
         """Generate SSE events with progress updates"""
         try:
-            while True:
-                if browser_runner:
-                    progress = browser_runner.get_progress()
+            # Give the tracker a moment to be created if generation just started
+            await asyncio.sleep(0.5)
 
-                    # Send progress update (no custom event type - use default "message")
-                    logger.info(f"[SSE] Sending progress: {progress['status']} - {progress['current']}/{progress['total']}")
+            # Check if the new parallel tracker is active (access dynamically via module)
+            tracker = browser_agent.progress_tracker
+            if tracker and tracker._active:
+                logger.info("SSE stream connected to ParallelProgressTracker.")
+                try:
+                    async for update in tracker.get_updates():
+                        yield {"data": update}
+                    logger.info("SSE stream finished via tracker.")
+                except asyncio.CancelledError:
+                    logger.info("SSE stream (tracker) cancelled by client.")
+                except Exception as e:
+                    logger.error(f"SSE stream (tracker) error: {e}", exc_info=True)
+                    yield {"event": "error", "data": json.dumps({'error': str(e)})}
+            else: # Fallback to old polling method
+                logger.info("SSE stream falling back to legacy polling mode.")
+                try:
+                    while True:
+                        if browser_runner:
+                            progress = browser_runner.get_progress()
+
+                            # Send progress update
+                            logger.info(f"[SSE] Sending polling progress: {progress['status']} - {progress['current']}/{progress['total']}")
+                            yield {
+                                "data": json.dumps(progress)
+                            }
+
+                            # Stop streaming if completed or errored
+                            if progress['status'] in ['completed', 'error', 'cancelled']:
+                                logger.info(f"Generation {progress['status']}")
+                                break
+                        else:
+                            # No runner yet, send idle status
+                            yield {
+                                "data": json.dumps({'status': 'idle', 'completed': 0, 'total': 0, 'qa_generated': 0, 'elapsed_seconds': 0})
+                            }
+
+                        await asyncio.sleep(1)  # Update every second
+
+                except asyncio.CancelledError:
+                    logger.info("SSE stream (polling) cancelled by client.")
+                except Exception as e:
+                    logger.error(f"SSE stream (polling) error: {e}", exc_info=True)
                     yield {
-                        "data": json.dumps(progress)
+                        "event": "error",
+                        "data": json.dumps({'error': str(e)})
                     }
 
-                    # Stop streaming if completed or errored
-                    if progress['status'] in ['completed', 'error', 'cancelled']:
-                        logger.info(f"Generation {progress['status']}")
-                        break
-                else:
-                    # No runner yet
-                    yield {
-                        "data": json.dumps({'status': 'idle'})
-                    }
-
-                await asyncio.sleep(1)  # Update every second
-
-        except asyncio.CancelledError:
-            logger.info("SSE stream cancelled by client")
         except Exception as e:
-            logger.error(f"SSE stream error: {e}", exc_info=True)
+            logger.error(f"Top-level SSE event_generator error: {e}", exc_info=True)
             yield {
                 "event": "error",
                 "data": json.dumps({'error': str(e)})

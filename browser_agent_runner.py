@@ -219,7 +219,8 @@ class BrowserAgentRunner:
         max_items: int = None,
         thread_id: str = None,
         enable_checkpointing: bool = True,
-        json_filename: str = None
+        json_filename: str = None,
+        enable_parallel: bool = True  # Default to parallel for speed
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
         Run browser agent pipeline
@@ -232,6 +233,7 @@ class BrowserAgentRunner:
             max_items: Limit items to process (None = all)
             thread_id: Custom thread ID for checkpointing (None = auto-generate)
             enable_checkpointing: Enable/disable checkpointing
+            enable_parallel: Use parallel processing (5 concurrent browsers, 5x-10x faster)
 
         Yields:
             Progress updates as processing occurs
@@ -240,7 +242,7 @@ class BrowserAgentRunner:
 
         try:
             # Import browser_agent components
-            from WorkingFiles.browser_agent import build_browser_agent_graph
+            from browser_agent import build_browser_agent_graph
             from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
             self.progress['status'] = 'initializing'
@@ -256,7 +258,11 @@ class BrowserAgentRunner:
 
             # Use async context manager for checkpointer (LangGraph requirement)
             async with AsyncSqliteSaver.from_conn_string("browser_agent_checkpoints.db") as checkpointer:
-                self._graph = build_browser_agent_graph(checkpointer, enable_crawler=use_crawler)
+                self._graph = build_browser_agent_graph(
+                    checkpointer,
+                    enable_crawler=use_crawler,
+                    enable_parallel=enable_parallel
+                )
                 logger.info("Graph built successfully")
 
                 # Store checkpointer reference for the graph execution
@@ -313,7 +319,21 @@ class BrowserAgentRunner:
                     "recursion_limit": 1000
                 }
 
-                async for event in self._graph.astream(initial_state, config):
+                # Check if resuming from checkpoint
+                stream_input = initial_state
+                if enable_checkpointing:
+                    try:
+                        existing_state = await self._graph.aget_state(config)
+                        if existing_state and existing_state.values:
+                            current_idx = existing_state.values.get("current_index", 0)
+                            total = existing_state.values.get("total_items", 0)
+                            if current_idx > 0 and current_idx < total:
+                                logger.info(f"🔄 RESUMING from checkpoint: {current_idx}/{total}")
+                                stream_input = None
+                    except Exception as e:
+                        logger.debug(f"No previous checkpoint found: {e}")
+
+                async for event in self._graph.astream(stream_input, config):
                     if not self._is_running:
                         self.progress['status'] = 'cancelled'
                         yield self.progress
@@ -387,7 +407,7 @@ class BrowserAgentRunner:
                     self.progress['current_url'] = item.get('original_url', '')
                     self.progress['current_topic'] = item.get('topic', '')[:50]
 
-            # Handle qa_generator node
+            # Handle qa_generator node (sequential mode)
             elif node_name == "qa_generator":
                 if 'processed_items' in node_data:
                     results = node_data['processed_items']
@@ -397,6 +417,35 @@ class BrowserAgentRunner:
 
                     # Save incrementally
                     await self._save_results(results)
+
+            # Handle parallel_batch node (parallel mode)
+            elif node_name == "parallel_batch":
+                # Update total from semantic_paths if available
+                if 'total_items' in node_data:
+                    self.progress['total'] = node_data['total_items']
+
+                # Update current progress
+                current_idx = node_data.get('current_index', 0)
+                self.progress['current'] = current_idx
+
+                # Update processed items and Q&A count
+                if 'processed_items' in node_data:
+                    results = node_data['processed_items']
+                    total_qa = sum(r.get('qa_count', 0) for r in results if isinstance(r, dict))
+                    self.progress['qa_generated'] = total_qa
+                    self.progress['topics_completed'] = len(results)
+
+                    # Get current topic from last processed item
+                    if results:
+                        last_item = results[-1]
+                        if isinstance(last_item, dict):
+                            self.progress['current_url'] = last_item.get('original_url', '')
+                            self.progress['current_topic'] = last_item.get('topic', '')[:50]
+
+                    # Save incrementally
+                    await self._save_results(results)
+
+                logger.info(f"Parallel batch progress: {current_idx}/{self.progress['total']} items, {self.progress['qa_generated']} Q&A pairs")
 
     async def _save_results(self, results: list):
         """Save results to JSON file"""
@@ -449,7 +498,7 @@ def create_runner(output_file: str = "browser_agent_test_output.json", use_mock:
 
     try:
         # Try to import browser_agent
-        from WorkingFiles.browser_agent import build_browser_agent_graph
+        from browser_agent import build_browser_agent_graph
         logger.info("Using BrowserAgentRunner (real)")
         return BrowserAgentRunner(output_file)
     except ImportError as e:
