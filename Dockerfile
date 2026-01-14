@@ -23,8 +23,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Install Playwright browsers (required for browser-use)
-# This downloads Chromium and its dependencies
-RUN playwright install --with-deps chromium
+# Install to /app/browsers so it's included in the Docker image layer
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
+RUN mkdir -p /app/browsers && \
+    playwright install --with-deps chromium && \
+    chmod -R 755 /app/browsers
 
 # Download spaCy model for V2 architecture (NER)
 # This is required for V2 metadata enrichment
@@ -75,6 +78,7 @@ ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV DATA_DIR=/app/data
 ENV JSON_DATA_PATH=CSU_Progress.json
+ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
 
 # V2 Architecture Notes:
 # - V2 will auto-enable if GROQ_API_KEY is set in Railway environment variables
