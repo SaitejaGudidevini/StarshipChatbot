@@ -1311,11 +1311,8 @@ class HierarchicalWebCrawler:
         crawl_data["crawl_metadata"]["total_article_cards"] = total_article_cards
         crawl_data["crawl_metadata"]["total_structured_containers"] = len(crawl_data["structured_content"])
         crawl_data["crawl_metadata"]["total_relationships"] = len(crawl_data["element_relationships"])
-        
+
         # Save to file
-        import os
-        os.makedirs("output", exist_ok=True)
-        
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(crawl_data, f, indent=2, ensure_ascii=False)
         
@@ -1453,14 +1450,11 @@ class HierarchicalWebCrawler:
             },
             "tree": tree_data
         }
-        
+
         # Save to file
-        import os
-        os.makedirs("output", exist_ok=True)
-        
         with open(tree_filename, 'w', encoding='utf-8') as f:
             json.dump(tree_output, f, indent=2, ensure_ascii=False)
-        
+
         return tree_filename
 
 
