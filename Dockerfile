@@ -35,6 +35,8 @@ COPY starship_unified.py .
 COPY json_chatbot_engine.py .
 COPY langgraph_chatbot.py .
 COPY browser_agent_runner.py .
+COPY browser_agent.py .
+COPY hierarchical_crawler.py .
 COPY labeling.py .
 
 # Copy required files from WorkingFiles (not the whole 9GB folder!)
