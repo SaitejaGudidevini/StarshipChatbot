@@ -2940,8 +2940,15 @@ async def get_tree_data():
     try:
         import glob
         
-        # Find all tree JSON files in output directory
-        tree_files = glob.glob("output/*_tree.json")
+        # Find all tree JSON files - check multiple locations for compatibility
+        tree_files = []
+        # Production: DATA_DIR root (e.g., /data/*_tree.json)
+        tree_files.extend(glob.glob(os.path.join(DATA_DIR, "*_tree.json")))
+        # Production: DATA_DIR/output subdirectory
+        tree_files.extend(glob.glob(os.path.join(DATA_DIR, "output", "*_tree.json")))
+        # Local development: ./output/ directory
+        if DATA_DIR != "output":
+            tree_files.extend(glob.glob("output/*_tree.json"))
         
         if not tree_files:
             raise HTTPException(status_code=404, detail="No tree data found. Generate data first.")
@@ -2970,8 +2977,16 @@ async def list_tree_files():
     try:
         import glob
         from datetime import datetime
-        
-        tree_files = glob.glob("output/*_tree.json")
+
+        # Find all tree JSON files - check multiple locations for compatibility
+        tree_files = []
+        # Production: DATA_DIR root (e.g., /data/*_tree.json)
+        tree_files.extend(glob.glob(os.path.join(DATA_DIR, "*_tree.json")))
+        # Production: DATA_DIR/output subdirectory
+        tree_files.extend(glob.glob(os.path.join(DATA_DIR, "output", "*_tree.json")))
+        # Local development: ./output/ directory
+        if DATA_DIR != "output":
+            tree_files.extend(glob.glob("output/*_tree.json"))
         
         file_info = []
         for filepath in tree_files:
