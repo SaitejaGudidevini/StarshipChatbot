@@ -3,6 +3,7 @@ import { apiClient } from '../api/client';
 import { WorkerState } from '../types';
 import { Zap, Play, Square, AlertCircle, Users } from 'lucide-react';
 import { useGenerator } from '../context/GeneratorContext';
+import { LiveTreeView } from '../components/LiveTreeView';
 
 // Worker status card component for parallel processing display
 const WorkerStatusCard: React.FC<{ workerId: string; state: WorkerState }> = ({ workerId, state }) => {
@@ -451,6 +452,9 @@ export function Generator() {
           </div>
         </div>
       )}
+
+      {/* Live Tree Visualization */}
+      <LiveTreeView />
 
       {!progress && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">

@@ -215,21 +215,27 @@ class SimilaritySearchEngine:
     def __init__(self, dataset: QADataset, json_path: str = None, use_cache: bool = True):
         self.dataset = dataset
 
-        # Thresholds (adjusted for better accuracy)
-        self.SIMILARITY_THRESHOLD_IDEAL = 0.4
-        self.SIMILARITY_THRESHOLD = 0.50  # Raised from 0.45 to force weak matches to answer-based search
+        # Thresholds (matching SecondBrain's values)
+        self.SIMILARITY_THRESHOLD_IDEAL = 0.7
+        self.SIMILARITY_THRESHOLD = 0.6
 
-        # Cross-encoder reranker thresholds (lower than semantic because cross-encoder scores are on different scale)
-        self.RERANKER_THRESHOLD_IDEAL = 0.3   # Ideal match for reranker
-        self.RERANKER_THRESHOLD_MINIMAL = 0.04  # Very permissive - accepts weak reranker scores
+        # Answer-based search thresholds (lower because question-vs-answer semantic similarity is naturally weaker)
+        self.ANSWER_THRESHOLD_IDEAL = 0.5
+        self.ANSWER_THRESHOLD_MINIMAL = 0.4
+
+        # Cross-encoder reranker thresholds (quora model outputs duplicate probability 0-1)
+        self.RERANKER_THRESHOLD_IDEAL = 0.8   # High confidence duplicate question
+        self.RERANKER_THRESHOLD_MINIMAL = 0.5  # At least 50% likely the same question
 
         logger.info("📊 Thresholds configured:")
         logger.info(f"   Semantic - Ideal: {self.SIMILARITY_THRESHOLD_IDEAL}, Minimal: {self.SIMILARITY_THRESHOLD}")
+        logger.info(f"   Answer   - Ideal: {self.ANSWER_THRESHOLD_IDEAL}, Minimal: {self.ANSWER_THRESHOLD_MINIMAL}")
         logger.info(f"   Reranker - Ideal: {self.RERANKER_THRESHOLD_IDEAL}, Minimal: {self.RERANKER_THRESHOLD_MINIMAL}")
 
         # Initialize sentence transformer model
         logger.info("Loading sentence transformer model (all-MiniLM-L6-v2)...")
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        #self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        self.encoder = SentenceTransformer('BAAI/bge-m3')
 
         # Enable multi-processing to use all available CPU cores
         import os
@@ -285,11 +291,11 @@ class SimilaritySearchEngine:
         self.bm25 = BM25Okapi(tokenized_corpus)
         logger.info("✅ BM25 keyword search initialized")
 
-        # Initialize Cross-Encoder for reranking
-        logger.info("Loading cross-encoder model for reranking...")
+        # Initialize Cross-Encoder for reranking (quora model: question-question similarity)
+        logger.info("Loading cross-encoder model for reranking (quora-distilroberta-base)...")
         from sentence_transformers import CrossEncoder
-        self.reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
-        logger.info("✅ Cross-encoder reranker initialized")
+        self.reranker = CrossEncoder('cross-encoder/quora-distilroberta-base')
+        logger.info("✅ Cross-encoder reranker initialized (question-question similarity)")
 
         logger.info("✅ Similarity search engine ready (hybrid + reranking)")
 
@@ -1127,7 +1133,10 @@ class JSONChatbotEngine:
 
     def process_question(self, user_question: str, session_id: str = "default") -> Dict:
         """
-        Process user question through multi-stage pipeline
+        Process user question through multi-stage pipeline (Full-Scan mode).
+        
+        All stages run unconditionally. No early returns. The best candidate
+        across all stages wins at the end.
 
         Args:
             user_question: User's input question
@@ -1142,7 +1151,7 @@ class JSONChatbotEngine:
             - pipeline_info: Dict with detailed stage information
         """
         logger.info("="*60)
-        logger.info(f"PROCESSING QUESTION: '{user_question}'")
+        logger.info(f"PROCESSING QUESTION (Full-Scan): '{user_question}'")
         logger.info("="*60)
 
         pipeline_info = {
@@ -1151,6 +1160,9 @@ class JSONChatbotEngine:
             'timestamp': datetime.now().isoformat(),
             'stages': []
         }
+
+        # Collect all candidates from every stage — pick the best at the end
+        all_candidates = []  # List of (score, qa_pair, matched_by, source)
 
         # ====================================================================
         # STAGE 1: Two-Stage Retrieval (Semantic Search + Cross-Encoder Reranking)
@@ -1170,7 +1182,7 @@ class JSONChatbotEngine:
         search_result = self.search_engine.rerank_with_cross_encoder(
             user_question,
             candidates,
-            hybrid_scores=semantic_scores  # Pass semantic scores for comparison
+            hybrid_scores=semantic_scores
         )
 
         stage_1_info = {
@@ -1186,37 +1198,27 @@ class JSONChatbotEngine:
             'threshold_minimal': float(self.search_engine.RERANKER_THRESHOLD_MINIMAL),
             'meets_ideal': bool(search_result['meets_ideal_threshold']),
             'meets_minimal': bool(search_result['meets_minimal_threshold']),
-            'top_k_candidates': int(len(candidates)) if 'candidates' in locals() else 1,
+            'top_k_candidates': int(len(candidates)),
             'reranker_used': True,
-            'semantic_score': float(semantic_scores[0])  # Add semantic score for comparison
+            'semantic_score': float(semantic_scores[0])
         }
         pipeline_info['stages'].append(stage_1_info)
 
-        if search_result['meets_ideal_threshold']:
-            logger.info(f"✅ IDEAL MATCH FOUND (score: {search_result['score']:.4f})")
-            logger.info(f"   Question: {search_result['best_match'].question}")
-            logger.info(f"   Topic: {search_result['best_match'].topic}")
-            logger.info("="*60)
-
-            return {
-                'answer': search_result['best_match'].answer,
-                'source_qa': search_result['best_match'],
-                'matched_by': 'similarity_ideal',
-                'confidence': search_result['score'],
-                'pipeline_info': pipeline_info
-            }
-
-        logger.info(f"⚠️ Score {search_result['score']:.4f} below IDEAL threshold {self.search_engine.SIMILARITY_THRESHOLD_IDEAL}")
-        logger.info(f"   Best match found: \"{search_result['best_match'].question}\"")
-        logger.info(f"   From topic: {search_result['best_match'].topic}")
+        # Collect Stage 1 candidate (no early return)
+        all_candidates.append({
+            'score': search_result['score'],
+            'qa_pair': search_result['best_match'],
+            'matched_by': 'similarity_ideal' if search_result['meets_ideal_threshold'] else 'similarity_minimal',
+            'source': 'stage_1_reranker'
+        })
+        logger.info(f"   📥 Collected: score={search_result['score']:.4f}, question=\"{search_result['best_match'].question[:60]}...\"")
 
         # ====================================================================
-        # STAGE 2: Rephrase + Retry (MINIMAL threshold)
+        # STAGE 2: Rephrase + Retry
         # ====================================================================
         if self.rephraser:
             logger.info("\n🔄 STAGE 2: Rephrase + Retry")
 
-            # Get example questions for better rephrasing
             example_questions = self.dataset.get_all_questions()[:20]
             rephrased_text, rephrase_info = self.rephraser.rephrase(
                 user_question,
@@ -1236,7 +1238,6 @@ class JSONChatbotEngine:
             if rephrased_text and rephrased_text != user_question:
                 logger.info(f"   Rephrased: '{rephrased_text}'")
 
-                # Search with rephrased text using two-stage retrieval
                 rephrase_hybrid = self.search_engine.hybrid_search(rephrased_text, alpha=0.85, top_k=10)
                 rephrase_search = self.search_engine.rerank_with_cross_encoder(
                     rephrased_text,
@@ -1255,62 +1256,27 @@ class JSONChatbotEngine:
                 }
                 pipeline_info['stages'].append(stage_2_search_info)
 
-                # Use better score
-                if rephrase_search['score'] > search_result['score']:
-                    search_result = rephrase_search
-
-                    if search_result['meets_minimal_threshold']:
-                        logger.info(f"✅ REPHRASE MATCH FOUND (score: {search_result['score']:.4f})")
-                        logger.info(f"   Question: {search_result['best_match'].question}")
-                        logger.info(f"   Topic: {search_result['best_match'].topic}")
-                        logger.info("="*60)
-
-                        return {
-                            'answer': search_result['best_match'].answer,
-                            'source_qa': search_result['best_match'],
-                            'matched_by': 'rephrase_similarity',
-                            'confidence': search_result['score'],
-                            'pipeline_info': pipeline_info
-                        }
-                    else:
-                        logger.info(f"   ⚠️ Rephrase improved score to {rephrase_search['score']:.4f} but still below threshold")
-                        logger.info(f"   Best match: \"{rephrase_search['best_match'].question}\"")
-                        logger.info(f"   From topic: {rephrase_search['best_match'].topic}")
+                # Collect Stage 2 candidate (no early return)
+                all_candidates.append({
+                    'score': rephrase_search['score'],
+                    'qa_pair': rephrase_search['best_match'],
+                    'matched_by': 'rephrase_similarity',
+                    'source': 'stage_2_rephrase'
+                })
+                logger.info(f"   📥 Collected: score={rephrase_search['score']:.4f}, question=\"{rephrase_search['best_match'].question[:60]}...\"")
             else:
                 logger.info("   ⚠️ Rephrasing failed or produced same text")
-
-        # Check if original meets minimal threshold
-        if search_result['meets_minimal_threshold']:
-            logger.info(f"✅ MINIMAL MATCH FOUND (score: {search_result['score']:.4f})")
-            logger.info(f"   Question: {search_result['best_match'].question}")
-            logger.info(f"   Topic: {search_result['best_match'].topic}")
-            logger.info("="*60)
-
-            return {
-                'answer': search_result['best_match'].answer,
-                'source_qa': search_result['best_match'],
-                'matched_by': 'similarity_minimal',
-                'confidence': search_result['score'],
-                'pipeline_info': pipeline_info
-            }
-
-        logger.info(f"⚠️ Score {search_result['score']:.4f} below MINIMAL threshold {self.search_engine.SIMILARITY_THRESHOLD}")
-        logger.info(f"   Best match so far: \"{search_result['best_match'].question}\"")
-        logger.info(f"   From topic: {search_result['best_match'].topic}")
 
         # ====================================================================
         # STAGE 2.5: Search in Answers (Extended Search)
         # ====================================================================
         logger.info("\n🔎 STAGE 2.5: Answer-Based Search (No Reranking)")
         logger.info("   Searching in answer content instead of questions...")
-        logger.info("   ⚠️ Skipping reranking because reranker compares query vs question, not query vs answer")
 
-        # Use hybrid search with top_k=1 to get best match directly (no reranking)
-        answer_search_result = self.search_engine.hybrid_search(user_question, alpha=0.8, search_answers=True, top_k=1)
+        answer_search_result = self.search_engine.hybrid_search(user_question, alpha=0.5, search_answers=True, top_k=1)
 
-        # Check thresholds using hybrid score
-        meets_ideal = answer_search_result['score'] >= self.search_engine.SIMILARITY_THRESHOLD_IDEAL
-        meets_minimal = answer_search_result['score'] >= self.search_engine.SIMILARITY_THRESHOLD
+        meets_ideal = answer_search_result['score'] >= self.search_engine.ANSWER_THRESHOLD_IDEAL
+        meets_minimal = answer_search_result['score'] >= self.search_engine.ANSWER_THRESHOLD_MINIMAL
 
         stage_2_5_info = {
             'stage_number': 2.5,
@@ -1323,81 +1289,80 @@ class JSONChatbotEngine:
             'best_match_topic': answer_search_result['best_match'].topic,
             'meets_ideal': bool(meets_ideal),
             'meets_minimal': bool(meets_minimal),
-            'reranker_used': False  # Explicitly disabled for answer-based search
+            'reranker_used': False
         }
         pipeline_info['stages'].append(stage_2_5_info)
 
-        if meets_minimal:
-            logger.info(f"✅ ANSWER MATCH FOUND (score: {answer_search_result['score']:.4f})")
-            logger.info(f"   Matched by: {answer_search_result['matched_by']}")
-            logger.info(f"   Question: {answer_search_result['best_match'].question}")
-            logger.info(f"   Topic: {answer_search_result['best_match'].topic}")
-            logger.info("="*60)
-
-            return {
-                'answer': answer_search_result['best_match'].answer,
-                'source_qa': answer_search_result['best_match'],
-                'matched_by': 'answer_similarity',
-                'confidence': answer_search_result['score'],
-                'pipeline_info': pipeline_info
-            }
-
-        logger.info(f"⚠️ Answer search score {answer_search_result['score']:.4f} also below threshold")
-        logger.info(f"   Best {answer_search_result['matched_by']} match: \"{answer_search_result['best_match'].question}\"")
-        logger.info(f"   From topic: {answer_search_result['best_match'].topic}")
-        if answer_search_result['matched_by'] == 'answer':
-            logger.info(f"   Answer preview: {answer_search_result['best_match'].answer[:100]}...")
-
-        # ====================================================================
-        # STAGE 3: Topic-Level Search (DISABLED - not relevant for most queries)
-        # ====================================================================
-        # logger.info("\n📚 STAGE 3: Topic-Level Search")
-        #
-        # topic_result = self.search_engine.search_topic(user_question)
-        #
-        # if topic_result:
-        #     topic_idx, topic_score = topic_result
-        #     topic = self.dataset.topics[topic_idx]
-        #
-        #     stage_3_info = {
-        #         'stage_number': 3,
-        #         'stage_name': 'Topic-Level Search',
-        #         'stage': 'topic_search',
-        #         'topic_name': topic.topic,
-        #         'score': float(topic_score)
-        #     }
-        #     pipeline_info['stages'].append(stage_3_info)
-        #
-        #     logger.info(f"✅ TOPIC MATCH FOUND: '{topic.topic}' (score: {topic_score:.4f})")
-        #     logger.info("="*60)
-        #
-        #     # Build topic overview response
-        #     answer = f"I found information about '{topic.topic}'.\n\n"
-        #     answer += f"Here are some questions I can answer about this topic:\n\n"
-        #
-        #     for i, qa in enumerate(topic.qa_pairs[:5], 1):
-        #         answer += f"{i}. {qa.question}\n"
-        #
-        #     if len(topic.qa_pairs) > 5:
-        #         answer += f"\n...and {len(topic.qa_pairs) - 5} more questions."
-        #
-        #     return {
-        #         'answer': answer,
-        #         'source_qa': None,
-        #         'matched_by': 'topic',
-        #         'confidence': topic_score,
-        #         'pipeline_info': pipeline_info,
-        #         'suggested_questions': [qa.question for qa in topic.qa_pairs[:5]]
-        #     }
-        #
-        # logger.info("⚠️ No topic match found (highest topic similarity below 0.5 threshold)")
+        # Collect Stage 2.5 candidate separately (used as fallback only)
+        answer_candidate = {
+            'score': answer_search_result['score'],
+            'qa_pair': answer_search_result['best_match'],
+            'matched_by': 'answer_similarity',
+            'source': 'stage_2_5_answer'
+        }
+        logger.info(f"   📥 Collected: score={answer_search_result['score']:.4f}, question=\"{answer_search_result['best_match'].question[:60]}...\"")
 
         logger.info("\n📚 STAGE 3: Topic-Level Search - SKIPPED (disabled)")
 
         # ====================================================================
-        # STAGE 4: Fallback Response
+        # FINAL: Hybrid Waterfall — Question-matching first, answer-search as fallback
         # ====================================================================
+        logger.info("\n🏆 FINAL: Hybrid Waterfall Selection...")
+
+        # --- Step 1: Pick best from question-matching stages (1 & 2) ---
+        question_candidates = [c for c in all_candidates if c['source'] in ('stage_1_reranker', 'stage_2_rephrase')]
+        question_candidates.sort(key=lambda c: c['score'], reverse=True)
+
+        # Log all candidates for diagnostics
+        all_for_log = question_candidates + [answer_candidate]
+        for i, cand in enumerate(all_for_log):
+            marker = "👑" if i == 0 else "  "
+            logger.info(f"   {marker} #{i+1}: score={cand['score']:.4f} | {cand['source']} | \"{cand['qa_pair'].question[:60]}...\"")
+
+        best = None
+
+        if question_candidates:
+            q_best = question_candidates[0]
+            q_meets_threshold = q_best['score'] >= self.search_engine.RERANKER_THRESHOLD_MINIMAL
+            if q_meets_threshold:
+                best = q_best
+                logger.info(f"\n✅ Question-matching winner: {q_best['source']} @ {q_best['score']:.4f}")
+
+        # --- Step 2: If question-matching failed, try answer-based search ---
+        if best is None:
+            logger.info("\n⚠️ Question-matching stages below threshold — trying answer-based fallback...")
+            a_meets_threshold = answer_candidate['score'] >= self.search_engine.ANSWER_THRESHOLD_MINIMAL
+            if a_meets_threshold:
+                best = answer_candidate
+                logger.info(f"✅ Answer-search fallback: {answer_candidate['score']:.4f}")
+            else:
+                logger.info(f"❌ Answer-search also below threshold ({answer_candidate['score']:.4f})")
+
+        if best is not None:
+            logger.info(f"\n✅ BEST MATCH: {best['matched_by']} (score: {best['score']:.4f})")
+            logger.info(f"   Question: {best['qa_pair'].question}")
+            logger.info(f"   Topic: {best['qa_pair'].topic}")
+            logger.info(f"   Source: {best['source']}")
+            logger.info("="*60)
+
+            return {
+                'answer': best['qa_pair'].answer,
+                'source_qa': best['qa_pair'],
+                'matched_by': best['matched_by'],
+                'confidence': best['score'],
+                'pipeline_info': pipeline_info
+            }
+
+        # ====================================================================
+        # STAGE 4: Fallback Response (no candidate met threshold)
+        # ====================================================================
+        # Determine best score across all stages for diagnostics
+        all_for_fallback = question_candidates + [answer_candidate]
+        all_for_fallback.sort(key=lambda c: c['score'], reverse=True)
+        best_overall_score = all_for_fallback[0]['score'] if all_for_fallback else 0.0
+
         logger.info("\n❌ STAGE 4: Fallback Response")
+        logger.info(f"   Best score across all stages was {best_overall_score:.4f} but below threshold — returning fallback")
 
         stage_4_info = {
             'stage_number': 4,
@@ -1407,7 +1372,6 @@ class JSONChatbotEngine:
         }
         pipeline_info['stages'].append(stage_4_info)
 
-        logger.info("No match found in any stage, returning fallback")
         logger.info("="*60)
 
         fallback_answer = (

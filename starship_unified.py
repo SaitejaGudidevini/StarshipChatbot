@@ -187,16 +187,18 @@ async def lifespan(app: FastAPI):
         )
         logger.info("✅ Chatbot engine ready (V1)")
 
-        # Enable V2 architecture if available
-        try:
-            logger.info("Enabling V2 parallel-fused architecture...")
-            chatbot_engine.enable_v2_architecture()
-            if chatbot_engine.v2_enabled:
-                logger.info("✅ V2 architecture enabled")
-            else:
-                logger.info("⚠️  V2 architecture not available - using V1")
-        except Exception as v2_error:
-            logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
+        # V2 architecture disabled — using V1 sequential search
+        # To re-enable, uncomment the block below:
+        # try:
+        #     logger.info("Enabling V2 parallel-fused architecture...")
+        #     chatbot_engine.enable_v2_architecture()
+        #     if chatbot_engine.v2_enabled:
+        #         logger.info("✅ V2 architecture enabled")
+        #     else:
+        #         logger.info("⚠️  V2 architecture not available - using V1")
+        # except Exception as v2_error:
+        #     logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
+        logger.info("ℹ️  Using V1 sequential search architecture")
 
     except Exception as e:
         logger.error(f"❌ Failed to initialize chatbot: {e}")
@@ -2119,6 +2121,7 @@ async def start_generation(request: GenerateRequest, background_tasks: Backgroun
 async def generation_stream():
     """SSE endpoint for real-time generation progress.
     Streams from the new ParallelProgressTracker if available, otherwise falls back to polling.
+    Loops across batches — when one tracker finishes, waits for the next one.
     """
 
     async def event_generator():
@@ -2127,51 +2130,49 @@ async def generation_stream():
             # Give the tracker a moment to be created if generation just started
             await asyncio.sleep(0.5)
 
-            # Check if the new parallel tracker is active (access dynamically via module)
-            tracker = browser_agent.progress_tracker
-            if tracker and tracker._active:
-                logger.info("SSE stream connected to ParallelProgressTracker.")
-                try:
-                    async for update in tracker.get_updates():
-                        yield {"data": update}
-                    logger.info("SSE stream finished via tracker.")
-                except asyncio.CancelledError:
-                    logger.info("SSE stream (tracker) cancelled by client.")
-                except Exception as e:
-                    logger.error(f"SSE stream (tracker) error: {e}", exc_info=True)
-                    yield {"event": "error", "data": json.dumps({'error': str(e)})}
-            else: # Fallback: wait for tracker to become active or task to complete
-                logger.info("SSE stream waiting for parallel processing to start...")
-                try:
-                    while True:
-                        # Check if tracker became active
-                        tracker = browser_agent.progress_tracker
-                        if tracker and tracker._active:
-                            logger.info("SSE stream connected to ParallelProgressTracker (late).")
-                            async for update in tracker.get_updates():
-                                yield {"data": update}
-                            break
+            # Track which tracker instances we've already consumed
+            last_tracker = None
 
-                        # Check if task completed/failed
-                        if browser_runner:
-                            progress = browser_runner.get_progress()
-                            if progress['status'] in ['completed', 'error', 'cancelled']:
-                                logger.info(f"Generation {progress['status']}")
-                                yield {"data": json.dumps(progress)}
-                                break
+            while True:
+                tracker = browser_agent.progress_tracker
 
-                        # Wait silently during crawler phase (no spam logging)
-                        await asyncio.sleep(2)
+                # If we have an active tracker we haven't consumed yet, stream from it
+                if tracker and tracker._active and tracker is not last_tracker:
+                    logger.info(f"SSE stream connected to ParallelProgressTracker (batch {tracker.current_batch}/{tracker.total_batches}).")
+                    last_tracker = tracker
+                    try:
+                        async for update in tracker.get_updates():
+                            yield {"data": update}
+                        logger.info("SSE stream: batch tracker finished, waiting for next...")
+                        # Send a transition event so the frontend knows we're between batches
+                        if tracker.current_batch < tracker.total_batches:
+                            yield {"data": json.dumps({
+                                "type": "batch_transition",
+                                "completed_batch": tracker.current_batch,
+                                "total_batches": tracker.total_batches,
+                                "message": f"Batch {tracker.current_batch}/{tracker.total_batches} complete. Starting next batch..."
+                            })}
+                    except asyncio.CancelledError:
+                        logger.info("SSE stream (tracker) cancelled by client.")
+                        return
+                    except Exception as e:
+                        logger.error(f"SSE stream (tracker) error: {e}", exc_info=True)
+                        yield {"event": "error", "data": json.dumps({'error': str(e)})}
+                    continue  # Loop back to check for next batch tracker
 
-                except asyncio.CancelledError:
-                    logger.info("SSE stream (polling) cancelled by client.")
-                except Exception as e:
-                    logger.error(f"SSE stream (polling) error: {e}", exc_info=True)
-                    yield {
-                        "event": "error",
-                        "data": json.dumps({'error': str(e)})
-                    }
+                # Check if the generation task is done (no more batches coming)
+                if browser_runner:
+                    progress = browser_runner.get_progress()
+                    if progress['status'] in ['completed', 'error', 'cancelled']:
+                        logger.info(f"Generation {progress['status']} — closing SSE stream")
+                        yield {"data": json.dumps(progress)}
+                        break
 
+                # Wait for next tracker or task completion
+                await asyncio.sleep(1)
+
+        except asyncio.CancelledError:
+            logger.info("SSE stream cancelled by client.")
         except Exception as e:
             logger.error(f"Top-level SSE event_generator error: {e}", exc_info=True)
             yield {
@@ -2351,7 +2352,7 @@ async def simplify_topic(request: SimplifyRequest):
 
         # Re-enable V2 architecture after reload
         try:
-            chatbot_engine.enable_v2_architecture()
+            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
             if chatbot_engine.v2_enabled:
                 logger.info("✅ V2 re-enabled after simplify")
         except Exception as v2_error:
@@ -2431,7 +2432,7 @@ async def merge_qa_pairs(request: MergeRequest):
 
         # Re-enable V2 architecture after reload
         try:
-            chatbot_engine.enable_v2_architecture()
+            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
             if chatbot_engine.v2_enabled:
                 logger.info("✅ V2 re-enabled after merge")
         except Exception as v2_error:
@@ -2490,7 +2491,7 @@ async def delete_qa_pairs(request: DeleteRequest):
         # Re-enable V2 architecture after reload
         try:
             logger.info("Re-enabling V2 parallel-fused architecture...")
-            chatbot_engine.enable_v2_architecture()
+            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
             if chatbot_engine.v2_enabled:
                 logger.info("✅ V2 architecture re-enabled after delete")
         except Exception as v2_error:
@@ -2541,7 +2542,7 @@ async def edit_qa_pair(request: EditRequest):
         # Re-enable V2 architecture after reload
         try:
             logger.info("Re-enabling V2 parallel-fused architecture...")
-            chatbot_engine.enable_v2_architecture()
+            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
             if chatbot_engine.v2_enabled:
                 logger.info("✅ V2 architecture re-enabled after edit")
         except Exception as v2_error:
@@ -2654,7 +2655,7 @@ async def switch_json_file(request: SwitchFileRequest):
         # Enable V2 architecture if available
         try:
             logger.info("Enabling V2 parallel-fused architecture...")
-            chatbot_engine.enable_v2_architecture()
+            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
             if chatbot_engine.v2_enabled:
                 logger.info("✅ V2 architecture enabled")
             else:

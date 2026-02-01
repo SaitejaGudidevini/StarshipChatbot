@@ -92,6 +92,25 @@ export interface WorkerState {
   status: 'idle' | 'processing' | 'completed' | 'error';
   item: string;
   items_completed: number;
+  semantic_path?: string;  // Which tree node this worker is on
+}
+
+// Live tree node status (for real-time tree visualization)
+export type NodeStatus = 'pending' | 'processing' | 'completed' | 'error';
+
+export interface NodeState {
+  status: NodeStatus;
+  workerId?: number;
+}
+
+// Tree node from tree_init SSE event
+export interface LiveTreeNode {
+  title: string;
+  semantic_path: string;
+  original_url?: string;
+  element_type?: string;
+  depth?: number;
+  children: LiveTreeNode[];
 }
 
 // Legacy progress format (for backward compatibility)

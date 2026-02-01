@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { GenerationProgress, ParallelProgressEvent, WorkerState } from '../types';
+import { GenerationProgress, ParallelProgressEvent, WorkerState, LiveTreeNode, NodeState } from '../types';
 
 interface GeneratorContextType {
   // State
@@ -8,6 +8,10 @@ interface GeneratorContextType {
   workers: Record<string, WorkerState>;
   isParallelMode: boolean;
   isConnected: boolean;
+
+  // Live tree state (NEW)
+  liveTree: LiveTreeNode | null;
+  nodeStates: Record<string, NodeState>;  // semantic_path → {status, workerId}
 
   // Actions
   startSSE: () => void;
@@ -25,6 +29,10 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
   const [shouldConnect, setShouldConnect] = useState(false);
+
+  // Live tree state (NEW)
+  const [liveTree, setLiveTree] = useState<LiveTreeNode | null>(null);
+  const [nodeStates, setNodeStates] = useState<Record<string, NodeState>>({});
 
   // SSE Connection Effect
   useEffect(() => {
@@ -50,7 +58,44 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
         console.log('[SSE Context] Message received:', event.data);
         const data = JSON.parse(event.data);
 
-        // Check if this is a parallel progress event
+        // ─── NEW: Handle tree_init event ───
+        if (data.type === 'tree_init') {
+          console.log('[SSE Context] Tree init received, nodes:', data.total_nodes);
+          setLiveTree(data.tree);
+          // Initialize all nodes as "pending"
+          const initialStates: Record<string, NodeState> = {};
+          const walkTree = (node: LiveTreeNode) => {
+            initialStates[node.semantic_path] = { status: 'pending' };
+            node.children?.forEach(walkTree);
+          };
+          walkTree(data.tree);
+          setNodeStates(initialStates);
+          return;  // tree_init is not a progress event, don't process further
+        }
+
+        // ─── NEW: Handle semantic_path in worker_update ───
+        if (data.type === 'worker_update' && data.semantic_path) {
+          setNodeStates(prev => ({
+            ...prev,
+            [data.semantic_path]: {
+              status: 'processing',
+              workerId: data.worker_id,
+            },
+          }));
+        }
+
+        // ─── NEW: Handle semantic_path in item_completed ───
+        if (data.type === 'item_completed' && data.semantic_path) {
+          setNodeStates(prev => ({
+            ...prev,
+            [data.semantic_path]: {
+              status: data.success ? 'completed' : 'error',
+              workerId: data.worker_id,
+            },
+          }));
+        }
+
+        // ─── Existing parallel progress handling ───
         if (data.type && data.workers !== undefined) {
           setIsParallelMode(true);
           setParallelProgress(data as ParallelProgressEvent);
@@ -69,10 +114,16 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
           });
 
           if (data.type === 'batch_completed') {
-            console.log('[SSE Context] Batch completed, closing connection');
-            es.close();
-            setIsConnected(false);
-            setShouldConnect(false);
+            // Check if ALL batches are done using overall progress
+            const allDone = data.completed >= data.total && data.current_batch >= data.total_batches;
+            if (allDone) {
+              console.log('[SSE Context] All batches completed, closing connection');
+              es.close();
+              setIsConnected(false);
+              setShouldConnect(false);
+            } else {
+              console.log(`[SSE Context] Batch ${data.current_batch}/${data.total_batches} completed (${data.completed}/${data.total} items), waiting for next...`);
+            }
           }
         } else {
           // Legacy progress event
@@ -132,6 +183,8 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
     setParallelProgress(null);
     setWorkers({});
     setIsParallelMode(false);
+    setLiveTree(null);
+    setNodeStates({});
   }, []);
 
   return (
@@ -142,6 +195,8 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
         workers,
         isParallelMode,
         isConnected,
+        liveTree,
+        nodeStates,
         startSSE,
         stopSSE,
         resetProgress,
