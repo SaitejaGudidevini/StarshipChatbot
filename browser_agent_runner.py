@@ -353,6 +353,24 @@ class BrowserAgentRunner:
                     # Small delay
                     await asyncio.sleep(0.1)
 
+                # After stream ends, get final state as fallback for results
+                try:
+                    final_state = await self._graph.aget_state(config)
+                    if final_state and final_state.values:
+                        final_items = final_state.values.get("processed_items", [])
+                        if final_items:
+                            final_qa = sum(r.get('qa_count', 0) for r in final_items if isinstance(r, dict))
+                            logger.info(f"[Final state] processed_items={len(final_items)}, total_qa={final_qa}")
+                            # Update progress if stream events missed it
+                            if final_qa > self.progress['qa_generated']:
+                                logger.info(f"[Final state] Updating qa_generated from {self.progress['qa_generated']} to {final_qa}")
+                                self.progress['qa_generated'] = final_qa
+                                self.progress['topics_completed'] = len(final_items)
+                            # Always save final results (ensures JSON file is written)
+                            await self._save_results(final_items)
+                except Exception as e:
+                    logger.warning(f"[Final state] Could not read final graph state: {e}")
+
                 # Completion
                 self.progress['status'] = 'completed'
                 self.progress['completed_at'] = datetime.now().isoformat()
@@ -382,7 +400,7 @@ class BrowserAgentRunner:
             if node_name == "__start__":
                 continue
 
-            logger.debug(f"Processing node: {node_name}")
+            logger.info(f"[_handle_event] node={node_name}, keys={list(node_data.keys()) if isinstance(node_data, dict) else type(node_data).__name__}")
 
             # Handle crawler node (new schema: semantic_paths)
             if node_name == "crawler":
@@ -418,8 +436,11 @@ class BrowserAgentRunner:
                     # Save incrementally
                     await self._save_results(results)
 
-            # Handle parallel_batch node (parallel mode)
-            elif node_name == "parallel_batch":
+            # Handle parallel_batch or two_phase_batch node (parallel mode)
+            elif node_name in ("parallel_batch", "two_phase_batch"):
+                logger.info(f"[two_phase_batch] Event received. has processed_items={'processed_items' in node_data}, "
+                           f"has total_items={'total_items' in node_data}")
+
                 # Update total from semantic_paths if available
                 if 'total_items' in node_data:
                     self.progress['total'] = node_data['total_items']
@@ -431,6 +452,9 @@ class BrowserAgentRunner:
                 # Update processed items and Q&A count
                 if 'processed_items' in node_data:
                     results = node_data['processed_items']
+                    logger.info(f"[two_phase_batch] processed_items count={len(results)}, "
+                               f"types={[type(r).__name__ for r in results[:3]]}, "
+                               f"qa_counts={[r.get('qa_count', 'MISSING') for r in results if isinstance(r, dict)]}")
                     total_qa = sum(r.get('qa_count', 0) for r in results if isinstance(r, dict))
                     self.progress['qa_generated'] = total_qa
                     self.progress['topics_completed'] = len(results)
