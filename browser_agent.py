@@ -76,16 +76,40 @@ def get_chromium_path() -> Optional[str]:
     Find Playwright's Chromium binary. Works locally and in Docker/Railway.
     Returns None if not found (browser_use will try its own detection).
     """
+    # Check PLAYWRIGHT_BROWSERS_PATH env var first
+    pw_path = os.environ.get('PLAYWRIGHT_BROWSERS_PATH', '')
+
     search_patterns = [
-        # Linux (Docker/Railway) - new Playwright path structure
+        # Linux (Docker/Railway) - standard Playwright paths
         "/root/.cache/ms-playwright/chromium-*/chrome-linux/chrome",
         "/root/.cache/ms-playwright/chromium-*/chrome-linux64/chrome",
+        # Headless shell variants (newer Playwright versions)
+        "/root/.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell",
+        "/root/.cache/ms-playwright/chromium_headless_shell-*/chrome-linux64/headless_shell",
+        # Chrome for Testing (what browser_use 0.11.2 calls 'chrome')
+        "/root/.cache/ms-playwright/chrome-*/chrome-linux/chrome",
+        "/root/.cache/ms-playwright/chrome-*/chrome-linux64/chrome",
         # Linux alternative paths
         "/home/*/.cache/ms-playwright/chromium-*/chrome-linux/chrome",
+        "/home/*/.cache/ms-playwright/chromium-*/chrome-linux64/chrome",
+        # System-installed browsers (fallback)
+        "/usr/bin/google-chrome-stable",
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium",
+        "/usr/bin/chromium-browser",
         # macOS
         os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-mac/Chromium.app/Contents/MacOS/Chromium"),
         os.path.expanduser("~/.cache/ms-playwright/chromium-*/chrome-mac-arm64/Chromium.app/Contents/MacOS/Chromium"),
     ]
+
+    # If PLAYWRIGHT_BROWSERS_PATH is set, add those patterns too
+    if pw_path:
+        search_patterns = [
+            f"{pw_path}/chromium-*/chrome-linux/chrome",
+            f"{pw_path}/chromium-*/chrome-linux64/chrome",
+            f"{pw_path}/chrome-*/chrome-linux/chrome",
+            f"{pw_path}/chrome-*/chrome-linux64/chrome",
+        ] + search_patterns
 
     for pattern in search_patterns:
         matches = glob_module.glob(pattern)
@@ -95,26 +119,48 @@ def get_chromium_path() -> Optional[str]:
                 logger.info(f"Found Chromium at: {binary}")
                 return binary
 
+    # Last resort: try to find any chrome/chromium binary in ms-playwright
+    fallback_patterns = [
+        "/root/.cache/ms-playwright/**/chrome",
+        "/root/.cache/ms-playwright/**/chromium",
+    ]
+    for pattern in fallback_patterns:
+        matches = glob_module.glob(pattern, recursive=True)
+        if matches:
+            binary = matches[0]
+            if os.path.isfile(binary) and os.access(binary, os.X_OK):
+                logger.info(f"Found Chromium (fallback glob) at: {binary}")
+                return binary
+
+    logger.warning("❌ No Chromium binary found in any known path")
     return None
+
+
+def create_browser_profile(headless: bool = True) -> BrowserProfile:
+    """
+    Create BrowserProfile with proper browser path for both local and Docker/Railway.
+    Always use this instead of bare BrowserProfile(headless=True) to ensure
+    the Playwright Chromium binary is found in production.
+    """
+    chromium_path = get_chromium_path()
+
+    if chromium_path:
+        logger.info(f"🔧 Using detected Chromium path: {chromium_path}")
+        return BrowserProfile(
+            headless=headless,
+            executable_path=chromium_path,
+            chromium_sandbox=False  # Required for Docker/Railway
+        )
+    else:
+        logger.warning("⚠️ No Chromium path detected, falling back to browser_use auto-detect")
+        return BrowserProfile(headless=headless)
 
 
 def create_browser_session(headless: bool = True) -> BrowserSession:
     """
     Create BrowserSession with proper browser path for both local and Docker.
     """
-    chromium_path = get_chromium_path()
-
-    if chromium_path:
-        # Found Chromium - pass explicit path to bypass LocalBrowserWatchdog
-        profile = BrowserProfile(
-            headless=headless,
-            executable_path=chromium_path,
-            chromium_sandbox=False  # Required for Docker
-        )
-        return BrowserSession(browser_profile=profile)
-    else:
-        # Let browser_use auto-detect (local dev with Chrome installed)
-        return BrowserSession(headless=headless)
+    return BrowserSession(browser_profile=create_browser_profile(headless))
 
 
 # ============================================================================
@@ -1055,7 +1101,7 @@ Provide a structured response with the information found.
             llm=groq_llm,
             use_vision=False,
             use_cloud=False,
-            browser_profile=BrowserProfile(headless=True),
+            browser_profile=create_browser_profile(headless=True),
             # Intelligent error handling and loop prevention
             max_failures=2,              # Fail faster on stuck elements (default: 3)
             step_timeout=60,             # Timeout faster on unresponsive elements (default: 120s)
@@ -1152,7 +1198,7 @@ Be concise and extract only essential information."""
                 llm=groq_llm,
                 use_cloud=False,
                 use_vision=False,
-                browser_profile=BrowserProfile(headless=True),
+                browser_profile=create_browser_profile(headless=True),
                 max_failures=2,
                 step_timeout=config.step_timeout,
                 max_actions_per_step=2,
@@ -1641,7 +1687,7 @@ Be concise and extract only essential information."""
                 llm=groq_llm,
                 use_cloud=False,
                 use_vision=False,
-                browser_profile=BrowserProfile(headless=True),
+                browser_profile=create_browser_profile(headless=True),
                 max_failures=2,
                 step_timeout=config.step_timeout,
                 max_actions_per_step=2,
