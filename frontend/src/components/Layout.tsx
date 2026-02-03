@@ -27,7 +27,7 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
                 <MessageSquare className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                StarshipChatbot
+                SyraBot
               </h1>
             </div>
             <div className="flex gap-1">

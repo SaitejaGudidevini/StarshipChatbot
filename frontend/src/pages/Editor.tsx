@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { apiClient } from '../api/client';
 import { Topic, TopicDetail } from '../types';
 import { Folder, ChevronRight, Sparkles, Trash2, X, Edit2, Save, XCircle } from 'lucide-react';
@@ -12,6 +12,7 @@ export function Editor() {
   const [editingQA, setEditingQA] = useState<number | null>(null);
   const [editQuestion, setEditQuestion] = useState('');
   const [editAnswer, setEditAnswer] = useState('');
+  const qaContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadTopics();
@@ -34,6 +35,10 @@ export function Editor() {
       const data = await apiClient.get<TopicDetail>(`/api/editor/topics/${index}`);
       setSelectedTopic(data);
       setSelectedQA(new Set());
+      // Scroll Q&A content to top when new topic is selected
+      setTimeout(() => {
+        qaContentRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+      }, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load topic details');
     }
@@ -134,10 +139,10 @@ export function Editor() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-4">Topics</h3>
-          <div className="space-y-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)]">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col overflow-hidden">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4 flex-shrink-0">Topics</h3>
+          <div className="space-y-2 overflow-y-auto flex-1">
             {topics.map((topic, idx) => (
               <button
                 key={idx}
@@ -157,10 +162,10 @@ export function Editor() {
           </div>
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 overflow-hidden">
           {selectedTopic ? (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-              <div className="p-6 border-b border-slate-200">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-full flex flex-col overflow-hidden">
+              <div className="p-6 border-b border-slate-200 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-semibold text-slate-900">{selectedTopic.topic}</h3>
@@ -194,17 +199,16 @@ export function Editor() {
                   </button>
                 </div>
               </div>
-              <div className="max-h-[600px] overflow-y-auto p-6 space-y-3">
+              <div ref={qaContentRef} className="overflow-y-auto flex-1 p-6 space-y-3">
                 {selectedTopic.qa_pairs.map((qa, idx) => (
                   <div
                     key={idx}
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      editingQA === idx
+                    className={`p-4 rounded-lg border-2 transition-all ${editingQA === idx
                         ? 'border-green-500 bg-green-50'
                         : selectedQA.has(idx)
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
+                      }`}
                   >
                     {editingQA === idx ? (
                       // Edit Mode
@@ -276,8 +280,8 @@ export function Editor() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
-              <Folder className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 h-full flex flex-col items-center justify-center text-center">
+              <Folder className="w-16 h-16 text-slate-300 mb-4" />
               <p className="text-slate-600">Select a topic to view Q&A pairs</p>
             </div>
           )}
