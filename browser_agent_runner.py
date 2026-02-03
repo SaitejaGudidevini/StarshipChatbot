@@ -240,6 +240,13 @@ class BrowserAgentRunner:
         """
         self._is_running = True
 
+        # Reset cancellation flag for new run
+        try:
+            import browser_agent
+            browser_agent.reset_cancellation()
+        except Exception as e:
+            logger.warning(f"Could not reset cancellation flag: {e}")
+
         try:
             # Import browser_agent components
             from browser_agent import build_browser_agent_graph
@@ -337,6 +344,17 @@ class BrowserAgentRunner:
                     if not self._is_running:
                         self.progress['status'] = 'cancelled'
                         yield self.progress
+                        logger.info("Graceful cancellation point reached. Exiting generation loop.")
+                        # Attempt to save final results before exiting
+                        try:
+                            final_state = await self._graph.aget_state(config)
+                            if final_state and final_state.values:
+                                final_items = final_state.values.get("processed_items", [])
+                                if final_items:
+                                    await self._save_results(final_items)
+                                    logger.info("Saved final results before cancellation.")
+                        except Exception as e:
+                            logger.warning(f"Could not save final state on cancellation: {e}")
                         return
 
                     # Process event and update progress
@@ -383,7 +401,13 @@ class BrowserAgentRunner:
             logger.error(f"Browser agent import failed: {e}")
             self.progress['status'] = 'error'
             self.progress['error'] = f"browser_agent.py not available: {str(e)}"
-            self._is_running = False
+            yield self.progress
+
+        except asyncio.CancelledError:
+            logger.warning("🚫 Generation task was cancelled.")
+            self.progress['status'] = 'cancelled'
+            self.progress['completed_at'] = datetime.now().isoformat()
+            self.progress['error'] = "Task was cancelled by user."
             yield self.progress
 
         except Exception as e:
@@ -391,8 +415,10 @@ class BrowserAgentRunner:
             self.progress['status'] = 'error'
             self.progress['error'] = str(e)
             self.progress['completed_at'] = datetime.now().isoformat()
-            self._is_running = False
             yield self.progress
+        
+        finally:
+            self._is_running = False
 
     async def _handle_event(self, event: Dict[str, Any]):
         """Process LangGraph events and update progress"""
@@ -495,10 +521,80 @@ class BrowserAgentRunner:
         """Check if running"""
         return self._is_running
 
-    def cancel(self):
-        """Cancel generation"""
-        logger.info("Cancelling browser agent")
+    def cancel(self, save_data: bool = True) -> Dict[str, Any]:
+        """Cancel generation and signal browser_agent workers to stop.
+
+        Args:
+            save_data: If True, save processed data to JSON before stopping.
+                      If False, discard all data.
+
+        Returns:
+            Dict with cancellation result including output_file if saved.
+        """
+        logger.info(f"Cancelling browser agent (save_data={save_data})")
         self._is_running = False
+
+        # Signal browser_agent parallel workers to stop
+        try:
+            import browser_agent
+            browser_agent.request_cancellation()
+        except Exception as e:
+            logger.warning(f"Could not signal browser_agent cancellation: {e}")
+
+        result = {'cancelled': True, 'output_file': None}
+
+        if save_data:
+            # Save current progress from checkpoint
+            try:
+                import asyncio
+                from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+                async def save_checkpoint_data():
+                    async with AsyncSqliteSaver.from_conn_string("browser_agent_checkpoints.db") as checkpointer:
+                        # Get the latest state from checkpoint
+                        config = {"configurable": {"thread_id": "default-workflow"}}
+
+                        # Try to get state from the graph if available
+                        if self._graph:
+                            try:
+                                state = await self._graph.aget_state(config)
+                                if state and state.values:
+                                    processed_items = state.values.get("processed_items", [])
+                                    if processed_items:
+                                        await self._save_results(processed_items)
+                                        logger.info(f"✅ Saved {len(processed_items)} items on cancellation")
+                                        return self.output_file
+                            except Exception as e:
+                                logger.warning(f"Could not get graph state: {e}")
+                    return None
+
+                # Run the async save function
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # We're in an async context, create a task
+                    future = asyncio.ensure_future(save_checkpoint_data())
+                    # Note: The actual save will happen asynchronously
+                    result['output_file'] = self.output_file
+                    result['save_pending'] = True
+                else:
+                    saved_file = loop.run_until_complete(save_checkpoint_data())
+                    result['output_file'] = saved_file
+
+            except Exception as e:
+                logger.error(f"Failed to save data on cancellation: {e}")
+                result['error'] = str(e)
+        else:
+            logger.info("🗑️ Data discarded as requested")
+            # Optionally delete the output file if it exists
+            try:
+                import os
+                if os.path.exists(self.output_file):
+                    os.remove(self.output_file)
+                    logger.info(f"Deleted output file: {self.output_file}")
+            except Exception as e:
+                logger.warning(f"Could not delete output file: {e}")
+
+        return result
 
 
 # ============================================================================

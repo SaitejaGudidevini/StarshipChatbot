@@ -73,6 +73,7 @@ export function Generator() {
     isParallelMode,
     isConnected,
     startSSE,
+    stopSSE,
   } = useGenerator();
 
   // Load available JSON files
@@ -128,8 +129,21 @@ export function Generator() {
   };
 
   const cancelGeneration = async () => {
+    // Ask user if they want to save the data
+    const saveData = window.confirm(
+      'Do you want to save the processed data before cancelling?\n\n' +
+      'Click OK to save data, or Cancel to discard all data.'
+    );
+
     try {
-      await apiClient.post('/api/generate/cancel');
+      await apiClient.post('/api/generate/cancel', { save_data: saveData });
+      // Stop SSE connection immediately
+      stopSSE();
+      if (saveData) {
+        alert('Generation cancelled. Processed data has been saved.');
+      } else {
+        alert('Generation cancelled. Data has been discarded.');
+      }
     } catch (err) {
       alert('Failed to cancel: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }

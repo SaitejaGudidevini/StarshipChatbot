@@ -130,8 +130,8 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
           setIsParallelMode(false);
           setProgress(data as GenerationProgress);
 
-          if (data.status === 'completed' || data.status === 'error') {
-            console.log('[SSE Context] Generation finished, closing connection');
+          if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+            console.log(`[SSE Context] Generation ${data.status}, closing connection`);
             es.close();
             setIsConnected(false);
             setShouldConnect(false);

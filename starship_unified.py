@@ -84,6 +84,11 @@ qa_modifier: Optional[Any] = None
 browser_runner: Optional[Any] = None
 generation_task: Optional[asyncio.Task] = None
 
+# ============================================================================
+# ARCHITECTURE SWITCH: Set to True for V2 (parallel-fused), False for V1 (sequential)
+# ============================================================================
+USE_V2_ARCHITECTURE = False  # Change to True to enable V2
+
 # Current JSON file (stored in data directory)
 default_json_name = os.getenv('JSON_DATA_PATH', 'CSU_Progress.json')
 # Strip directory if provided, we'll use DATA_DIR
@@ -145,6 +150,11 @@ class SwitchFileRequest(BaseModel):
     filename: str
 
 
+class CancelRequest(BaseModel):
+    """Cancel generation request"""
+    save_data: bool = True  # Default to saving data
+
+
 # ============================================================================
 # LIFESPAN MANAGEMENT
 # ============================================================================
@@ -188,7 +198,6 @@ async def lifespan(app: FastAPI):
         logger.info("✅ Chatbot engine ready (V1)")
 
         # V2 architecture disabled — using V1 sequential search
-        # To re-enable, uncomment the block below:
         # try:
         #     logger.info("Enabling V2 parallel-fused architecture...")
         #     chatbot_engine.enable_v2_architecture()
@@ -264,6 +273,12 @@ if os.path.exists(FRONTEND_BUILD_DIR):
     assets_dir = os.path.join(FRONTEND_BUILD_DIR, "assets")
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    
+    # Mount data directory for tree.json, if it was moved there
+    data_dir = os.path.join(FRONTEND_BUILD_DIR, "data")
+    if os.path.exists(data_dir):
+        app.mount("/data", StaticFiles(directory=data_dir), name="data")
+
     logger.info(f"✅ Serving frontend build from {FRONTEND_BUILD_DIR}")
     USE_BUILT_FRONTEND = True
 else:
@@ -272,8 +287,61 @@ else:
 
 
 # ============================================================================
-# MAIN UI
+# API ENDPOINTS
 # ============================================================================
+
+@app.get("/api/tree/data")
+async def get_tree_data():
+    """
+    Finds and serves the _tree.json file corresponding to the active Q&A JSON file.
+    """
+    global current_json_file
+    
+    if not current_json_file or not os.path.exists(current_json_file):
+        raise HTTPException(status_code=404, detail="Active JSON file not set or not found.")
+
+    # Derive tree filename from the main data filename
+    # e.g., 'data/my_crawl.json' -> 'data/my_crawl_tree.json'
+    base_path = os.path.splitext(current_json_file)[0]
+    tree_filename = f"{base_path}_tree.json"
+
+    # A more robust check: sometimes the main file is the non-hierarchical one
+    # e.g., 'SYRAHEALTHDEMOFINAL.json' is generated from 'hierarchical_crawl...json'
+    # Let's check for a file in the 'output' dir that might be the source
+    derived_tree_path = None
+    if "_tree.json" not in tree_filename:
+        # Heuristic: Find a file in output that looks like the source
+        output_dir = os.path.join(os.path.dirname(__file__), 'output')
+        if os.path.exists(output_dir):
+            for f in os.listdir(output_dir):
+                if f.endswith('_tree.json'):
+                    # This is a bit of a guess, might need a better mapping mechanism
+                    # For now, let's assume the most recent tree file is the correct one
+                    # if multiple exist.
+                    derived_tree_path = os.path.join(output_dir, f)
+                    # We'll just take the first one we find for now.
+                    # A better implementation would store this mapping when files are generated.
+                    tree_filename = derived_tree_path
+                    break
+    
+    logger.info(f"Attempting to serve tree file: {tree_filename}")
+
+    if os.path.exists(tree_filename):
+        return FileResponse(tree_filename, media_type='application/json')
+    else:
+        # Fallback for older files that may not have `_tree.json`
+        # Let's try to find *any* _tree.json file in the output directory
+        output_dir = os.path.join(os.path.dirname(__file__), 'output')
+        if os.path.exists(output_dir):
+            tree_files = [f for f in os.listdir(output_dir) if f.endswith('_tree.json')]
+            if tree_files:
+                # Serve the most recent one
+                latest_tree_file = max([os.path.join(output_dir, f) for f in tree_files], key=os.path.getmtime)
+                logger.warning(f"Tree file not found at {tree_filename}. Serving latest available: {latest_tree_file}")
+                return FileResponse(latest_tree_file, media_type='application/json')
+
+    raise HTTPException(status_code=404, detail=f"Tree file not found at {tree_filename}")
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -2196,20 +2264,27 @@ async def get_generation_status():
 
 
 @app.post("/api/generate/cancel")
-async def cancel_generation():
-    """Cancel running generation"""
-    global browser_runner, generation_task
+async def cancel_generation(request: CancelRequest):
+    """Cancel running generation gracefully with option to save data."""
+    global browser_runner
 
     if not browser_runner or not browser_runner.is_running():
         raise HTTPException(status_code=400, detail="No generation running")
 
-    logger.info("Cancelling generation...")
-    browser_runner.cancel()
+    logger.info(f"Requesting cancellation (save_data={request.save_data})...")
+    result = browser_runner.cancel(save_data=request.save_data)
 
-    if generation_task:
-        generation_task.cancel()
-
-    return {'message': 'Generation cancelled'}
+    if request.save_data:
+        return {
+            'message': 'Cancellation requested. Data will be saved.',
+            'saved': True,
+            'output_file': result.get('output_file') if result else None
+        }
+    else:
+        return {
+            'message': 'Cancellation requested. Data discarded.',
+            'saved': False
+        }
 
 
 # ============================================================================
@@ -2350,13 +2425,16 @@ async def simplify_topic(request: SimplifyRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
-        # Re-enable V2 architecture after reload
-        try:
-            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
-            if chatbot_engine.v2_enabled:
-                logger.info("✅ V2 re-enabled after simplify")
-        except Exception as v2_error:
-            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        # Re-enable architecture after reload
+        if USE_V2_ARCHITECTURE:
+            try:
+                chatbot_engine.enable_v2_architecture()
+                if chatbot_engine.v2_enabled:
+                    logger.info("✅ V2 re-enabled after simplify")
+            except Exception as v2_error:
+                logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        else:
+            logger.info("ℹ️  Using V1 sequential search architecture")
 
         # Count unique buckets
         unique_buckets = len(set(pair.get("bucket_id", "") for pair in bucketed_pairs if pair.get("is_bucketed")))
@@ -2430,13 +2508,16 @@ async def merge_qa_pairs(request: MergeRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
-        # Re-enable V2 architecture after reload
-        try:
-            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
-            if chatbot_engine.v2_enabled:
-                logger.info("✅ V2 re-enabled after merge")
-        except Exception as v2_error:
-            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        # Re-enable architecture after reload
+        if USE_V2_ARCHITECTURE:
+            try:
+                chatbot_engine.enable_v2_architecture()
+                if chatbot_engine.v2_enabled:
+                    logger.info("✅ V2 re-enabled after merge")
+            except Exception as v2_error:
+                logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        else:
+            logger.info("ℹ️  Using V1 sequential search architecture")
 
         logger.info(f"✅ Merge complete: {result.get('agent_response')}")
 
@@ -2488,14 +2569,17 @@ async def delete_qa_pairs(request: DeleteRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
-        # Re-enable V2 architecture after reload
-        try:
-            logger.info("Re-enabling V2 parallel-fused architecture...")
-            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
-            if chatbot_engine.v2_enabled:
-                logger.info("✅ V2 architecture re-enabled after delete")
-        except Exception as v2_error:
-            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        # Re-enable architecture after reload
+        if USE_V2_ARCHITECTURE:
+            try:
+                logger.info("Re-enabling V2 parallel-fused architecture...")
+                chatbot_engine.enable_v2_architecture()
+                if chatbot_engine.v2_enabled:
+                    logger.info("✅ V2 architecture re-enabled after delete")
+            except Exception as v2_error:
+                logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        else:
+            logger.info("ℹ️  Using V1 sequential search architecture")
 
         return {
             'message': f'Deleted {len(request.qa_indices)} Q&A pairs',
@@ -2539,14 +2623,17 @@ async def edit_qa_pair(request: EditRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
-        # Re-enable V2 architecture after reload
-        try:
-            logger.info("Re-enabling V2 parallel-fused architecture...")
-            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
-            if chatbot_engine.v2_enabled:
-                logger.info("✅ V2 architecture re-enabled after edit")
-        except Exception as v2_error:
-            logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        # Re-enable architecture after reload
+        if USE_V2_ARCHITECTURE:
+            try:
+                logger.info("Re-enabling V2 parallel-fused architecture...")
+                chatbot_engine.enable_v2_architecture()
+                if chatbot_engine.v2_enabled:
+                    logger.info("✅ V2 architecture re-enabled after edit")
+            except Exception as v2_error:
+                logger.warning(f"⚠️ V2 re-enable failed: {v2_error}")
+        else:
+            logger.info("ℹ️  Using V1 sequential search architecture")
 
         return {
             'message': 'Q&A pair updated successfully',
@@ -2652,16 +2739,19 @@ async def switch_json_file(request: SwitchFileRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
-        # Enable V2 architecture if available
-        try:
-            logger.info("Enabling V2 parallel-fused architecture...")
-            # chatbot_engine.enable_v2_architecture()  # V2 disabled — using V1
-            if chatbot_engine.v2_enabled:
-                logger.info("✅ V2 architecture enabled")
-            else:
-                logger.info("⚠️  V2 architecture not available - using V1")
-        except Exception as v2_error:
-            logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
+        # Enable architecture based on USE_V2_ARCHITECTURE flag
+        if USE_V2_ARCHITECTURE:
+            try:
+                logger.info("Enabling V2 parallel-fused architecture...")
+                chatbot_engine.enable_v2_architecture()
+                if chatbot_engine.v2_enabled:
+                    logger.info("✅ V2 architecture enabled")
+                else:
+                    logger.info("⚠️  V2 architecture not available - using V1")
+            except Exception as v2_error:
+                logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
+        else:
+            logger.info("ℹ️  Using V1 sequential search architecture")
 
         # Count stats
         topics_count = len(data)

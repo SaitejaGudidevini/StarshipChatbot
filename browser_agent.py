@@ -383,6 +383,24 @@ class ParallelProgressTracker:
 # Global instance for the tracker - to be accessed by the SSE endpoint
 progress_tracker: Optional[ParallelProgressTracker] = None
 
+# Global cancellation flag - checked by parallel workers
+_cancellation_requested: bool = False
+
+def request_cancellation():
+    """Request graceful cancellation of parallel processing."""
+    global _cancellation_requested
+    _cancellation_requested = True
+    logger.info("🛑 Cancellation requested - workers will stop after current task")
+
+def reset_cancellation():
+    """Reset cancellation flag for new runs."""
+    global _cancellation_requested
+    _cancellation_requested = False
+
+def is_cancellation_requested() -> bool:
+    """Check if cancellation has been requested."""
+    return _cancellation_requested
+
 
 # Load environment variables
 load_dotenv()
@@ -436,16 +454,21 @@ class QAList(BaseModel):
 def calculate_max_qa_pairs(content: str) -> int:
     """
     Calculate the optimal number of Q&A pairs based on content length.
-    Each meaningful Q&A pair needs ~50 words of source content to be properly grounded.
-    
+
+    Strategy: QUALITY OVER QUANTITY
+    - Generate fewer pairs (3-5) with detailed, comprehensive answers (500-1000 chars each)
+    - Each Q&A pair needs ~200 words (~1000 chars) of source content to generate a rich answer
+
     Args:
         content: The page content text
-    
+
     Returns:
-        Number of Q&A pairs to generate (3-10)
+        Number of Q&A pairs to generate (3-5)
     """
-    word_count = len(content.split())
-    max_pairs = max(3, min(10, word_count // 50))
+    char_count = len(content)
+    # ~1000 chars of content → 1 detailed Q&A pair
+    # 3000 chars → 3 pairs, 5000+ chars → 5 pairs (capped)
+    max_pairs = max(3, min(5, char_count // 1000))
     return max_pairs
 
 # ============================================================================
@@ -875,6 +898,7 @@ class AgentState(TypedDict):
     json_path: str                   # Path to JSON file (fallback if crawler not used)
     deduplication_log: List[Dict]    # NEW: For storing the de-duplication audit trail
     hnsw_stats: Dict                 # NEW: Real-time HNSW deduplication statistics
+    cancellation_requested: bool     # NEW: Flag for graceful shutdown
 
 
 # ============================================================================
@@ -1005,16 +1029,16 @@ CRITICAL RULES FOR CHATBOT Q&A QUALITY:
    ✗ BAD: "What services do they offer?" (who is "they"?)
    ✗ BAD: "Tell me more about this" (about what?)
 
-2. ANSWERS MUST BE "ANSWERABLE" (complete, self-sufficient responses)
-   - Each answer should fully satisfy the question on its own
-   - A user reading ONLY the answer should get a complete, useful response
-   - Include specific facts, details, names, dates, and URLs from the content
-   - Do NOT write answers like "Please visit our website for more info"
+2. ANSWERS MUST BE CONCISE YET DETAILED (200-400 characters, 3-5 sentences)
+   - Keep answers focused and efficient — no filler words or padding
+   - Include specific facts, names, numbers, and key details from the content
+   - Cover the essential information without over-explaining
    - Do NOT write vague answers like "They offer various services"
-   ✓ GOOD: "Syra Health's healthcare consulting includes compliance auditing,
-            workforce optimization, and regulatory guidance for state Medicaid programs.
-            Their team has supported over 15 state agencies since 2019."
-   ✗ BAD: "They offer consulting services in healthcare." (too vague)
+   - Do NOT write lengthy paragraphs — be succinct
+
+   ✓ GOOD: "Syra Health offers healthcare consulting services including compliance auditing, workforce optimization, and regulatory guidance for state Medicaid programs. They have supported over 15 state agencies across the United States since 2019."
+   ✗ BAD (too vague): "They offer consulting services in healthcare."
+   ✗ BAD (too long): Multiple paragraphs with repetitive or excessive detail
 
 3. GROUND EVERY Q&A IN THIS PAGE'S SPECIFIC CONTENT
    - Only use facts, details, and information from the content above
@@ -1029,15 +1053,32 @@ CRITICAL RULES FOR CHATBOT Q&A QUALITY:
 
 5. {"AVOID OVERLAP WITH EXISTING KB — this is the most important rule. Read the existing Q&A pairs above carefully. Generate questions that cover NEW ground, different angles, or deeper details not yet in the KB." if existing_qa_context else "CREATE DIVERSE QUESTIONS covering different aspects of the content."}
 
+6. NEVER REFERENCE THE SOURCE — answers must sound like direct knowledge
+   - The chatbot should present information as knowledge it possesses, NOT as descriptions of webpages
+   - NEVER mention "the page", "the website", "this section", "the text", "the content"
+   - NEVER reference image filenames, URLs structure, or navigation paths
+   - NEVER say "according to the page", "the website shows", "as stated on the site"
+   - NEVER say "information is not provided" or "details are not available in the text"
+   - Write answers as if the chatbot simply KNOWS the information directly
+
+   ✗ BAD: "The Corporate Presence page on Syra Health's website indicates they operate in multiple states."
+   ✗ BAD: "An image titled 'global-presence.jpg' on their website shows their locations."
+   ✗ BAD: "The page does not provide the specific list of states."
+   ✓ GOOD: "Syra Health has corporate presence across multiple states in the United States, providing healthcare solutions to state agencies nationwide."
+
 CONTEXT (for reference only — do NOT force these into questions):
 - Source path: {readable_path}
 - This helps you understand the domain/website structure
 
 ════════════════════════════════════════════════════════════
 
-Generate exactly {num_pairs} Q&A pairs now. Each must be a natural chatbot interaction — 
-a real question a user would ask, with a complete answer they'd be satisfied with.
-{"NOTE: This content is limited, so focus on QUALITY over quantity. Only generate pairs that are well-grounded in the actual content." if num_pairs < 7 else ""}"""
+Generate exactly {num_pairs} Q&A pairs now.
+
+REMEMBER: CONCISE AND SPECIFIC
+- Each answer should be 200-400 characters (3-5 sentences) — detailed but not lengthy
+- Focus on key facts, specific details, and concrete information
+- A user should feel informed after reading without wading through paragraphs
+- Quality means precise and informative, not verbose"""
 
 
 # ============================================================================
@@ -1187,11 +1228,22 @@ async def extract_content_only_parallel(
                 model="meta-llama/llama-4-maverick-17b-128e-instruct"
             )
 
-            task = f"""Navigate to {url} and extract content about '{topic}'.
-IMPORTANT: Stay on this exact page. Do NOT navigate away or search elsewhere.
-Find the section about '{topic}' ON THIS PAGE and extract key information.
-If '{topic}' is a heading, extract content under that heading.
-Be concise and extract only essential information."""
+            task = f"""
+Navigate to {url} and extract content about '{topic}'.
+
+IMPORTANT: Stay on this exact page. Do NOT navigate away to search for '{topic}' elsewhere.
+Find the section or content about '{topic}' ON THIS PAGE and extract:
+
+1. What '{topic}' means in this context
+2. Key details, features, or explanations about '{topic}'
+3. Any relevant links, resources, or references mentioned
+4. Important facts, dates, or contact information if present
+
+If '{topic}' is a section heading on the page, extract the content under that heading.
+Do NOT leave this domain or search for '{topic}' on other websites.
+
+Provide a structured response with the information found.
+"""
 
             agent = Agent(
                 task=task,
@@ -1224,6 +1276,9 @@ Be concise and extract only essential information."""
                 "worker_id": worker_id
             }
 
+        except asyncio.CancelledError:
+            logger.info(f"🛑 [Worker {worker_slot}] Task cancelled for item {worker_id} ({topic})")
+            raise  # Re-raise to let the caller handle it
         except Exception as e:
             logger.error(f"❌ [Worker {worker_slot}] Extraction failed for item {worker_id} ({topic}): {e}")
             success = False
@@ -1288,9 +1343,14 @@ YOUR TASK:
 Generate ONE new Q&A pair that:
 1. Asks about a COMPLETELY DIFFERENT topic/aspect than ALL the existing questions above
 2. Is NOT a rephrase — must have a different INTENT, not just different wording
-3. Focuses on a specific detail, fact, or angle from the page content that no existing question covers
+3. Focuses on a specific detail, fact, or angle from the content that no existing question covers
 4. Is a natural chatbot question a real user would type
-5. Has a complete, self-sufficient answer grounded in the page content
+5. Has a CONCISE yet DETAILED answer (200-400 characters, 3-5 sentences)
+   — Include key facts, specifics, and concrete details
+   — Be informative but not lengthy
+6. NEVER references the source — no mentions of "the page", "the website", "the text", "this section"
+   — Write the answer as if the chatbot simply KNOWS the information directly
+   — Do NOT say "according to the page" or "the website shows" or "information not provided"
 
 IMPORTANT: Read the full list of existing questions above. Your new question must be
 clearly distinct from ALL of them, not just the closest match."""
@@ -1546,18 +1606,43 @@ async def process_batch_two_phase(
         tree_items = all_semantic_paths if all_semantic_paths else items
         await progress_tracker.send_tree_init(tree_items)
 
+    extraction_tasks = []
     try:
+        # Check for cancellation before starting
+        if is_cancellation_requested():
+            logger.info("🛑 Cancellation detected before Phase 1 - returning empty results")
+            return []
+
         semaphore = asyncio.Semaphore(config.num_workers)
 
+        # Create actual asyncio Tasks so we can cancel them if needed
         extraction_tasks = [
-            extract_content_only_parallel(item, i, semaphore, config, tracker=progress_tracker)
+            asyncio.create_task(
+                extract_content_only_parallel(item, i, semaphore, config, tracker=progress_tracker),
+                name=f"extract_{i}"
+            )
             for i, item in enumerate(items)
         ]
 
         extracted_results = []
-        for coro in asyncio.as_completed(extraction_tasks):
-            result = await coro
-            extracted_results.append(result)
+        for task in asyncio.as_completed(extraction_tasks):
+            # Check for cancellation during extraction
+            if is_cancellation_requested():
+                logger.info("🛑 Cancellation detected during Phase 1 - cancelling remaining tasks")
+                # Cancel all pending tasks
+                cancelled_count = 0
+                for t in extraction_tasks:
+                    if not t.done():
+                        t.cancel()
+                        cancelled_count += 1
+                logger.info(f"🛑 Cancelled {cancelled_count} pending extraction tasks")
+                break
+            try:
+                result = await task
+                extracted_results.append(result)
+            except asyncio.CancelledError:
+                logger.debug("Task was cancelled")
+                continue
 
         # Sort to maintain original order
         item_order = {item.get("semantic_path", ""): i for i, item in enumerate(items)}
@@ -1567,9 +1652,18 @@ async def process_batch_two_phase(
         logger.info(f"✅ PHASE 1 complete: {extraction_succeeded}/{len(items)} pages extracted successfully")
 
     finally:
+        # Cancel any remaining tasks on cleanup
+        for t in extraction_tasks:
+            if not t.done():
+                t.cancel()
         if progress_tracker:
             await progress_tracker.finish()
             progress_tracker = None
+
+    # Check for cancellation before Phase 2
+    if is_cancellation_requested():
+        logger.info("🛑 Cancellation detected before Phase 2 - returning extracted results only")
+        return extracted_results
 
     # ═══════════════════════════════════════════════════
     # PHASE 2: SEQUENTIAL CONTEXT-AWARE Q&A GENERATION
@@ -1579,6 +1673,16 @@ async def process_batch_two_phase(
 
     final_results = []
     for i, extracted_item in enumerate(extracted_results):
+        # Check for cancellation during Q&A generation
+        if is_cancellation_requested():
+            logger.info(f"🛑 Cancellation detected at item {i+1}/{len(extracted_results)} - stopping Q&A generation")
+            # Add remaining extracted items without Q&A
+            for remaining_item in extracted_results[i:]:
+                remaining_item["qa_pairs"] = []
+                remaining_item["qa_generation_status"] = "cancelled"
+                final_results.append(remaining_item)
+            break
+
         result = await generate_qa_with_context(
             extracted_item=extracted_item,
             hnsw_index=hnsw_index,
@@ -1674,11 +1778,22 @@ async def extract_single_item_parallel(
 
             # Simplified extraction task for speed
             # IMPORTANT: Tell agent to stay on page and not navigate away
-            task = f"""Navigate to {url} and extract content about '{topic}'.
-IMPORTANT: Stay on this exact page. Do NOT navigate away or search elsewhere.
-Find the section about '{topic}' ON THIS PAGE and extract key information.
-If '{topic}' is a heading, extract content under that heading.
-Be concise and extract only essential information."""
+            task = f"""
+Navigate to {url} and extract content about '{topic}'.
+
+IMPORTANT: Stay on this exact page. Do NOT navigate away to search for '{topic}' elsewhere.
+Find the section or content about '{topic}' ON THIS PAGE and extract:
+
+1. What '{topic}' means in this context
+2. Key details, features, or explanations about '{topic}'
+3. Any relevant links, resources, or references mentioned
+4. Important facts, dates, or contact information if present
+
+If '{topic}' is a section heading on the page, extract the content under that heading.
+Do NOT leave this domain or search for '{topic}' on other websites.
+
+Provide a structured response with the information found.
+"""
 
             # Create agent with reduced steps for speed
             # Let Agent create and manage its own browser session internally

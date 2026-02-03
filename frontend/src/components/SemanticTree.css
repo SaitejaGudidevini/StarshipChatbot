@@ -1,0 +1,99 @@
+/* Container */
+.semantic-tree-container {
+  position: relative;
+}
+
+.semantic-tree-container svg {
+  display: block;
+  cursor: grab;
+}
+
+.semantic-tree-container svg:active {
+  cursor: grabbing;
+}
+
+/* Default node styles */
+.node circle {
+  fill: #94a3b8;
+  stroke: #cbd5e1;
+  stroke-width: 1.5px;
+  transition: all 0.2s ease;
+}
+
+.node text {
+  font: 11px sans-serif;
+  fill: #475569;
+}
+
+.node:hover circle {
+  fill: #64748b;
+  stroke: #475569;
+}
+
+.node:hover text {
+  fill: #1e293b;
+}
+
+/* Selected node - main circle */
+.node-selected {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+  stroke-width: 3px !important;
+}
+
+/* Selected node - pulsing ring */
+.node-selected-ring {
+  fill: none;
+  stroke: #ef4444;
+  stroke-width: 2px;
+  opacity: 0.6;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    r: 12;
+    opacity: 0.8;
+  }
+
+  100% {
+    r: 24;
+    opacity: 0;
+  }
+}
+
+/* Selected node text */
+.text-selected {
+  font-weight: 700 !important;
+  fill: #dc2626 !important;
+  font-size: 13px !important;
+}
+
+/* Links between nodes */
+.link {
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-opacity: 0.6;
+  stroke-width: 1.5px;
+}
+
+/* Internal vs leaf node styling */
+.node--internal circle {
+  fill: #64748b;
+}
+
+.node--leaf circle {
+  fill: #94a3b8;
+}
+
+/* Selected node group styling */
+.node--selected circle:first-of-type {
+  fill: #ef4444;
+  stroke: #dc2626;
+  stroke-width: 3px;
+}
+
+.node--selected text {
+  font-weight: 700;
+  fill: #dc2626;
+}
