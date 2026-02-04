@@ -329,18 +329,25 @@ async def get_tree_data():
     if os.path.exists(tree_filename):
         return FileResponse(tree_filename, media_type='application/json')
     else:
-        # Fallback for older files that may not have `_tree.json`
-        # Let's try to find *any* _tree.json file in the output directory
+        # Fallback: Search for *any* _tree.json file in multiple locations
+        tree_files = []
+
+        # 1. DATA_DIR (Railway volume: /app/data/)
+        if os.path.exists(DATA_DIR):
+            tree_files.extend([os.path.join(DATA_DIR, f) for f in os.listdir(DATA_DIR) if f.endswith('_tree.json')])
+
+        # 2. Local output directory
         output_dir = os.path.join(os.path.dirname(__file__), 'output')
         if os.path.exists(output_dir):
-            tree_files = [f for f in os.listdir(output_dir) if f.endswith('_tree.json')]
-            if tree_files:
-                # Serve the most recent one
-                latest_tree_file = max([os.path.join(output_dir, f) for f in tree_files], key=os.path.getmtime)
-                logger.warning(f"Tree file not found at {tree_filename}. Serving latest available: {latest_tree_file}")
-                return FileResponse(latest_tree_file, media_type='application/json')
+            tree_files.extend([os.path.join(output_dir, f) for f in os.listdir(output_dir) if f.endswith('_tree.json')])
 
-    raise HTTPException(status_code=404, detail=f"Tree file not found at {tree_filename}")
+        if tree_files:
+            # Serve the most recent one
+            latest_tree_file = max(tree_files, key=os.path.getmtime)
+            logger.info(f"Tree file not found at {tree_filename}. Serving latest available: {latest_tree_file}")
+            return FileResponse(latest_tree_file, media_type='application/json')
+
+    raise HTTPException(status_code=404, detail=f"Tree file not found. Searched: {tree_filename}, DATA_DIR, output/")
 
 
 @app.get("/", response_class=HTMLResponse)
