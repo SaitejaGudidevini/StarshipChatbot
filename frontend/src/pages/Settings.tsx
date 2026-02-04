@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { JsonFileList } from '../types';
-import { FileJson, Upload, CheckCircle } from 'lucide-react';
+import { FileJson, Upload, CheckCircle, Trash2 } from 'lucide-react';
 
 export function Settings() {
   const [fileList, setFileList] = useState<JsonFileList | null>(null);
@@ -54,6 +54,18 @@ export function Settings() {
     }
   };
 
+  const deleteFile = async (filename: string) => {
+    if (!window.confirm(`Delete ${filename}? This cannot be undone.`)) return;
+
+    try {
+      await apiClient.post('/api/json-files/delete', { filename });
+      alert('File deleted successfully!');
+      await loadFiles();
+    } catch (err) {
+      alert('Failed to delete file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -95,11 +107,10 @@ export function Settings() {
           {fileList?.files.map((file, idx) => (
             <div
               key={idx}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                file.is_active
+              className={`p-4 rounded-lg border-2 transition-all ${file.is_active
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-slate-200 bg-white hover:border-slate-300'
-              }`}
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -122,12 +133,21 @@ export function Settings() {
                   </div>
                 </div>
                 {!file.is_active && (
-                  <button
-                    onClick={() => switchFile(file.filename)}
-                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
-                  >
-                    Switch to this file
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => switchFile(file.filename)}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+                    >
+                      Switch to this file
+                    </button>
+                    <button
+                      onClick={() => deleteFile(file.filename)}
+                      className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      title="Delete file"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

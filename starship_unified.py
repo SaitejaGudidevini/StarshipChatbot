@@ -2920,6 +2920,63 @@ async def upload_json_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class DeleteFileRequest(BaseModel):
+    """Delete file request"""
+    filename: str
+
+
+@app.post("/api/json-files/delete")
+async def delete_json_file(request: DeleteFileRequest):
+    """Delete a JSON file from DATA_DIR (Railway volume)"""
+    global current_json_file
+
+    try:
+        filename = request.filename
+
+        # Security: prevent path traversal
+        filename = os.path.basename(filename)
+
+        # Prevent deleting currently active file
+        if get_data_path(filename) == current_json_file:
+            raise HTTPException(status_code=400, detail=f"Cannot delete active file '{filename}'. Switch to another file first.")
+
+        # Get full path in DATA_DIR (Railway volume)
+        filepath = get_data_path(filename)
+
+        logger.info(f"🗑️ Delete request for: {filepath}")
+        logger.info(f"   DATA_DIR: {DATA_DIR}")
+
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail=f"File '{filename}' not found in data directory")
+
+        # Delete the JSON file
+        os.remove(filepath)
+        logger.info(f"✅ Deleted: {filepath}")
+
+        # Also delete associated cache files
+        deleted_caches = []
+        cache_patterns = [
+            filepath.replace('.json', '_qa_cache.pkl'),
+            filepath.replace('.json', '_metadata_cache.pkl'),
+        ]
+        for cache_file in cache_patterns:
+            if os.path.exists(cache_file):
+                os.remove(cache_file)
+                deleted_caches.append(os.path.basename(cache_file))
+                logger.info(f"🗑️ Deleted cache: {cache_file}")
+
+        return {
+            'message': f'Successfully deleted {filename}',
+            'filename': filename,
+            'deleted_caches': deleted_caches
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting file: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # CRAWLER FILE MANAGEMENT
 # ============================================================================
