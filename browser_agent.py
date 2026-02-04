@@ -356,6 +356,59 @@ class ParallelProgressTracker:
         """Send a heartbeat event to keep the SSE connection alive."""
         await self._send_event("heartbeat", {})
 
+    async def send_phase_start(self, phase: str, description: str):
+        """Announce the start of a new processing phase.
+
+        Args:
+            phase: Phase identifier (e.g., 'discovery', 'qa_generation')
+            description: Human-readable description
+        """
+        if self._active:
+            event_data = {
+                "type": "phase_start",
+                "phase": phase,
+                "description": description,
+                "timestamp": time.time(),
+            }
+            await self.queue.put(json.dumps(event_data))
+
+    async def send_crawl_progress(self, pages_discovered: int, pages_processed: int,
+                                   current_url: str = "", phase_name: str = ""):
+        """Send progress update during hierarchical crawl (Phase 1: Discovery).
+
+        Args:
+            pages_discovered: Total unique pages/elements discovered so far
+            pages_processed: Pages actually visited and processed
+            current_url: URL currently being crawled
+            phase_name: Current crawl phase (e.g., 'Homepage', 'Headings', 'Links')
+        """
+        if self._active:
+            event_data = {
+                "type": "crawl_progress",
+                "pages_discovered": pages_discovered,
+                "pages_processed": pages_processed,
+                "current_url": current_url,
+                "phase_name": phase_name,
+                "timestamp": time.time(),
+            }
+            await self.queue.put(json.dumps(event_data))
+
+    async def send_phase_complete(self, phase: str, summary: Dict):
+        """Announce completion of a processing phase.
+
+        Args:
+            phase: Phase identifier
+            summary: Summary data (e.g., total pages, time taken)
+        """
+        if self._active:
+            event_data = {
+                "type": "phase_complete",
+                "phase": phase,
+                "summary": summary,
+                "timestamp": time.time(),
+            }
+            await self.queue.put(json.dumps(event_data))
+
     async def finish(self):
         """Signal that the batch is complete and close the tracker."""
         elapsed_time = time.time() - self._start_time
@@ -2222,6 +2275,8 @@ async def crawler_node(state: AgentState) -> AgentState:
     Node: Crawl website using hierarchical crawler
     This is the FIRST node - discovers all semantic elements to process
     """
+    global progress_tracker
+
     start_url = state.get("start_url", "")
     max_depth = state.get("max_depth", 2)
     max_pages = state.get("max_pages", 100)
@@ -2238,13 +2293,40 @@ async def crawler_node(state: AgentState) -> AgentState:
     logger.info(f"📊 Max depth: {max_depth}, Max pages: {max_pages}")
 
     try:
-        # Initialize crawler
+        # Create a progress tracker for the crawl phase
+        # This lets the SSE endpoint stream crawl progress to the frontend
+        progress_tracker = ParallelProgressTracker(
+            total_items=max_pages,  # Estimated
+            num_workers=1,          # Crawl is single-threaded
+            current_batch=1,
+            total_batches=1,
+            overall_completed=0,
+            overall_total=max_pages
+        )
+
+        # Send phase start event
+        await progress_tracker.send_phase_start(
+            "discovery",
+            "🔍 Site Discovery - Building navigation tree..."
+        )
+
+        # Progress callback for the crawler
+        async def crawl_progress_callback(pages_discovered, pages_processed, current_url, phase_name):
+            await progress_tracker.send_crawl_progress(
+                pages_discovered=pages_discovered,
+                pages_processed=pages_processed,
+                current_url=current_url,
+                phase_name=phase_name
+            )
+
+        # Initialize crawler with progress callback
         crawler = HierarchicalWebCrawler(
             start_url=start_url,
             max_depth=max_depth,
             max_pages=max_pages,
             headless=True,
-            timeout=60000  # 60 seconds for slow government sites
+            timeout=60000,  # 60 seconds for slow government sites
+            progress_callback=crawl_progress_callback
         )
 
         # Run hierarchical crawl
@@ -2256,6 +2338,20 @@ async def crawler_node(state: AgentState) -> AgentState:
         logger.info(f"✅ Crawler completed!")
         logger.info(f"📄 Total nodes discovered: {len(crawl_nodes)}")
         logger.info(f"💾 Saved to: {output_path}")
+
+        # Send phase complete event
+        await progress_tracker.send_phase_complete(
+            "discovery",
+            {
+                "pages_discovered": len(crawl_nodes),
+                "pages_processed": len(crawler.processed_urls),
+                "output_path": output_path
+            }
+        )
+
+        # Deactivate the crawl tracker - two_phase_batch will create a new one
+        progress_tracker._active = False
+        progress_tracker = None
 
         # Load tree data for embedding in final output
         tree_data = None

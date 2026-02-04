@@ -2310,26 +2310,78 @@ async def get_generation_status():
 
 @app.post("/api/generate/cancel")
 async def cancel_generation(request: CancelRequest):
-    """Cancel running generation gracefully with option to save data."""
-    global browser_runner
+    """Cancel running generation gracefully with option to save data.
 
-    if not browser_runner or not browser_runner.is_running():
+    Handles cancellation in two phases:
+    - Phase 1 (Discovery): Stops the hierarchical crawler. No data to save.
+    - Phase 2 (Q&A Generation): Stops workers and optionally saves Q&A data.
+    """
+    global browser_runner, generation_task
+
+    # Detect which phase we're in
+    tracker = browser_agent.progress_tracker
+    is_crawl_phase = tracker and tracker._active and tracker.total_items == tracker.overall_total
+    is_qa_phase = browser_runner and browser_runner.is_running()
+    has_task = generation_task and not generation_task.done()
+
+    # Check if anything is running
+    if not is_crawl_phase and not is_qa_phase and not has_task:
         raise HTTPException(status_code=400, detail="No generation running")
 
-    logger.info(f"Requesting cancellation (save_data={request.save_data})...")
-    result = browser_runner.cancel(save_data=request.save_data)
+    result = None
+    phase_cancelled = "unknown"
 
-    if request.save_data:
+    # Phase 1: Cancel crawl/discovery phase
+    if is_crawl_phase and not is_qa_phase:
+        logger.info("📛 Cancelling Phase 1 (Discovery)...")
+        phase_cancelled = "discovery"
+        # Stop the progress tracker
+        if tracker:
+            tracker._active = False
+        # Signal cancellation to browser_agent
+        try:
+            browser_agent.request_cancellation()
+        except Exception as e:
+            logger.warning(f"Could not signal cancellation: {e}")
+        # Cancel the background task
+        if has_task:
+            generation_task.cancel()
         return {
-            'message': 'Cancellation requested. Data will be saved.',
-            'saved': True,
-            'output_file': result.get('output_file') if result else None
-        }
-    else:
-        return {
-            'message': 'Cancellation requested. Data discarded.',
+            'message': 'Discovery phase cancelled.',
+            'phase': 'discovery',
             'saved': False
         }
+
+    # Phase 2: Cancel Q&A generation phase
+    if is_qa_phase:
+        logger.info(f"📛 Cancelling Phase 2 (Q&A Generation), save_data={request.save_data}...")
+        phase_cancelled = "qa_generation"
+        result = browser_runner.cancel(save_data=request.save_data)
+
+        if request.save_data:
+            return {
+                'message': 'Q&A generation cancelled. Data saved.',
+                'phase': 'qa_generation',
+                'saved': True,
+                'output_file': result.get('output_file') if result else None
+            }
+        else:
+            return {
+                'message': 'Q&A generation cancelled. Data discarded.',
+                'phase': 'qa_generation',
+                'saved': False
+            }
+
+    # Fallback: Cancel whatever task is running
+    if has_task:
+        logger.info("📛 Cancelling generation task...")
+        generation_task.cancel()
+        return {
+            'message': 'Generation cancelled.',
+            'saved': False
+        }
+
+    return {'message': 'Cancellation requested.', 'saved': False}
 
 
 # ============================================================================

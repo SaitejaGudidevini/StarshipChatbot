@@ -60,7 +60,8 @@ class HierarchicalWebCrawler:
         max_depth: int = 3,
         max_pages: int = 100,
         headless: bool = True,
-        timeout: int = 60000
+        timeout: int = 60000,
+        progress_callback: Optional[callable] = None
     ):
         self.start_url = self._normalize_url(start_url)
         self.domain = urlparse(self.start_url).netloc
@@ -68,6 +69,7 @@ class HierarchicalWebCrawler:
         self.max_pages = max_pages
         self.headless = headless
         self.timeout = timeout
+        self.progress_callback = progress_callback  # Called with (pages_discovered, pages_processed, current_url, phase)
         
         # Hierarchical tracking structures
         self.heading_queue: Deque[CrawlNode] = deque()
@@ -109,6 +111,18 @@ class HierarchicalWebCrawler:
             ''
         ))
         return normalized
+
+    async def _report_progress(self, pages_discovered: int, pages_processed: int,
+                                current_url: str, phase_name: str):
+        """Report crawl progress via callback if configured."""
+        if self.progress_callback:
+            try:
+                # Callback can be sync or async
+                result = self.progress_callback(pages_discovered, pages_processed, current_url, phase_name)
+                if asyncio.iscoroutine(result):
+                    await result
+            except Exception as e:
+                logger.warning(f"Progress callback error: {e}")
 
     def _register_url(self, url: str, semantic_path: str) -> bool:
         """
@@ -1204,17 +1218,24 @@ class HierarchicalWebCrawler:
 
             # Phase 1: Crawl homepage and discover initial headings/links
             logger.info("\n🚀 PHASE 1: Homepage Discovery")
+            await self._report_progress(1, 0, self.start_url, "Homepage Discovery")
             success = await self._crawl_single_page(root_node)
-            
+
             if not success:
                 logger.error("❌ Failed to crawl homepage. Aborting.")
                 return self.crawl_nodes
-            
+
+            await self._report_progress(len(self.crawl_nodes), 1, self.start_url, "Homepage Complete")
+
             # Phase 2: Process all headings first (depth-first - goes deep on each branch)
             logger.info(f"\n📰 PHASE 2: Processing {len(self.heading_queue)} Headings (Priority)")
             while self.heading_queue and len(self.processed_urls) < self.max_pages:
                 heading_node = self.heading_queue.popleft()
                 if not heading_node.visited:
+                    await self._report_progress(
+                        len(self.crawl_nodes), len(self.processed_urls),
+                        heading_node.original_url, "Processing Headings"
+                    )
                     await self._crawl_single_page(heading_node)
 
             # Phase 3: Process all links (depth-first - goes deep on each branch)
@@ -1222,6 +1243,10 @@ class HierarchicalWebCrawler:
             while self.link_queue and len(self.processed_urls) < self.max_pages:
                 link_node = self.link_queue.popleft()
                 if not link_node.visited:
+                    await self._report_progress(
+                        len(self.crawl_nodes), len(self.processed_urls),
+                        link_node.original_url, "Processing Links"
+                    )
                     await self._crawl_single_page(link_node)
             
             logger.info(f"\n✅ Hierarchical crawling complete!")

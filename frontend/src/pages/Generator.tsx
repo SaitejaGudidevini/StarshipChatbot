@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../api/client';
 import { WorkerState } from '../types';
-import { Zap, Play, Square, AlertCircle, Users } from 'lucide-react';
+import { Zap, Play, Square, AlertCircle, Users, Search, Sparkles, CheckCircle } from 'lucide-react';
 import { useGenerator } from '../context/GeneratorContext';
 import { LiveTreeView } from '../components/LiveTreeView';
 
@@ -72,6 +72,8 @@ export function Generator() {
     workers,
     isParallelMode,
     isConnected,
+    crawlProgress,
+    currentPhase,
     startSSE,
     stopSSE,
   } = useGenerator();
@@ -129,27 +131,46 @@ export function Generator() {
   };
 
   const cancelGeneration = async () => {
-    // Ask user if they want to save the data
-    const saveData = window.confirm(
-      'Do you want to save the processed data before cancelling?\n\n' +
-      'Click OK to save data, or Cancel to discard all data.'
-    );
+    let saveData = false;
+
+    // Only ask about saving data during Q&A generation phase (Phase 2)
+    // During Discovery phase (Phase 1), there's no Q&A data to save
+    if (currentPhase === 'qa_generation') {
+      saveData = window.confirm(
+        'Do you want to save the processed Q&A data before cancelling?\n\n' +
+        'Click OK to save data, or Cancel to discard all data.'
+      );
+    } else if (currentPhase === 'discovery') {
+      // During discovery, just confirm cancellation
+      if (!window.confirm('Cancel site discovery? The crawl will be stopped.')) {
+        return;
+      }
+    }
 
     try {
-      await apiClient.post('/api/generate/cancel', { save_data: saveData });
+      const response = await apiClient.post<{ message: string; phase?: string; saved: boolean }>(
+        '/api/generate/cancel',
+        { save_data: saveData }
+      );
       // Stop SSE connection immediately
       stopSSE();
-      if (saveData) {
+
+      // Show appropriate message based on phase
+      if (response.phase === 'discovery') {
+        alert('Site discovery cancelled.');
+      } else if (response.saved) {
         alert('Generation cancelled. Processed data has been saved.');
       } else {
-        alert('Generation cancelled. Data has been discarded.');
+        alert('Generation cancelled.');
       }
     } catch (err) {
       alert('Failed to cancel: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
-  const isProcessing = progress?.status === 'running' || progress?.status === 'initializing' || progress?.status === 'building_graph';
+  // Show as processing if in discovery phase OR if progress indicates running
+  const isProcessing = currentPhase === 'discovery' || currentPhase === 'qa_generation' ||
+    progress?.status === 'running' || progress?.status === 'initializing' || progress?.status === 'building_graph';
   const percent = progress && progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
 
   return (
@@ -358,119 +379,193 @@ export function Generator() {
         </div>
       </div>
 
-      {progress && (
+      {/* Phase Progress Indicator */}
+      {(currentPhase !== 'idle' || progress) && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-slate-900">Progress</h3>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${progress.status === 'running' || progress.status === 'initializing' || progress.status === 'building_graph'
-                ? 'bg-blue-100 text-blue-700'
-                : progress.status === 'completed'
-                  ? 'bg-green-100 text-green-700'
-                  : progress.status === 'error'
-                    ? 'bg-red-100 text-red-700'
-                    : 'bg-slate-100 text-slate-600'
-                }`}
-            >
-              {progress.status}
-            </span>
+          {/* Phase Steps */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4 w-full">
+              {/* Phase 1: Discovery */}
+              <div className={`flex items-center gap-2 ${currentPhase === 'discovery' ? 'text-blue-600' : currentPhase === 'qa_generation' || currentPhase === 'complete' ? 'text-green-600' : 'text-slate-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentPhase === 'discovery' ? 'bg-blue-100 animate-pulse' : currentPhase === 'qa_generation' || currentPhase === 'complete' ? 'bg-green-100' : 'bg-slate-100'}`}>
+                  {currentPhase === 'discovery' ? (
+                    <Search className="w-4 h-4" />
+                  ) : currentPhase === 'qa_generation' || currentPhase === 'complete' ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <span className="text-xs font-medium">1</span>
+                  )}
+                </div>
+                <span className="text-sm font-medium">Discovery</span>
+              </div>
+
+              {/* Connector */}
+              <div className={`flex-1 h-1 rounded ${currentPhase === 'qa_generation' || currentPhase === 'complete' ? 'bg-green-300' : 'bg-slate-200'}`} />
+
+              {/* Phase 2: Q&A Generation */}
+              <div className={`flex items-center gap-2 ${currentPhase === 'qa_generation' ? 'text-blue-600' : currentPhase === 'complete' ? 'text-green-600' : 'text-slate-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentPhase === 'qa_generation' ? 'bg-blue-100 animate-pulse' : currentPhase === 'complete' ? 'bg-green-100' : 'bg-slate-100'}`}>
+                  {currentPhase === 'qa_generation' ? (
+                    <Sparkles className="w-4 h-4" />
+                  ) : currentPhase === 'complete' ? (
+                    <CheckCircle className="w-4 h-4" />
+                  ) : (
+                    <span className="text-xs font-medium">2</span>
+                  )}
+                </div>
+                <span className="text-sm font-medium">AI Knowledge Builder</span>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-slate-600">
-                  Pages: {progress.current} / {progress.total}
+          {/* Discovery Phase Progress (Phase 1) */}
+          {currentPhase === 'discovery' && crawlProgress && (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="w-5 h-5 text-blue-600 animate-pulse" />
+                <span className="font-semibold text-blue-800">{crawlProgress.description || 'Discovering site structure...'}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mb-3">
+                <div className="bg-white/70 rounded-lg p-3">
+                  <p className="text-xs text-blue-600 font-medium">Pages Discovered</p>
+                  <p className="text-2xl font-bold text-blue-900">{crawlProgress.pagesDiscovered}</p>
+                </div>
+                <div className="bg-white/70 rounded-lg p-3">
+                  <p className="text-xs text-blue-600 font-medium">Pages Processed</p>
+                  <p className="text-2xl font-bold text-blue-900">{crawlProgress.pagesProcessed}</p>
+                </div>
+              </div>
+              {crawlProgress.phaseName && (
+                <div className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded inline-block mb-2">
+                  {crawlProgress.phaseName}
+                </div>
+              )}
+              {crawlProgress.currentUrl && (
+                <div className="text-xs text-blue-600 truncate" title={crawlProgress.currentUrl}>
+                  Current: {crawlProgress.currentUrl}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Q&A Generation Phase Progress (Phase 2) - existing progress display */}
+          {(currentPhase === 'qa_generation' || (progress && currentPhase !== 'discovery')) && (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {currentPhase === 'qa_generation' ? 'AI Knowledge Builder Progress' : 'Progress'}
+                </h3>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${progress?.status === 'running' || progress?.status === 'initializing' || progress?.status === 'building_graph'
+                    ? 'bg-blue-100 text-blue-700'
+                    : progress?.status === 'completed'
+                      ? 'bg-green-100 text-green-700'
+                      : progress?.status === 'error'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-slate-100 text-slate-600'
+                    }`}
+                >
+                  {progress?.status || 'preparing'}
                 </span>
-                <span className="font-medium text-slate-900">{Math.round(percent)}%</span>
               </div>
-              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300 rounded-full"
-                  style={{ width: `${percent}%` }}
-                ></div>
-              </div>
-            </div>
 
-            {/* Batch Progress - Show in parallel mode */}
-            {isParallelMode && parallelProgress?.current_batch && (
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-indigo-700">
-                    Batch {parallelProgress.current_batch} of {parallelProgress.total_batches}
-                  </span>
-                  <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
-                    {parallelProgress.batch_completed || 0} / {parallelProgress.batch_total || 0} items
-                  </span>
-                </div>
-                <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 transition-all duration-300 rounded-full"
-                    style={{ width: `${parallelProgress.batch_total ? (parallelProgress.batch_completed || 0) / parallelProgress.batch_total * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <p className="text-xs text-indigo-600 mt-2">
-                  💾 Checkpoint saved after each batch (50 items) - Safe to stop anytime
-                </p>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-600">Q&A Generated</p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">{progress.qa_generated}</p>
-              </div>
-              <div className="bg-slate-50 rounded-lg p-4">
-                <p className="text-sm text-slate-600">
-                  {isParallelMode ? 'Failed Items' : 'Elapsed Time'}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 mt-1">
-                  {isParallelMode ? (parallelProgress?.failed || 0) : `${progress.elapsed_seconds}s`}
-                </p>
-              </div>
-            </div>
-
-            {/* Parallel Workers Grid */}
-            {isParallelMode && Object.keys(workers).length > 0 && (
-              <div className="border-t border-slate-200 pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-4 h-4 text-slate-500" />
-                  <h4 className="text-sm font-semibold text-slate-700">
-                    Parallel Workers ({Object.keys(workers).length})
-                  </h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {Object.entries(workers).map(([workerId, state]) => (
-                    <WorkerStatusCard key={workerId} workerId={workerId} state={state} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {progress.current_url && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-xs font-medium text-blue-600 mb-1">Current URL</p>
-                <p className="text-sm text-blue-900 break-all">{progress.current_url}</p>
-              </div>
-            )}
-
-            {progress.error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-red-900">Error</p>
-                  <p className="text-sm text-red-700 mt-1">{progress.error}</p>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-slate-600">
+                      Pages: {progress?.current || 0} / {progress?.total || 0}
+                    </span>
+                    <span className="font-medium text-slate-900">{Math.round(percent)}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-300 rounded-full"
+                      style={{ width: `${percent}%` }}
+                    ></div>
+                  </div>
                 </div>
+
+                {/* Batch Progress - Show in parallel mode */}
+                {isParallelMode && parallelProgress?.current_batch && (
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-indigo-700">
+                        Batch {parallelProgress.current_batch} of {parallelProgress.total_batches}
+                      </span>
+                      <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
+                        {parallelProgress.batch_completed || 0} / {parallelProgress.batch_total || 0} items
+                      </span>
+                    </div>
+                    <div className="w-full bg-indigo-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 transition-all duration-300 rounded-full"
+                        style={{ width: `${parallelProgress.batch_total ? (parallelProgress.batch_completed || 0) / parallelProgress.batch_total * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-indigo-600 mt-2">
+                      💾 Checkpoint saved after each batch (50 items) - Safe to stop anytime
+                    </p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600">Q&A Generated</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{progress?.qa_generated || 0}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-600">
+                      {isParallelMode ? 'Failed Items' : 'Elapsed Time'}
+                    </p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">
+                      {isParallelMode ? (parallelProgress?.failed || 0) : `${progress?.elapsed_seconds || 0}s`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Parallel Workers Grid */}
+                {isParallelMode && Object.keys(workers).length > 0 && (
+                  <div className="border-t border-slate-200 pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="w-4 h-4 text-slate-500" />
+                      <h4 className="text-sm font-semibold text-slate-700">
+                        Parallel Workers ({Object.keys(workers).length})
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.entries(workers).map(([workerId, state]) => (
+                        <WorkerStatusCard key={workerId} workerId={workerId} state={state} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {progress?.current_url && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-blue-600 mb-1">Current URL</p>
+                    <p className="text-sm text-blue-900 break-all">{progress.current_url}</p>
+                  </div>
+                )}
+
+                {progress?.error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-900">Error</p>
+                      <p className="text-sm text-red-700 mt-1">{progress.error}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       )}
 
       {/* Live Tree Visualization */}
       <LiveTreeView />
 
-      {!progress && (
+      {!progress && currentPhase === 'idle' && (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
           <Zap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-600">No generation in progress</p>

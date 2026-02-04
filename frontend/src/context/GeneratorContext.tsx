@@ -1,6 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { GenerationProgress, ParallelProgressEvent, WorkerState, LiveTreeNode, NodeState } from '../types';
 
+// Crawl phase progress (Phase 1: Discovery)
+interface CrawlProgress {
+  phase: string;
+  description: string;
+  pagesDiscovered: number;
+  pagesProcessed: number;
+  currentUrl: string;
+  phaseName: string;
+}
+
 interface GeneratorContextType {
   // State
   progress: GenerationProgress | null;
@@ -8,6 +18,10 @@ interface GeneratorContextType {
   workers: Record<string, WorkerState>;
   isParallelMode: boolean;
   isConnected: boolean;
+
+  // Crawl phase state (Phase 1: Discovery)
+  crawlProgress: CrawlProgress | null;
+  currentPhase: 'idle' | 'discovery' | 'qa_generation' | 'complete';
 
   // Live tree state (NEW)
   liveTree: LiveTreeNode | null;
@@ -29,6 +43,10 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
   const [shouldConnect, setShouldConnect] = useState(false);
+
+  // Crawl phase state (Phase 1: Discovery)
+  const [crawlProgress, setCrawlProgress] = useState<CrawlProgress | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<'idle' | 'discovery' | 'qa_generation' | 'complete'>('idle');
 
   // Live tree state (NEW)
   const [liveTree, setLiveTree] = useState<LiveTreeNode | null>(null);
@@ -58,7 +76,67 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
         console.log('[SSE Context] Message received:', event.data);
         const data = JSON.parse(event.data);
 
-        // ─── NEW: Handle tree_init event ───
+        // ─── Handle phase_start event (Discovery phase begins) ───
+        if (data.type === 'phase_start') {
+          console.log('[SSE Context] Phase started:', data.phase, data.description);
+          setCurrentPhase(data.phase === 'discovery' ? 'discovery' : 'qa_generation');
+          setCrawlProgress({
+            phase: data.phase,
+            description: data.description,
+            pagesDiscovered: 0,
+            pagesProcessed: 0,
+            currentUrl: '',
+            phaseName: ''
+          });
+          // Set initial progress for UI
+          setProgress({
+            status: 'initializing',
+            current: 0,
+            total: 0,
+            qa_generated: 0,
+            elapsed_seconds: 0
+          });
+          return;
+        }
+
+        // ─── Handle crawl_progress event (Discovery phase updates) ───
+        if (data.type === 'crawl_progress') {
+          console.log('[SSE Context] Crawl progress:', data.pages_discovered, 'discovered,', data.pages_processed, 'processed');
+          setCrawlProgress(prev => ({
+            ...prev!,
+            pagesDiscovered: data.pages_discovered,
+            pagesProcessed: data.pages_processed,
+            currentUrl: data.current_url || '',
+            phaseName: data.phase_name || ''
+          }));
+          // Update legacy progress for UI compatibility
+          setProgress(prev => ({
+            ...prev!,
+            status: 'building_graph',
+            current: data.pages_processed,
+            total: data.pages_discovered,
+            current_url: data.current_url
+          }));
+          return;
+        }
+
+        // ─── Handle phase_complete event (Discovery phase ends) ───
+        if (data.type === 'phase_complete') {
+          console.log('[SSE Context] Phase complete:', data.phase, data.summary);
+          if (data.phase === 'discovery') {
+            // Discovery done, Q&A generation will start soon
+            setCrawlProgress(prev => ({
+              ...prev!,
+              pagesDiscovered: data.summary?.pages_discovered || prev?.pagesDiscovered || 0,
+              pagesProcessed: data.summary?.pages_processed || prev?.pagesProcessed || 0,
+              phaseName: 'Discovery Complete'
+            }));
+            setCurrentPhase('qa_generation');
+          }
+          return;
+        }
+
+        // ─── Handle tree_init event ───
         if (data.type === 'tree_init') {
           console.log('[SSE Context] Tree init received, nodes:', data.total_nodes);
           setLiveTree(data.tree);
@@ -185,6 +263,8 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
     setIsParallelMode(false);
     setLiveTree(null);
     setNodeStates({});
+    setCrawlProgress(null);
+    setCurrentPhase('idle');
   }, []);
 
   return (
@@ -195,6 +275,8 @@ export function GeneratorProvider({ children }: { children: ReactNode }) {
         workers,
         isParallelMode,
         isConnected,
+        crawlProgress,
+        currentPhase,
         liveTree,
         nodeStates,
         startSSE,
