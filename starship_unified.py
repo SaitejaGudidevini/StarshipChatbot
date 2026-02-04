@@ -2793,8 +2793,20 @@ async def switch_json_file(request: SwitchFileRequest):
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
 
-        # Enable architecture based on USE_V2_ARCHITECTURE flag
-        if USE_V2_ARCHITECTURE:
+        # Enable architecture based on CHATBOT_VERSION or USE_V2_ARCHITECTURE flag
+        chatbot_version = os.getenv('CHATBOT_VERSION', 'v1').lower()
+
+        if chatbot_version == 'v3':
+            try:
+                logger.info("Enabling V3 Gemini embeddings architecture...")
+                chatbot_engine.enable_v3_architecture()
+                if chatbot_engine.v3_enabled:
+                    logger.info("✅ V3 architecture enabled")
+                else:
+                    logger.info("⚠️  V3 architecture not available - falling back")
+            except Exception as v3_error:
+                logger.warning(f"⚠️  V3 architecture failed: {v3_error} - using V1")
+        elif chatbot_version == 'v2' or USE_V2_ARCHITECTURE:
             try:
                 logger.info("Enabling V2 parallel-fused architecture...")
                 chatbot_engine.enable_v2_architecture()
