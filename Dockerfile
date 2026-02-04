@@ -54,14 +54,11 @@ COPY WorkingFiles/hierarchical_crawler.py ./WorkingFiles/
 COPY WorkingFiles/labeling.py ./WorkingFiles/
 
 # Copy essential JSON data files (will be moved to /app/data on first startup)
+# Tree is now embedded in SYRAHEALTHDEMOFINAL.json - no separate tree file needed
 COPY CSU_Progress.json .
 COPY browser_agent_test_output.json .
 COPY MelindaFile.json .
 COPY SYRAHEALTHDEMOFINAL.json .
-
-# Copy tree file for visualization
-RUN mkdir -p output
-COPY output/hierarchical_crawl_www_syrahealth_com_20260202_230901_tree.json ./output/
 
 # Copy pre-built pickle caches if they exist (speeds up first startup)
 # Note: If these don't exist locally, Docker build will skip them (won't fail)
