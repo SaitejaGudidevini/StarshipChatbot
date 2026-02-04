@@ -1072,7 +1072,7 @@ class JSONChatbotEngine:
         # CONFIDENCE THRESHOLD CHECK - Return fallback if score too low
         # Note: RRF scores are typically 0.01-0.1 range (not 0-1 like similarity scores)
         # RRF formula: sum(1/(k+rank)) where k=60, so max ~0.26 for perfect ranks
-        MIN_RRF_THRESHOLD = 0.05  # 5% RRF score threshold (good matches typically > 0.06)
+        MIN_RRF_THRESHOLD = 0.02  # 2% RRF score threshold (lowered: LLM verification is the real gatekeeper)
         if best_candidate.score < MIN_RRF_THRESHOLD:
             logger.warning(f"⚠️ RRF score {best_candidate.score:.4f} below threshold {MIN_RRF_THRESHOLD} - returning fallback")
             fallback = self._fallback_response_v2()
@@ -1305,38 +1305,37 @@ class JSONChatbotEngine:
         logger.info("\n📚 STAGE 3: Topic-Level Search - SKIPPED (disabled)")
 
         # ====================================================================
-        # FINAL: Hybrid Waterfall — Question-matching first, answer-search as fallback
+        # FINAL: Unified Selection — All stages compete equally
         # ====================================================================
-        logger.info("\n🏆 FINAL: Hybrid Waterfall Selection...")
+        logger.info("\n🏆 FINAL: Unified Selection (all stages equal)...")
 
-        # --- Step 1: Pick best from question-matching stages (1 & 2) ---
-        question_candidates = [c for c in all_candidates if c['source'] in ('stage_1_reranker', 'stage_2_rephrase')]
-        question_candidates.sort(key=lambda c: c['score'], reverse=True)
+        # Normalize scores to [0, 1] range so question-based and answer-based compete fairly
+        # Question-based (reranker): scores are 0-1 (quora model probability)
+        # Answer-based (hybrid): scores are 0-1 (semantic/BM25 blend)
+        # Both are already in comparable ranges — just pick the best above threshold
+
+        # Collect all candidates into one pool
+        unified_candidates = []
+        for c in all_candidates:
+            threshold = self.search_engine.RERANKER_THRESHOLD_MINIMAL if c['source'] in ('stage_1_reranker', 'stage_2_rephrase') else self.search_engine.ANSWER_THRESHOLD_MINIMAL
+            if c['score'] >= threshold:
+                unified_candidates.append(c)
+
+        # Add answer-based candidate if it meets threshold
+        if answer_candidate['score'] >= self.search_engine.ANSWER_THRESHOLD_MINIMAL:
+            unified_candidates.append(answer_candidate)
+
+        # Sort all by score — highest wins regardless of stage
+        unified_candidates.sort(key=lambda c: c['score'], reverse=True)
 
         # Log all candidates for diagnostics
-        all_for_log = question_candidates + [answer_candidate]
+        all_for_log = list(all_candidates) + [answer_candidate]
+        all_for_log.sort(key=lambda c: c['score'], reverse=True)
         for i, cand in enumerate(all_for_log):
             marker = "👑" if i == 0 else "  "
             logger.info(f"   {marker} #{i+1}: score={cand['score']:.4f} | {cand['source']} | \"{cand['qa_pair'].question[:60]}...\"")
 
-        best = None
-
-        if question_candidates:
-            q_best = question_candidates[0]
-            q_meets_threshold = q_best['score'] >= self.search_engine.RERANKER_THRESHOLD_MINIMAL
-            if q_meets_threshold:
-                best = q_best
-                logger.info(f"\n✅ Question-matching winner: {q_best['source']} @ {q_best['score']:.4f}")
-
-        # --- Step 2: If question-matching failed, try answer-based search ---
-        if best is None:
-            logger.info("\n⚠️ Question-matching stages below threshold — trying answer-based fallback...")
-            a_meets_threshold = answer_candidate['score'] >= self.search_engine.ANSWER_THRESHOLD_MINIMAL
-            if a_meets_threshold:
-                best = answer_candidate
-                logger.info(f"✅ Answer-search fallback: {answer_candidate['score']:.4f}")
-            else:
-                logger.info(f"❌ Answer-search also below threshold ({answer_candidate['score']:.4f})")
+        best = unified_candidates[0] if unified_candidates else None
 
         if best is not None:
             logger.info(f"\n✅ BEST MATCH: {best['matched_by']} (score: {best['score']:.4f})")
