@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI):
     logger.info("="*60)
 
     # Get JSON file path from environment or use default
-    json_path = os.getenv('JSON_DATA_PATH', 'browser_agent_test_output.json')
+    json_path = os.getenv('JSON_DATA_PATH', 'SYRAHEALTH_HNSW_v2_test.json')
 
     # Check if rephrasing should be enabled
     enable_rephrasing = os.getenv('GROQ_API_KEY') is not None
@@ -77,8 +77,13 @@ async def lifespan(app: FastAPI):
             json_path=json_path,
             enable_rephrasing=enable_rephrasing
         )
+
+        # Enable V3 Architecture: Gemini + Q&A Embeddings
+        logger.info("\n🚀 Enabling V3 Architecture (Gemini + Q&A)...")
+        chatbot_engine.enable_v3_architecture()
+
         logger.info("="*60)
-        logger.info("✅ SERVER READY")
+        logger.info("✅ SERVER READY (V3: Gemini + Q&A)")
         logger.info(f"   Topics: {len(chatbot_engine.dataset.topics)}")
         logger.info(f"   Q&A Pairs: {len(chatbot_engine.dataset.all_qa_pairs)}")
         logger.info("="*60)
@@ -462,22 +467,22 @@ async def chat(request: ChatRequest):
     logger.info(f"Processing chat request: '{request.question}' (session: {request.session_id})")
 
     try:
-        # Process question through engine
-        result = chatbot_engine.process_question(
-            user_question=request.question,
-            session_id=request.session_id
+        # Process question through V3 engine (Gemini + Q&A embeddings)
+        result = chatbot_engine.process_question_v3(
+            user_question=request.question
         )
 
-        # Build response
+        # Build response (V3 returns dict for source_qa)
+        source_qa = result.get('source_qa')
         response = ChatResponse(
             answer=result['answer'],
             matched_by=result['matched_by'],
             confidence=result['confidence'],
-            source_question=result['source_qa'].question if result['source_qa'] else None,
-            source_topic=result['source_qa'].topic if result['source_qa'] else None,
+            source_question=source_qa.get('question') if isinstance(source_qa, dict) else (source_qa.question if source_qa else None),
+            source_topic=source_qa.get('topic') if isinstance(source_qa, dict) else (getattr(source_qa, 'topic', None) if source_qa else None),
             suggested_questions=result.get('suggested_questions'),
             suggested_topics=result.get('suggested_topics'),
-            pipeline_info=result['pipeline_info']
+            pipeline_info=result.get('pipeline_info', {})
         )
 
         logger.info(f"Response: matched_by={response.matched_by}, confidence={response.confidence:.4f}")

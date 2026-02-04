@@ -38,8 +38,8 @@ export function Chat() {
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.type === 'user'
-                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
-                    : 'bg-gradient-to-br from-slate-600 to-slate-700'
+                  ? 'bg-gradient-to-br from-blue-500 to-cyan-500'
+                  : 'bg-gradient-to-br from-slate-600 to-slate-700'
                   }`}
               >
                 {msg.type === 'user' ? (
@@ -51,8 +51,8 @@ export function Chat() {
               <div className={`max-w-2xl ${msg.type === 'user' ? '' : 'w-full'}`}>
                 <div
                   className={`px-4 py-3 rounded-2xl ${msg.type === 'user'
-                      ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white'
-                      : 'bg-white border border-slate-200 text-slate-900'
+                    ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white'
+                    : 'bg-white border border-slate-200 text-slate-900'
                     }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -61,6 +61,16 @@ export function Chat() {
                       <span>Confidence: {(msg.confidence * 100).toFixed(1)}%</span>
                       {msg.topic && <span className="ml-2">• Topic: {msg.topic}</span>}
                       {msg.matched_by && <span className="ml-2">• Stage: {msg.matched_by}</span>}
+                      {msg.url && (
+                        <a
+                          href={msg.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-blue-500 hover:text-blue-700 hover:underline"
+                        >
+                          • Source
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>

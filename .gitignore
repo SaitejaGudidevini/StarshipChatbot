@@ -103,8 +103,48 @@ frontend/node_modules/
 frontend/.vite/
 frontend/.turbo/
 frontend/coverage/
+frontend/dist/
 
-# IMPORTANT: Do NOT ignore frontend/dist/ - it's needed for deployment!
-# The backend serves built frontend from frontend/dist/
-# Exception to the dist/ rule above - we NEED this for deployment
-!frontend/dist/
+# Cache files (generated at runtime)
+*_qa_cache.pkl
+*_metadata_cache.pkl
+*.djcache
+config/cache/
+config/codex.sqlite3*
+
+# Data files (stored in Railway volume, not git)
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!eslint.config.js
+
+# Keep essential JSON for deployment
+!CSU_Progress.json
+!browser_agent_test_output.json
+!SYRAHEALTHDEMOFINAL.json
+
+# HNSW index files
+hnsw_*.bin
+hnsw_*.bin.*
+
+# Test/experiment files
+test_*.json
+test_*.py
+*_test.json
+similarity_report*.csv
+deduplication_log.csv
+rephrased_questions*.csv
+conftest.py
+pytest.ini
+
+# Large crawl outputs
+hierarchical_crawl_*.json
+
+# Keep the production tree file for visualization
+!output/hierarchical_crawl_www_syrahealth_com_20260202_230901_tree.json
+
+# Temp directories
+tenv/
+egg_on_the_conqueror/
+docs/

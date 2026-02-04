@@ -46,6 +46,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         text: response.answer,
         confidence: response.confidence,
         topic: response.source_topic,
+        url: response.source_url,
         matched_by: response.matched_by,
         pipeline_info: response.pipeline_info,
       };

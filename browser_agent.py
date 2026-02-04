@@ -2257,10 +2257,22 @@ async def crawler_node(state: AgentState) -> AgentState:
         logger.info(f"📄 Total nodes discovered: {len(crawl_nodes)}")
         logger.info(f"💾 Saved to: {output_path}")
 
+        # Load tree data for embedding in final output
+        tree_data = None
+        tree_path = output_path.replace('.json', '_tree.json')
+        if os.path.exists(tree_path):
+            try:
+                with open(tree_path, 'r', encoding='utf-8') as f:
+                    tree_data = json.load(f)
+                logger.info(f"🌳 Loaded tree data from: {tree_path}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not load tree data: {e}")
+
         return {
             **state,
             "crawler_output_path": output_path,
             "json_path": output_path,  # Set as json_path for load_json_node
+            "tree_data": tree_data,  # Include tree for final output
             "status": "crawled"
         }
 
@@ -2342,6 +2354,18 @@ def load_json_node(state: AgentState) -> AgentState:
         if current_index > 0:
             logger.info(f"✅ Preserving checkpoint: continuing from item {current_index+1}")
 
+        # Load tree data if not already present (for non-crawler runs)
+        tree_data = state.get("tree_data")
+        if tree_data is None:
+            tree_path = json_path.replace('.json', '_tree.json')
+            if os.path.exists(tree_path):
+                try:
+                    with open(tree_path, 'r', encoding='utf-8') as f:
+                        tree_data = json.load(f)
+                    logger.info(f"🌳 Loaded tree data from: {tree_path}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not load tree data: {e}")
+
         return {
             **state,
             "semantic_paths": semantic_elements,
@@ -2349,7 +2373,8 @@ def load_json_node(state: AgentState) -> AgentState:
             "current_index": current_index,        # Preserve from checkpoint
             "total_items": total_items,
             "status": "loaded",
-            "processed_items": processed_items     # Preserve from checkpoint
+            "processed_items": processed_items,    # Preserve from checkpoint
+            "tree_data": tree_data                 # Include tree for final output
         }
 
     except Exception as e:
@@ -2927,9 +2952,24 @@ def _log_and_save_results(result: dict, output_file: str):
     if result.get('error_message'):
         logger.warning(f"⚠️ Errors: {result['error_message']}")
 
+    # Build output with tree embedded (if available)
+    tree_data = result.get('tree_data')
+    if tree_data:
+        # New format: tree + topics in single file
+        output_data = {
+            "metadata": tree_data.get("metadata", {}),
+            "tree": tree_data.get("tree", {}),
+            "topics": processed_items
+        }
+        logger.info(f"🌳 Tree data embedded in output")
+    else:
+        # Legacy format: just the topics array
+        output_data = processed_items
+        logger.warning(f"⚠️ No tree data available - using legacy format")
+
     # Save output
     with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(result.get('processed_items', []), f, indent=2, ensure_ascii=False)
+        json.dump(output_data, f, indent=2, ensure_ascii=False)
 
     logger.info(f"📁 Results saved to: {output_file}")
 

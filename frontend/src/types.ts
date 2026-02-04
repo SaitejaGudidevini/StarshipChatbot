@@ -53,6 +53,7 @@ export interface ChatMessage {
   text: string;
   confidence?: number;
   topic?: string;
+  url?: string;
   matched_by?: string;
   pipeline_info?: PipelineInfo;
 }
@@ -63,6 +64,7 @@ export interface ChatResponse {
   confidence: number;
   matched_by: string;
   source_topic?: string;
+  source_url?: string;
   source_qa_index?: number;
   pipeline_info?: PipelineInfo;
 }
@@ -75,6 +77,7 @@ export interface Topic {
 
 export interface TopicDetail {
   topic: string;
+  url?: string;
   qa_count: number;
   qa_pairs: QAPair[];
 }

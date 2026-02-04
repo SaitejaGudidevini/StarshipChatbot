@@ -1,3 +1,12 @@
+# Stage 1: Build Frontend
+FROM node:20-slim AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Python Backend
 FROM python:3.11-slim
 
 # Set working directory
@@ -48,15 +57,20 @@ COPY WorkingFiles/labeling.py ./WorkingFiles/
 COPY CSU_Progress.json .
 COPY browser_agent_test_output.json .
 COPY MelindaFile.json .
+COPY SYRAHEALTHDEMOFINAL.json .
+
+# Copy tree file for visualization
+RUN mkdir -p output
+COPY output/hierarchical_crawl_www_syrahealth_com_20260202_230901_tree.json ./output/
 
 # Copy pre-built pickle caches if they exist (speeds up first startup)
 # Note: If these don't exist locally, Docker build will skip them (won't fail)
 # Generate them locally first with: python -c "from json_chatbot_engine import JSONChatbotEngine; JSONChatbotEngine('CSU_Progress.json')"
 COPY *_qa_cache.pkl ./
 
-# Copy frontend build (Bolt.new generated React app)
+# Copy frontend build from Stage 1 (auto-built on push)
 # The backend automatically serves this from frontend/dist/
-COPY frontend/dist ./frontend/dist
+COPY --from=frontend-builder /frontend/dist ./frontend/dist
 
 # Copy environment file if it exists (optional - Railway/Render use dashboard env vars)
 # Using wildcard pattern makes it non-fatal if file doesn't exist
@@ -72,7 +86,8 @@ EXPOSE 8000
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV DATA_DIR=/app/data
-ENV JSON_DATA_PATH=CSU_Progress.json
+ENV JSON_DATA_PATH=SYRAHEALTHDEMOFINAL.json
+ENV CHATBOT_VERSION=v3
 
 # V2 Architecture Notes:
 # - V2 will auto-enable if GROQ_API_KEY is set in Railway environment variables

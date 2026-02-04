@@ -78,6 +78,39 @@ def get_data_path(filename: str) -> str:
     """Get full path to file in data directory"""
     return os.path.join(DATA_DIR, filename)
 
+
+def load_qa_json(json_path: str) -> tuple:
+    """
+    Load Q&A JSON supporting both formats.
+    Returns: (full_data, topics_array)
+    - New format: {"tree": {...}, "topics": [...]} -> (data, data['topics'])
+    - Legacy format: [...] -> (None, data)
+    """
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    if isinstance(data, dict) and 'topics' in data:
+        return data, data['topics']
+    else:
+        return None, data
+
+
+def save_qa_json(json_path: str, full_data: dict, topics: list):
+    """
+    Save Q&A JSON preserving format.
+    - If full_data is not None (new format), update topics in place
+    - If full_data is None (legacy format), save topics array directly
+    """
+    if full_data is not None:
+        full_data['topics'] = topics
+        output = full_data
+    else:
+        output = topics
+
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+
+
 # Global state
 chatbot_engine: Optional[JSONChatbotEngine] = None
 qa_modifier: Optional[Any] = None
@@ -169,7 +202,7 @@ async def lifespan(app: FastAPI):
     logger.info("="*60)
 
     # Copy initial JSON files to data directory if they don't exist (first deploy)
-    initial_files = ['CSU_Progress.json', 'browser_agent_test_output.json']
+    initial_files = ['CSU_Progress.json', 'browser_agent_test_output.json', 'SYRAHEALTHDEMOFINAL.json']
     for filename in initial_files:
         data_file = get_data_path(filename)
         if not os.path.exists(data_file):
@@ -195,19 +228,29 @@ async def lifespan(app: FastAPI):
             json_path=json_path,
             enable_rephrasing=os.getenv('GROQ_API_KEY') is not None
         )
-        logger.info("✅ Chatbot engine ready (V1)")
 
-        # V2 architecture disabled — using V1 sequential search
-        # try:
-        #     logger.info("Enabling V2 parallel-fused architecture...")
-        #     chatbot_engine.enable_v2_architecture()
-        #     if chatbot_engine.v2_enabled:
-        #         logger.info("✅ V2 architecture enabled")
-        #     else:
-        #         logger.info("⚠️  V2 architecture not available - using V1")
-        # except Exception as v2_error:
-        #     logger.warning(f"⚠️  V2 architecture failed: {v2_error} - using V1")
-        logger.info("ℹ️  Using V1 sequential search architecture")
+        # Select architecture: V1 (default), V2 (parallel-fused), V3 (Gemini + Q&A)
+        # Set CHATBOT_VERSION=v1, v2, or v3 in environment
+        chatbot_version = os.getenv('CHATBOT_VERSION', 'v1').lower()
+
+        if chatbot_version == 'v3':
+            logger.info("🚀 Enabling V3 Architecture (Gemini + Q&A)...")
+            chatbot_engine.enable_v3_architecture()
+            if hasattr(chatbot_engine, 'v3_enabled') and chatbot_engine.v3_enabled:
+                logger.info("✅ Chatbot engine ready (V3: Gemini + Q&A)")
+            else:
+                logger.info("⚠️  V3 not available - falling back to V1")
+
+        elif chatbot_version == 'v2':
+            logger.info("🚀 Enabling V2 Architecture (Parallel-Fused)...")
+            chatbot_engine.enable_v2_architecture()
+            if chatbot_engine.v2_enabled:
+                logger.info("✅ Chatbot engine ready (V2: Parallel-Fused)")
+            else:
+                logger.info("⚠️  V2 not available - falling back to V1")
+
+        else:
+            logger.info("✅ Chatbot engine ready (V1: Sequential Search)")
 
     except Exception as e:
         logger.error(f"❌ Failed to initialize chatbot: {e}")
@@ -293,61 +336,56 @@ else:
 @app.get("/api/tree/data")
 async def get_tree_data():
     """
-    Finds and serves the _tree.json file corresponding to the active Q&A JSON file.
+    Serves tree data for the active Q&A JSON file.
+    Priority: 1) Embedded in Q&A JSON, 2) Separate _tree.json file
     """
     global current_json_file
-    
+
     if not current_json_file or not os.path.exists(current_json_file):
         raise HTTPException(status_code=404, detail="Active JSON file not set or not found.")
 
-    # Derive tree filename from the main data filename
-    # e.g., 'data/my_crawl.json' -> 'data/my_crawl_tree.json'
+    # First, check if tree is embedded in the Q&A JSON (new format)
+    try:
+        with open(current_json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if isinstance(data, dict) and 'tree' in data:
+            # New format: tree embedded in Q&A JSON
+            logger.info(f"🌳 Serving embedded tree from: {current_json_file}")
+            return JSONResponse({
+                "metadata": data.get("metadata", {}),
+                "tree": data["tree"]
+            })
+    except Exception as e:
+        logger.warning(f"Could not check for embedded tree: {e}")
+
+    # Fallback: Look for separate tree file
     base_path = os.path.splitext(current_json_file)[0]
     tree_filename = f"{base_path}_tree.json"
 
-    # A more robust check: sometimes the main file is the non-hierarchical one
-    # e.g., 'SYRAHEALTHDEMOFINAL.json' is generated from 'hierarchical_crawl...json'
-    # Let's check for a file in the 'output' dir that might be the source
-    derived_tree_path = None
-    if "_tree.json" not in tree_filename:
-        # Heuristic: Find a file in output that looks like the source
-        output_dir = os.path.join(os.path.dirname(__file__), 'output')
-        if os.path.exists(output_dir):
-            for f in os.listdir(output_dir):
-                if f.endswith('_tree.json'):
-                    # This is a bit of a guess, might need a better mapping mechanism
-                    # For now, let's assume the most recent tree file is the correct one
-                    # if multiple exist.
-                    derived_tree_path = os.path.join(output_dir, f)
-                    # We'll just take the first one we find for now.
-                    # A better implementation would store this mapping when files are generated.
-                    tree_filename = derived_tree_path
-                    break
-    
-    logger.info(f"Attempting to serve tree file: {tree_filename}")
-
     if os.path.exists(tree_filename):
+        logger.info(f"🌳 Serving separate tree file: {tree_filename}")
         return FileResponse(tree_filename, media_type='application/json')
-    else:
-        # Fallback: Search for *any* _tree.json file in multiple locations
-        tree_files = []
 
-        # 1. DATA_DIR (Railway volume: /app/data/)
-        if os.path.exists(DATA_DIR):
-            tree_files.extend([os.path.join(DATA_DIR, f) for f in os.listdir(DATA_DIR) if f.endswith('_tree.json')])
+    # Fallback: Search for *any* _tree.json file in multiple locations
+    tree_files = []
 
-        # 2. Local output directory
-        output_dir = os.path.join(os.path.dirname(__file__), 'output')
-        if os.path.exists(output_dir):
-            tree_files.extend([os.path.join(output_dir, f) for f in os.listdir(output_dir) if f.endswith('_tree.json')])
+    # 1. DATA_DIR (Railway volume: /app/data/)
+    if os.path.exists(DATA_DIR):
+        tree_files.extend([os.path.join(DATA_DIR, f) for f in os.listdir(DATA_DIR) if f.endswith('_tree.json')])
 
-        if tree_files:
-            # Serve the most recent one
-            latest_tree_file = max(tree_files, key=os.path.getmtime)
-            logger.info(f"Tree file not found at {tree_filename}. Serving latest available: {latest_tree_file}")
-            return FileResponse(latest_tree_file, media_type='application/json')
+    # 2. Local output directory
+    output_dir = os.path.join(os.path.dirname(__file__), 'output')
+    if os.path.exists(output_dir):
+        tree_files.extend([os.path.join(output_dir, f) for f in os.listdir(output_dir) if f.endswith('_tree.json')])
 
-    raise HTTPException(status_code=404, detail=f"Tree file not found. Searched: {tree_filename}, DATA_DIR, output/")
+    if tree_files:
+        # Serve the most recent one
+        latest_tree_file = max(tree_files, key=os.path.getmtime)
+        logger.info(f"🌳 Serving fallback tree: {latest_tree_file}")
+        return FileResponse(latest_tree_file, media_type='application/json')
+
+    raise HTTPException(status_code=404, detail=f"Tree not found. Checked: embedded in {current_json_file}, {tree_filename}, DATA_DIR, output/")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -2300,13 +2338,15 @@ async def cancel_generation(request: CancelRequest):
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
-    """Process chat question and return answer (uses V2 if enabled, otherwise V1)"""
+    """Process chat question and return answer (V3 > V2 > V1 based on what's enabled)"""
     if not chatbot_engine:
         raise HTTPException(status_code=500, detail="Chatbot not initialized")
 
     try:
-        # Use V2 if enabled, otherwise fallback to V1
-        if chatbot_engine.v2_enabled:
+        # Use V3 if enabled, then V2, then V1
+        if hasattr(chatbot_engine, 'v3_enabled') and chatbot_engine.v3_enabled:
+            result = chatbot_engine.process_question_v3(request.question)
+        elif hasattr(chatbot_engine, 'v2_enabled') and chatbot_engine.v2_enabled:
             result = chatbot_engine.process_question_v2(request.question)
         else:
             result = chatbot_engine.process_question(
@@ -2314,12 +2354,25 @@ async def chat(request: ChatRequest):
                 session_id=request.session_id
             )
 
+        # Handle source_qa being either dict or object
+        source_qa = result.get('source_qa')
+        if isinstance(source_qa, dict):
+            source_question = source_qa.get('question')
+            source_topic = source_qa.get('topic')
+        elif source_qa:
+            source_question = source_qa.question
+            source_topic = getattr(source_qa, 'topic', None)
+        else:
+            source_question = None
+            source_topic = None
+
         return {
             'answer': result['answer'],
             'matched_by': result['matched_by'],
             'confidence': result['confidence'],
-            'source_question': result['source_qa'].question if result.get('source_qa') else None,
-            'source_topic': result.get('source_topic') or (result['source_qa'].topic if result.get('source_qa') else None),
+            'source_question': source_question,
+            'source_topic': result.get('source_topic') or source_topic,
+            'source_url': result.get('source_url'),
             'suggested_questions': result.get('suggested_questions'),
             'pipeline_info': result.get('pipeline_info', {})
         }
@@ -2396,16 +2449,14 @@ async def simplify_topic(request: SimplifyRequest):
         )
 
     try:
-        # Load current JSON
+        # Load current JSON (supports both new and legacy format)
         json_path = current_json_file
+        full_data, topics = load_qa_json(json_path)
 
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        if request.topic_index < 0 or request.topic_index >= len(data):
+        if request.topic_index < 0 or request.topic_index >= len(topics):
             raise HTTPException(status_code=404, detail="Topic not found")
 
-        topic = data[request.topic_index]
+        topic = topics[request.topic_index]
         topic_name = topic.get('topic', 'Unknown Topic')
         qa_pairs = topic.get('qa_pairs', [])
 
@@ -2421,9 +2472,8 @@ async def simplify_topic(request: SimplifyRequest):
         topic['qa_pairs'] = bucketed_pairs
         topic['qa_count'] = len(bucketed_pairs)
 
-        # Save back to JSON
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        # Save back to JSON (preserves tree if present)
+        save_qa_json(json_path, full_data, topics)
 
         # Reload chatbot engine
         global chatbot_engine
@@ -2472,16 +2522,14 @@ async def merge_qa_pairs(request: MergeRequest):
         raise HTTPException(status_code=400, detail="Need at least 2 Q&A pairs to merge")
 
     try:
-        # Load current JSON
+        # Load current JSON (supports both new and legacy format)
         json_path = current_json_file
+        full_data, topics = load_qa_json(json_path)
 
-        with open(json_path, 'r', encoding='utf-8') as f:
-            all_data = json.load(f)
-
-        if request.topic_index < 0 or request.topic_index >= len(all_data):
+        if request.topic_index < 0 or request.topic_index >= len(topics):
             raise HTTPException(status_code=404, detail="Topic not found")
 
-        topic = all_data[request.topic_index]
+        topic = topics[request.topic_index]
         topic_name = topic.get('topic', 'Unknown Topic')
         qa_pairs = topic.get('qa_pairs', [])
 
@@ -2496,17 +2544,16 @@ async def merge_qa_pairs(request: MergeRequest):
         result = await qa_modifier.merge_qa_pairs(
             topic_index=request.topic_index,
             selected_qa_indices=request.qa_indices,
-            all_data=all_data,
+            all_data=topics,
             user_request=request.user_request
         )
 
         if result.get('error'):
             raise HTTPException(status_code=500, detail=result['error'])
 
-        # Save the modified data
-        modified_data = result.get('modified_data', all_data)
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(modified_data, f, indent=2, ensure_ascii=False)
+        # Save the modified data (preserves tree if present)
+        modified_topics = result.get('modified_data', topics)
+        save_qa_json(json_path, full_data, modified_topics)
 
         # Reload chatbot engine
         global chatbot_engine
@@ -2533,7 +2580,7 @@ async def merge_qa_pairs(request: MergeRequest):
             'topic_index': request.topic_index,
             'qa_indices': request.qa_indices,
             'merged_count': len(request.qa_indices),
-            'new_total': len(modified_data[request.topic_index].get('qa_pairs', []))
+            'new_total': len(modified_topics[request.topic_index].get('qa_pairs', []))
         }
     except HTTPException:
         raise
@@ -2546,16 +2593,14 @@ async def merge_qa_pairs(request: MergeRequest):
 async def delete_qa_pairs(request: DeleteRequest):
     """Delete Q&A pairs from a topic"""
     try:
-        # Load current JSON
+        # Load current JSON (supports both new and legacy format)
         json_path = current_json_file
+        full_data, topics = load_qa_json(json_path)
 
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        if request.topic_index < 0 or request.topic_index >= len(data):
+        if request.topic_index < 0 or request.topic_index >= len(topics):
             raise HTTPException(status_code=404, detail="Topic not found")
 
-        topic = data[request.topic_index]
+        topic = topics[request.topic_index]
 
         # Delete specified Q&A pairs
         qa_pairs = topic.get('qa_pairs', [])
@@ -2565,9 +2610,8 @@ async def delete_qa_pairs(request: DeleteRequest):
             if 0 <= idx < len(qa_pairs):
                 qa_pairs.pop(idx)
 
-        # Save back
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        # Save back (preserves tree if present)
+        save_qa_json(json_path, full_data, topics)
 
         # Reload chatbot engine
         global chatbot_engine
@@ -2601,15 +2645,14 @@ async def delete_qa_pairs(request: DeleteRequest):
 async def edit_qa_pair(request: EditRequest):
     """Edit a single Q&A pair"""
     try:
+        # Load current JSON (supports both new and legacy format)
         json_path = current_json_file
+        full_data, topics = load_qa_json(json_path)
 
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        if request.topic_index < 0 or request.topic_index >= len(data):
+        if request.topic_index < 0 or request.topic_index >= len(topics):
             raise HTTPException(status_code=404, detail="Topic not found")
 
-        topic = data[request.topic_index]
+        topic = topics[request.topic_index]
         qa_pairs = topic.get('qa_pairs', [])
 
         if request.qa_index < 0 or request.qa_index >= len(qa_pairs):
@@ -2619,9 +2662,8 @@ async def edit_qa_pair(request: EditRequest):
         qa_pairs[request.qa_index]['question'] = request.new_question
         qa_pairs[request.qa_index]['answer'] = request.new_answer
 
-        # Save
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        # Save (preserves tree if present)
+        save_qa_json(json_path, full_data, topics)
 
         # Reload chatbot
         global chatbot_engine
@@ -2685,13 +2727,16 @@ async def list_json_files():
                 with open(filepath, 'r', encoding='utf-8') as f:
                     data = json.load(f)
 
-                # Count topics and Q&A pairs
-                if isinstance(data, list):
-                    topics_count = len(data)
-                    qa_count = sum(len(topic.get('qa_pairs', [])) for topic in data if isinstance(topic, dict))
+                # Count topics and Q&A pairs (supports both formats)
+                if isinstance(data, dict) and 'topics' in data:
+                    topics_list = data['topics']
+                elif isinstance(data, list):
+                    topics_list = data
                 else:
-                    topics_count = 0
-                    qa_count = 0
+                    topics_list = []
+
+                topics_count = len(topics_list)
+                qa_count = sum(len(topic.get('qa_pairs', [])) for topic in topics_list if isinstance(topic, dict))
 
                 # Compare basename for is_active
                 file_info.append({
@@ -2728,12 +2773,14 @@ async def switch_json_file(request: SwitchFileRequest):
         if not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail=f"File '{filename}' not found in data directory")
 
-        # Validate it's a valid JSON file with Q&A data
+        # Validate it's a valid JSON file with Q&A data (supports both formats)
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        if not isinstance(data, list):
-            raise HTTPException(status_code=400, detail="Invalid JSON format: expected array of topics")
+        # Check for valid format: either array or object with 'topics' key
+        is_valid = isinstance(data, list) or (isinstance(data, dict) and 'topics' in data)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail="Invalid JSON format: expected array of topics or object with 'topics' key")
 
         logger.info(f"Switching from '{os.path.basename(current_json_file)}' to '{filename}'")
 
@@ -2824,19 +2871,25 @@ async def upload_json_file(file: UploadFile = File(...)):
             logger.error(f"❌ UTF-8 decode error")
             raise HTTPException(status_code=400, detail="File must be UTF-8 encoded")
 
-        # Validate structure (must be array of topics)
-        if not isinstance(data, list):
-            logger.error(f"❌ Invalid structure: data is {type(data).__name__}, not list")
-            raise HTTPException(status_code=400, detail="JSON must be an array of topics")
+        # Validate structure (supports both new and legacy format)
+        if isinstance(data, dict) and 'topics' in data:
+            topics_list = data['topics']
+            logger.info(f"📦 New format detected (tree embedded)")
+        elif isinstance(data, list):
+            topics_list = data
+            logger.info(f"📦 Legacy format detected (array)")
+        else:
+            logger.error(f"❌ Invalid structure: data is {type(data).__name__}")
+            raise HTTPException(status_code=400, detail="JSON must be an array of topics or object with 'topics' key")
 
-        if len(data) == 0:
-            logger.error(f"❌ Empty array")
-            raise HTTPException(status_code=400, detail="JSON file cannot be empty")
+        if len(topics_list) == 0:
+            logger.error(f"❌ Empty topics array")
+            raise HTTPException(status_code=400, detail="JSON file cannot have empty topics")
 
-        logger.info(f"📊 Found {len(data)} topics in uploaded file")
+        logger.info(f"📊 Found {len(topics_list)} topics in uploaded file")
 
         # Validate each topic has required fields
-        for idx, topic in enumerate(data):
+        for idx, topic in enumerate(topics_list):
             if not isinstance(topic, dict):
                 raise HTTPException(status_code=400, detail=f"Topic at index {idx} must be an object")
             if 'qa_pairs' not in topic:

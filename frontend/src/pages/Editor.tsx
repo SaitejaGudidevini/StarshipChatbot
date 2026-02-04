@@ -367,6 +367,18 @@ export function Editor() {
 
                     </p>
 
+                    {selectedTopic.url && (
+                      <a
+                        href={selectedTopic.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-500 hover:text-blue-700 hover:underline mt-1 block truncate max-w-md"
+                        title={selectedTopic.url}
+                      >
+                        {selectedTopic.url}
+                      </a>
+                    )}
+
                   </div>
 
                   <button

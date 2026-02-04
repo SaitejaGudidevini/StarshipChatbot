@@ -742,41 +742,48 @@ class HierarchicalWebCrawler:
             # Execute JS to analyze the DOM structure and group links under topics
             # This matches the logic verified in tree_scraper_demo.py
             page_structure = await page.evaluate('''() => {
-                // FIRST: Remove Footer and Header elements using Semantic HTML & ARIA Roles
-                
-                // 1. Semantic Tags (The "HTML Perspective")
+                const headings = [];
+                const links = [];
+                const processedLinks = new Set();
+
+                // STEP 1: Collect Links BEFORE removing nav/header/footer
+                // Navigation menus contain links to all major sections of the site
+                const linkElements = document.querySelectorAll('a[href]');
+                linkElements.forEach(el => {
+                    if (processedLinks.has(el.href)) return;
+                    if (el.innerText.match(/Skip to|Menu|Search|Login/i)) return;
+
+                    const text = el.innerText.trim();
+                    if (text && text.length > 2) {
+                        links.push({
+                            text: text,
+                            url: el.href,
+                            is_topic: false
+                        });
+                        processedLinks.add(el.href);
+                    }
+                });
+
+                // STEP 2: Remove nav/header/footer so headings stay clean
                 const semanticSelectors = [
-                    'header',       // <header> tag
-                    'footer',       // <footer> tag
-                    'nav',          // <nav> tag
-                    '[role="banner"]',      // ARIA role for header
-                    '[role="contentinfo"]', // ARIA role for footer
-                    '[role="navigation"]'   // ARIA role for nav
+                    'header', 'footer', 'nav',
+                    '[role="banner"]', '[role="contentinfo"]', '[role="navigation"]'
                 ];
-                
                 semanticSelectors.forEach(selector => {
                     document.querySelectorAll(selector).forEach(el => el.remove());
                 });
 
-                // 2. Fallback: Common structural classes (Only if semantic tags missed them)
-                // We keep these as a backup because not all sites use semantic HTML
                 const fallbackSelectors = [
                     '.site-footer', '.global-footer', '#footer',
                     '.site-header', '.global-header', '#header',
-                    // Utility links that often live outside headers
-                    '.skip-link', '.skip-to-content', '#skip-to-content', 
-                    '.language-picker', '.utility-nav', '.usa-banner' // Common on gov sites
+                    '.skip-link', '.skip-to-content', '#skip-to-content',
+                    '.language-picker', '.utility-nav', '.usa-banner'
                 ];
                 fallbackSelectors.forEach(selector => {
                     document.querySelectorAll(selector).forEach(el => el.remove());
                 });
 
-                const headings = [];
-                const links = [];
-                const processedLinks = new Set();
-                
-                // 1. Collect Headings (LEAVES)
-                // We strictly treat H1-H6 as content leaves on the current page
+                // STEP 3: Collect Headings from cleaned DOM (no nav/footer noise)
                 const headingElements = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
                 headingElements.forEach(el => {
                     const text = el.innerText.trim();
@@ -788,27 +795,6 @@ class HierarchicalWebCrawler:
                     }
                 });
 
-                // 2. Collect Links (BRANCHES)
-                // We strictly treat Links as navigation to new sub-trees
-                const linkElements = document.querySelectorAll('a[href]');
-                linkElements.forEach(el => {
-                    // Skip if already processed
-                    if (processedLinks.has(el.href)) return;
-                    
-                    // Skip common non-content links
-                    if (el.innerText.match(/Skip to|Menu|Search|Login/i)) return;
-
-                    const text = el.innerText.trim();
-                    if (text && text.length > 2) {
-                        links.push({
-                            text: text,
-                            url: el.href,
-                            is_topic: false // Links are always branches now
-                        });
-                        processedLinks.add(el.href);
-                    }
-                });
-                
                 return { headings, links };
             }''')
 
@@ -820,29 +806,57 @@ class HierarchicalWebCrawler:
                 semantic_path = f"{current_semantic_path}/{clean_text}"
                 discovered_headings.append((h['text'], semantic_path))
 
-            # Process Links (BRANCHES)
+            # Process Links (BRANCHES) - Two-pass approach for collision detection
+            # Pass 1: Build initial paths and count collisions
+            link_candidates = []
+            path_counts = {}
+
             for l in page_structure['links']:
                 try:
                     normalized_url = self._normalize_url(l['url'])
-                    
+
                     # Check domain
                     if not self._is_same_domain(normalized_url):
                         continue
-                        
+
                     # Skip if already processed (global check)
                     if normalized_url in self.processed_urls:
                         continue
 
                     clean_text = self.labeler._clean_text_natural(l['text'])
-                    # Double slash // denotes navigation to new page
-                    # Use current_semantic_path as base
                     semantic_path = f"{current_semantic_path}//{clean_text}"
-                    
-                    discovered_links.append((l['text'], l['url'], semantic_path))
-                    
+
+                    # Track collision counts
+                    path_counts[semantic_path] = path_counts.get(semantic_path, 0) + 1
+
+                    # Store candidate with both text-based and URL-based options
+                    url_slug = urlparse(normalized_url).path.strip('/').split('/')[-1]
+                    url_based_text = self.labeler._clean_text_natural(url_slug.replace('-', ' '))
+
+                    link_candidates.append({
+                        'url': l['url'],
+                        'normalized_url': normalized_url,
+                        'text_based_path': semantic_path,
+                        'text_based_label': clean_text,
+                        'url_based_label': url_based_text
+                    })
+
                 except Exception as e:
                     logger.warning(f"Error processing link {l}: {e}")
                     continue
+
+            # Pass 2: Use URL slug for any path that has collisions
+            for candidate in link_candidates:
+                if path_counts[candidate['text_based_path']] > 1:
+                    # Collision detected - use URL slug instead
+                    label = candidate['url_based_label']
+                    semantic_path = f"{current_semantic_path}//{label}"
+                else:
+                    # No collision - use original text
+                    label = candidate['text_based_label']
+                    semantic_path = candidate['text_based_path']
+
+                discovered_links.append((label, candidate['url'], semantic_path))
 
         except Exception as e:
             logger.error(f"Error in content-aware discovery: {e}")
@@ -1211,6 +1225,10 @@ class HierarchicalWebCrawler:
                     await self._crawl_single_page(link_node)
             
             logger.info(f"\n✅ Hierarchical crawling complete!")
+
+            # Post-crawl: Relabel semantic paths using actual page headings
+            self._relabel_semantic_paths()
+
             self._print_crawl_summary()
             
         finally:
@@ -1240,7 +1258,86 @@ class HierarchicalWebCrawler:
         # Replace multiple spaces with single space
         cleaned = re.sub(r'\s+', ' ', cleaned)
         return cleaned.strip()
-    
+
+    def _relabel_semantic_paths(self):
+        """
+        Post-crawl relabeling: Replace URL slugs with actual page H1 headings.
+
+        This runs after the crawl is complete. For each visited page, we have the
+        actual H1 heading stored in page_primary_heading. We use this to build
+        more descriptive semantic paths.
+
+        The relabeling preserves the hierarchy by rebuilding paths from root to leaf.
+        """
+        logger.info("🏷️  Starting post-crawl semantic path relabeling...")
+
+        # Step 1: Build URL → heading map from visited pages
+        url_to_heading = {}
+        for node in self.crawl_nodes.values():
+            if node.visited and node.page_primary_heading:
+                clean_heading = self.labeler._clean_text_natural(node.page_primary_heading)
+                if clean_heading and len(clean_heading) > 2:
+                    url_to_heading[node.original_url] = clean_heading
+
+        logger.info(f"   Built heading map for {len(url_to_heading)} visited pages")
+
+        # Step 2: Build old_path → new_path mapping
+        path_mapping = {}  # old_semantic_path → new_semantic_path
+
+        # Sort nodes by depth to process parents before children
+        sorted_nodes = sorted(self.crawl_nodes.values(), key=lambda n: n.depth)
+
+        for node in sorted_nodes:
+            old_path = node.semantic_path
+
+            # Get the label for this node
+            if node.original_url in url_to_heading:
+                # Use actual heading from visited page
+                new_label = url_to_heading[node.original_url]
+            else:
+                # Keep existing label (either original text or URL slug)
+                new_label = node.text if node.text else old_path.split('//')[-1].split('/')[-1]
+
+            # Rebuild path using parent's new path (if parent was relabeled)
+            if node.parent_url and node.depth > 0:
+                # Find parent node
+                parent_node = None
+                for n in self.crawl_nodes.values():
+                    if n.original_url == node.parent_url and n.depth == node.depth - 1:
+                        parent_node = n
+                        break
+
+                if parent_node and parent_node.semantic_path in path_mapping:
+                    parent_new_path = path_mapping[parent_node.semantic_path]
+                else:
+                    parent_new_path = parent_node.semantic_path if parent_node else f"https://{self.domain}/Home"
+
+                # Determine separator: / for headings, // for links
+                separator = '//' if node.source_type == 'link' else '/'
+                new_path = f"{parent_new_path}{separator}{new_label}"
+            else:
+                # Root node - keep as is
+                new_path = old_path
+
+            path_mapping[old_path] = new_path
+            node.semantic_path = new_path
+
+            # Also update the text field if we found a better heading
+            if node.original_url in url_to_heading:
+                node.text = url_to_heading[node.original_url]
+
+        # Step 3: Rebuild crawl_nodes dict with new keys
+        new_crawl_nodes = {}
+        for old_path, new_path in path_mapping.items():
+            if old_path in self.crawl_nodes:
+                node = self.crawl_nodes[old_path]
+                new_crawl_nodes[new_path] = node
+
+        self.crawl_nodes = new_crawl_nodes
+
+        relabeled_count = sum(1 for old, new in path_mapping.items() if old != new)
+        logger.info(f"✅ Relabeled {relabeled_count} semantic paths using actual page headings")
+
     def save_hierarchical_results(self, filename: str = None) -> str:
         """Save hierarchical crawl results to JSON file with individual element entries"""
         if filename is None:
@@ -1461,9 +1558,9 @@ class HierarchicalWebCrawler:
 async def main():
     """Example usage of hierarchical crawler"""
     crawler = HierarchicalWebCrawler(
-        start_url="https://pytorch.org",
+        start_url="https://www.syrahealth.com/",
         max_depth=10,
-        max_pages=20,  # Only crawl homepage
+        max_pages=500,  # Only crawl homepage
         headless=True
     )
     
