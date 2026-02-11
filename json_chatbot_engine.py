@@ -1185,26 +1185,86 @@ class JSONChatbotEngine:
         self.v3_urls = [topic_urls.get(qa.topic, '') for qa in all_qa]
 
         # Cache file - use /app/data on Railway, local config/cache otherwise
-        data_hash = hashlib.md5(f"{len(all_qa)}_{self.v3_questions[0][:50]}".encode()).hexdigest()[:12]
+        json_basename = os.path.splitext(os.path.basename(self.json_path))[0]
         if os.path.exists('/app/data'):
             cache_dir = '/app/data/cache'
         else:
             cache_dir = os.path.join(os.path.dirname(self.json_path), 'config', 'cache')
         os.makedirs(cache_dir, exist_ok=True)
-        cache_file = os.path.join(cache_dir, f'gemini_v3_{data_hash}.pkl')
+        cache_file = os.path.join(cache_dir, f'gemini_v3_{json_basename}.pkl')
 
-        # Try load from cache
+        # Compute MD5 hashes for current Q+A pairs (for incremental updates)
+        current_hashes = []
+        for qa in all_qa:
+            combined = f"{qa.question} {qa.answer}"[:2000]
+            current_hashes.append(hashlib.md5(combined.encode('utf-8')).hexdigest())
+
+        # Try load from cache with incremental update
         if os.path.exists(cache_file):
             try:
                 with open(cache_file, 'rb') as f:
-                    self.v3_embeddings = pickle.load(f)
-                logger.info(f"✅ Loaded cached Gemini embeddings ({len(self.v3_embeddings)} Q+As)")
-                self.v3_enabled = True
-                return
-            except Exception as e:
-                logger.warning(f"Cache load failed: {e}")
+                    cached = pickle.load(f)
 
-        # Compute embeddings
+                # Support new format (dict with hashes) and legacy format (list only)
+                if isinstance(cached, dict) and 'hashes' in cached:
+                    cached_hashes = cached['hashes']
+                    cached_embeddings = cached['embeddings']
+                else:
+                    logger.warning("⚠️  Legacy V3 cache format. Performing full re-encode...")
+                    cached_hashes = []
+                    cached_embeddings = []
+
+                # Build lookup: hash -> embedding
+                hash_to_emb = {h: emb for h, emb in zip(cached_hashes, cached_embeddings)}
+
+                # Incremental update: reuse matching, re-embed changed
+                self.v3_embeddings = []
+                indices_to_encode = []
+                texts_to_encode = []
+                reused = 0
+
+                for i, h in enumerate(current_hashes):
+                    if h in hash_to_emb:
+                        self.v3_embeddings.append(hash_to_emb[h])
+                        reused += 1
+                    else:
+                        self.v3_embeddings.append(None)  # placeholder
+                        combined = f"{all_qa[i].question} {all_qa[i].answer}"[:2000]
+                        indices_to_encode.append(i)
+                        texts_to_encode.append(combined)
+
+                if not texts_to_encode:
+                    logger.info(f"✅ Loaded cached Gemini embeddings ({reused} Q+As, 0 changes)")
+                    self.v3_enabled = True
+                    return
+
+                logger.info(f"🔄 Incremental V3 update: {len(texts_to_encode)} new/changed, {reused} reused")
+
+                for idx, text in zip(indices_to_encode, texts_to_encode):
+                    try:
+                        result = genai.embed_content(
+                            model="models/gemini-embedding-001",
+                            content=text,
+                            task_type="retrieval_document"
+                        )
+                        self.v3_embeddings[idx] = result['embedding']
+                    except Exception as e:
+                        logger.error(f"Embedding failed for Q+A {idx}: {e}")
+                        self.v3_embeddings[idx] = [0] * 3072
+
+                # Save updated cache
+                with open(cache_file, 'wb') as f:
+                    pickle.dump({'hashes': current_hashes, 'embeddings': self.v3_embeddings}, f)
+                logger.info(f"💾 Cached embeddings to {cache_file}")
+
+                self.v3_enabled = True
+                logger.info(f"✅ V3 Architecture enabled! (incremental: {len(texts_to_encode)} re-embedded)")
+                return
+
+            except Exception as e:
+                logger.warning(f"Cache load failed: {e}, performing full encode...")
+
+        # Full encode (no cache or cache failed)
         logger.info(f"🔄 Computing Gemini embeddings for {len(all_qa)} Q+As...")
         self.v3_embeddings = []
 
@@ -1212,21 +1272,21 @@ class JSONChatbotEngine:
             combined = f"{qa.question} {qa.answer}"[:2000]
             try:
                 result = genai.embed_content(
-                    model="models/text-embedding-004",
+                    model="models/gemini-embedding-001",
                     content=combined,
                     task_type="retrieval_document"
                 )
                 self.v3_embeddings.append(result['embedding'])
             except Exception as e:
                 logger.error(f"Embedding failed for Q+A {i}: {e}")
-                self.v3_embeddings.append([0] * 768)
+                self.v3_embeddings.append([0] * 3072)
 
             if (i + 1) % 100 == 0:
                 logger.info(f"   ... {i+1}/{len(all_qa)}")
 
-        # Save cache
+        # Save cache with hashes
         with open(cache_file, 'wb') as f:
-            pickle.dump(self.v3_embeddings, f)
+            pickle.dump({'hashes': current_hashes, 'embeddings': self.v3_embeddings}, f)
         logger.info(f"💾 Cached embeddings to {cache_file}")
 
         self.v3_enabled = True
@@ -1251,7 +1311,7 @@ class JSONChatbotEngine:
 
         # Embed query
         result = self.genai.embed_content(
-            model="models/text-embedding-004",
+            model="models/gemini-embedding-001",
             content=user_question,
             task_type="retrieval_query"
         )
